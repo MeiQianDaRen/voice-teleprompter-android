@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_alignment_title">Выравнивание текста</string>
+    <string name="text_align_left">Слева</string>
+    <string name="text_align_center">По центру</string>
+    <string name="text_align_right">Справа</string>
+    <string name="overlay_resize_hint">Тяните левый или правый край для ширины, верхний или нижний для высоты. Внутренняя ручка перемещает окно. Размер и положение сохраняются для каждой ориентации.</string>
+    <string name="overlay_move_hint">Переместить плавающее окно</string>
+</resources>

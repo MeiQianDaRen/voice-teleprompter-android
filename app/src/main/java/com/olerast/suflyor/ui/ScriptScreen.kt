@@ -63,7 +63,7 @@ fun ScriptScreen(
     val state = rememberEngineState()
     val context = LocalContext.current
     val targets = remember { CameraTarget.entries.filter { it.isAvailable(context) } }
-    var target by remember { mutableStateOf(CameraTarget.from(app.settings.overlayTarget).takeIf { it in targets } ?: CameraTarget.CAMERA) }
+    var target by remember { mutableStateOf(CameraTarget.from(app.settings.overlayTarget).takeIf { it in targets } ?: CameraTarget.NONE) }
     var confirmDelete by remember { mutableStateOf(false) }
     var showLang by remember { mutableStateOf(false) }
     var showSpeed by remember { mutableStateOf(false) }
@@ -150,7 +150,7 @@ fun ScriptScreen(
                     }
                 }
             }
-            ActionButton(stringResource(R.string.script_action_overlay), R.drawable.ic_layers, primary = true) { onStartOverlay(target) }
+            ActionButton(stringResource(R.string.script_action_overlay), R.drawable.ic_layers, primary = true, centered = true) { onStartOverlay(target) }
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 targets.forEach { t ->
                     Pill(stringResource(t.label), t == target) {

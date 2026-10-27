@@ -47,7 +47,7 @@
     <string name="script_stats">≈ %1$s · %2$s · %3$s</string>
     <string name="script_setup_mic">Разреши микрофон, чтобы суфлёр слышал голос</string>
     <string name="script_setup_a11y">Включи службу «Суфлёр» в спецвозможностях — иначе во время записи суфлёр не услышит голос</string>
-    <string name="script_action_overlay">Поверх камеры</string>
+    <string name="script_action_overlay">Запустить плавающий суфлёр</string>
     <string name="script_action_rehearse">Репетиция</string>
     <string name="script_delete_title">Удалить сценарий?</string>
     <string name="script_delete_message">«%1$s» пропадёт из библиотеки. Исходный файл на телефоне останется.</string>

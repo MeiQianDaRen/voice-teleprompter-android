@@ -8,12 +8,11 @@ import com.olerast.suflyor.R
 
 /** App that "Over the camera" opens right after the floating prompter appears. */
 enum class CameraTarget(@StringRes val label: Int, private val targetPackage: String? = null) {
+    NONE(R.string.camera_target_window_only),
     CAMERA(R.string.camera_target_camera),
     JIANYING(R.string.camera_target_jianying, "com.lemon.lv"),
     DOUYIN(R.string.camera_target_douyin, "com.ss.android.ugc.aweme"),
-    KUAISHOU(R.string.camera_target_kuaishou, "com.smile.gifmaker"),
-    XIAOHONGSHU(R.string.camera_target_xiaohongshu, "com.xingin.xhs"),
-    NONE(R.string.camera_target_window_only);
+    KUAISHOU(R.string.camera_target_kuaishou, "com.smile.gifmaker");
 
     fun launchIntent(context: Context): Intent? {
         val pm = context.packageManager
@@ -29,6 +28,6 @@ enum class CameraTarget(@StringRes val label: Int, private val targetPackage: St
         this == NONE || this == CAMERA || launchIntent(context) != null
 
     companion object {
-        fun from(name: String): CameraTarget = entries.firstOrNull { it.name == name } ?: CAMERA
+        fun from(name: String): CameraTarget = entries.firstOrNull { it.name == name } ?: NONE
     }
 }

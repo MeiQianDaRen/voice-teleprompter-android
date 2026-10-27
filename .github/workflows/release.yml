@@ -96,21 +96,21 @@ jobs:
       - name: Package
         run: |
           mkdir dist
-          cp app/build/outputs/apk/release/app-release.apk "dist/提词器.apk"
-          (cd dist && sha256sum "提词器.apk" > SHA256SUMS.txt)
+          cp app/build/outputs/apk/release/app-release.apk "dist/欧了提词器.apk"
+          (cd dist && sha256sum "欧了提词器.apk" > SHA256SUMS.txt)
           # Release notes: this version's section of CHANGELOG.md plus how to verify the download.
           awk -v v="$VERSION" '$0 == "## " v || index($0, "## " v " ") == 1 { f = 1; next } /^## / && f { exit } f' CHANGELOG.md > notes.md
           cat >> notes.md <<'NOTES'
 
           ---
 
-          **Install:** download `提词器.apk` below and open it on the phone. On Android 13+ allow restricted settings for the accessibility service (see the README).
+          **Install:** download `欧了提词器.apk` below and open it on the phone. On Android 13+ allow restricted settings for the accessibility service (see the README).
 
           **Verify:** the APK is signed with the certificate `SHA-256 77:F3:94:32:F5:05:FB:B7:8B:85:E7:37:CD:00:21:0A:44:C0:7A:13:2C:AC:FF:81:FE:9D:9D:79:CD:E9:A9:06` and built by this repository's workflow:
 
           ```
-          apksigner verify --print-certs 提词器.apk
-          gh attestation verify 提词器.apk --repo @REPO@
+          apksigner verify --print-certs 欧了提词器.apk
+          gh attestation verify 欧了提词器.apk --repo @REPO@
           ```
           NOTES
           sed -i "s|@VERSION@|$VERSION|g; s|@REPO@|$GITHUB_REPOSITORY|g" notes.md
@@ -122,16 +122,16 @@ jobs:
 
       - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: dist/提词器.apk
+          subject-path: dist/欧了提词器.apk
 
       # Created as a draft first: with immutable releases turned on, assets can't be added after publishing.
       - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           draft: true
-          name: 提词器 ${{ env.VERSION }}
+          name: 欧了提词器 ${{ env.VERSION }}
           body_path: notes.md
           files: |
-            dist/提词器.apk
+            dist/欧了提词器.apk
             dist/SHA256SUMS.txt
           fail_on_unmatched_files: true
 

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_alignment_title">Text alignment</string>
+    <string name="text_align_left">Left</string>
+    <string name="text_align_center">Center</string>
+    <string name="text_align_right">Right</string>
+    <string name="overlay_resize_hint">Drag the left or right edge to change width; drag the top or bottom edge to change height. Drag the inner handle to move the window. Sizes and positions are remembered for each orientation.</string>
+    <string name="overlay_move_hint">Drag to move the floating window</string>
+</resources>

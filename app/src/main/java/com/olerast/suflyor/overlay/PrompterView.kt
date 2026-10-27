@@ -53,6 +53,14 @@ class PrompterView(context: Context) : View(context) {
             applyProgress(false)
         }
 
+    var paragraphAlignment: Int = 1
+        set(value) {
+            val next = value.coerceIn(0, 2)
+            if (field == next) return
+            field = next
+            rebuildLayout()
+        }
+
     var wordHighlight = false
         set(v) {
             if (field == v) return
@@ -143,7 +151,7 @@ class PrompterView(context: Context) : View(context) {
             return
         }
         layout = StaticLayout.Builder.obtain(text, 0, text.length, paint, w)
-            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setAlignment(when (paragraphAlignment) { 1 -> Layout.Alignment.ALIGN_CENTER; 2 -> Layout.Alignment.ALIGN_OPPOSITE; else -> Layout.Alignment.ALIGN_NORMAL })
             .setLineSpacing(0f, LINE_SPACING)
             .setIncludePad(false)
             .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)

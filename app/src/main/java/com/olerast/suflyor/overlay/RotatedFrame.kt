@@ -2,7 +2,8 @@ package com.olerast.suflyor.overlay
 
 import android.content.Context
 import android.view.MotionEvent
-import android.view.ScaleGestureDetector
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.view.ViewGroup
 
 /**
@@ -13,37 +14,52 @@ import android.view.ViewGroup
  * when the phone is held sideways, so the prompter has to turn its own content to stay readable.
  */
 class RotatedFrame(context: Context) : ViewGroup(context) {
-    var onScale: ((Float) -> Unit)? = null
-    var onScaleEnd: (() -> Unit)? = null
-    private var resizing = false
-    private val scaleDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-        override fun onScale(detector: ScaleGestureDetector): Boolean {
-            onScale?.invoke(detector.scaleFactor)
-            return true
-        }
-
-        override fun onScaleEnd(detector: ScaleGestureDetector) {
-            onScaleEnd?.invoke()
-        }
-    }).apply { isQuickScaleEnabled = false }
+    var resizeEnabled = true
+        set(value) { field = value; invalidate() }
+    var onResizeStart: ((Int) -> Unit)? = null
+    var onResize: ((Int, Int) -> Unit)? = null
+    var onResizeEnd: (() -> Unit)? = null
+    private var resizeEdges = 0
+    private var downX = 0f
+    private var downY = 0f
+    private val edgeSize = 12 * resources.displayMetrics.density
+    private val edgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xBBFFB020.toInt()
+        strokeWidth = 3 * resources.displayMetrics.density
+        strokeCap = Paint.Cap.ROUND
+    }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        if (event.actionMasked == MotionEvent.ACTION_DOWN) resizing = false
-        if (event.pointerCount > 1 && !resizing) {
-            // Cancel a pending word tap, scroll or button press before the second finger resizes the window.
-            val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
-            super.dispatchTouchEvent(cancel)
-            cancel.recycle()
-            resizing = true
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            resizeEdges = if (!resizeEnabled) 0 else {
+                (if (event.x < edgeSize) OverlayGeometry.LEFT else if (event.x > width - edgeSize) OverlayGeometry.RIGHT else 0) or
+                    (if (event.y < edgeSize) OverlayGeometry.TOP else if (event.y > height - edgeSize) OverlayGeometry.BOTTOM else 0)
+            }
+            if (resizeEdges != 0) {
+                downX = event.rawX
+                downY = event.rawY
+                onResizeStart?.invoke(resizeEdges)
+            }
         }
-        scaleDetector.onTouchEvent(event)
-        if (resizing) {
-            if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) resizing = false
+        if (resizeEdges != 0) {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_MOVE -> if (event.pointerCount == 1) onResize?.invoke((event.rawX - downX).toInt(), (event.rawY - downY).toInt())
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { resizeEdges = 0; onResizeEnd?.invoke() }
+            }
             return true
         }
-        // Keep the sequence even if its first finger landed on an empty part of the panel.
-        super.dispatchTouchEvent(event)
-        return true
+        return super.dispatchTouchEvent(event)
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
+        if (!resizeEnabled) return
+        val half = 12 * resources.displayMetrics.density
+        val inset = 3 * resources.displayMetrics.density
+        canvas.drawLine(width / 2f - half, inset, width / 2f + half, inset, edgePaint)
+        canvas.drawLine(width / 2f - half, height - inset, width / 2f + half, height - inset, edgePaint)
+        canvas.drawLine(inset, height / 2f - half, inset, height / 2f + half, edgePaint)
+        canvas.drawLine(width - inset, height / 2f - half, width - inset, height / 2f + half, edgePaint)
     }
 
     /** 0, 90 (content turned clockwise) or −90. */

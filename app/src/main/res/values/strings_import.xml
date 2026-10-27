@@ -53,7 +53,7 @@
     <string name="script_stats">≈ %1$s · %2$s · %3$s</string>
     <string name="script_setup_mic">Allow the microphone so Suflyor can hear you</string>
     <string name="script_setup_a11y">Turn on the Suflyor service in Accessibility — otherwise Suflyor can\'t hear you while recording</string>
-    <string name="script_action_overlay">Over the camera</string>
+    <string name="script_action_overlay">Start floating prompter</string>
     <string name="script_action_rehearse">Rehearse</string>
     <string name="script_delete_title">Delete script?</string>
     <string name="script_delete_message">“%1$s” will be removed from the library. The original file stays on your phone.</string>

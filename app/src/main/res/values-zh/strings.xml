@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">提词器</string>
-    <string name="a11y_label">提词器：悬浮窗与语音</string>
+    <string name="app_name">欧了提词器</string>
+    <string name="a11y_label">欧了提词器：悬浮窗与语音</string>
     <string name="a11y_description">让 提词器 在其他应用录制视频时仍能听到你的声音，并在相机画面上方显示提词。仅在 提词器 提词期间运行：读取前台应用名称（用于日志），并接收你在设置中指定的音量键、蓝牙遥控器和键盘按键。不读取屏幕内容。语音识别在本机完成；应用启动或手动更新稿件时访问你配置的在线地址。</string>
 </resources>

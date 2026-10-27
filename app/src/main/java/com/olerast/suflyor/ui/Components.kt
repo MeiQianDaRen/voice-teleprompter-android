@@ -102,11 +102,19 @@ fun ActionButton(
     @DrawableRes icon: Int,
     modifier: Modifier = Modifier,
     primary: Boolean = false,
+    centered: Boolean = false,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(18.dp)
     val bg = if (primary) Palette.Accent else Palette.Surface
     val fg = if (primary) Palette.OnAccent else Palette.Text
+    if (centered) {
+        Box(modifier.fillMaxWidth().height(58.dp).clip(shape).background(bg).clickable(onClick = onClick).padding(horizontal = 20.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.align(Alignment.CenterStart)) { Ic(icon, null, tint = fg) }
+            Text(text, style = MaterialTheme.typography.labelLarge, color = fg, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(horizontal = 30.dp))
+        }
+        return
+    }
     Row(
         modifier.fillMaxWidth().height(58.dp).clip(shape).background(bg).clickable(onClick = onClick).padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -237,6 +245,7 @@ fun Prompter(
             }
             v.linesAbove = linesAbove
             v.wordHighlight = highlight
+            v.paragraphAlignment = App.instance.settings.textAlignment
             v.mirrorX = mirrorX
             v.mirrorY = mirrorY
             v.setProgress(nextToken)

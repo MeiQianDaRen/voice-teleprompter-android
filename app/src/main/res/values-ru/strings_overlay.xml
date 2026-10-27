@@ -14,7 +14,7 @@
 
     <string name="overlay_toast_closed_a11y_off">Окно суфлёра закрыто: служба спецвозможностей выключена</string>
 
-    <string name="tile_label">提词器</string>
+    <string name="tile_label">欧了提词器</string>
     <string name="tile_subtitle_listening">слушает</string>
 
     <string name="notification_channel_session">Суфлёр работает</string>

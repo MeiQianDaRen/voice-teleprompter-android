@@ -6,11 +6,12 @@ import org.junit.Test
 
 class CameraTargetTest {
     @Test
-    fun cameraComesFirstAndUnsupportedSavedTargetsFallBackToCamera() {
-        assertEquals(listOf("CAMERA", "JIANYING", "DOUYIN", "KUAISHOU", "XIAOHONGSHU", "NONE"), CameraTarget.entries.map { it.name })
-        assertEquals(CameraTarget.CAMERA, CameraTarget.from("INSTAGRAM"))
-        assertEquals(CameraTarget.CAMERA, CameraTarget.from("TIKTOK"))
-        assertEquals(CameraTarget.CAMERA, CameraTarget.from("unknown"))
+    fun windowOnlyComesFirstAndUnsupportedSavedTargetsFallBackToWindowOnly() {
+        assertEquals(listOf("NONE", "CAMERA", "JIANYING", "DOUYIN", "KUAISHOU"), CameraTarget.entries.map { it.name })
+        assertEquals(CameraTarget.NONE, CameraTarget.from("INSTAGRAM"))
+        assertEquals(CameraTarget.NONE, CameraTarget.from("TIKTOK"))
+        assertEquals(CameraTarget.NONE, CameraTarget.from("unknown"))
+        assertEquals(CameraTarget.NONE, CameraTarget.from("XIAOHONGSHU"))
         assertEquals(CameraTarget.DOUYIN, CameraTarget.from("DOUYIN"))
     }
 }

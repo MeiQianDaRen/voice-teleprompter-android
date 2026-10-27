@@ -143,9 +143,13 @@ class Settings(context: Context) {
     var overlayAlpha: Int
         get() = prefs.getInt("overlayAlpha", 72)
         set(v) = prefs.edit().putInt("overlayAlpha", v).apply()
-    var overlayScale: Float
-        get() = prefs.getFloat("overlayScale", 1f).coerceIn(0.5f, 2f)
-        set(v) = prefs.edit().putFloat("overlayScale", v.coerceIn(0.5f, 2f)).apply()
+    fun overlayBounds(placement: String): String? = prefs.getString("overlayBounds3.$placement", null)
+    fun saveOverlayBounds(placement: String, value: String) { prefs.edit().putString("overlayBounds3.$placement", value).apply() }
+
+    var textAlignment: Int
+        get() = prefs.getInt("textAlignment", 1).coerceIn(0, 2)
+        set(value) = prefs.edit().putInt("textAlignment", value.coerceIn(0, 2)).apply()
+
     var floatingButton: Boolean
         get() = prefs.getBoolean("floatingButton", true)
         set(v) = prefs.edit().putBoolean("floatingButton", v).apply()
@@ -159,8 +163,8 @@ class Settings(context: Context) {
 
     /** Which app "Поверх камеры" opens: name of [com.olerast.suflyor.overlay.CameraTarget]. */
     var overlayTarget: String
-        get() = prefs.getString("overlayTarget", "CAMERA") ?: "CAMERA"
-        set(v) = prefs.edit().putString("overlayTarget", v).apply()
+        get() = prefs.getString("overlayTarget2", "NONE") ?: "NONE"
+        set(v) = prefs.edit().putString("overlayTarget2", v).apply()
 
     /** Hardware keys (volume, Bluetooth remote, ring, keyboard) control the prompter during a session. */
     var keyControl: Boolean

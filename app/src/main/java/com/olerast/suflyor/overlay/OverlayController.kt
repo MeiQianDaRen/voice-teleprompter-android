@@ -92,8 +92,14 @@ class OverlayController(private val context: Context, private val windowType: In
     private var pendingSince = 0L
     private var orientationListener: OrientationEventListener? = null
     private var fontSp = app.settings.fontSp
-    private var windowScale = app.settings.overlayScale
-    private var portraitY = app.settings.overlayY.coerceAtLeast(0)
+    private var windowBounds: OverlayGeometry.Rect? = null
+    private var boundsPlacement: Placement? = null
+    private var boundsScreenW = 0
+    private var boundsScreenH = 0
+    private var dragStart: OverlayGeometry.Rect? = null
+    private var dragPlacement = Placement.PORTRAIT
+    private var resizeEdges = 0
+    private var boundsUpdatePosted = false
     private var safeTop = 0
     private var lastScript: Any? = null
 
@@ -121,6 +127,7 @@ class OverlayController(private val context: Context, private val windowType: In
             setTextSizeSp(fontSp.toFloat())
             linesAbove = 0f
             wordHighlight = app.settings.wordHighlight
+            paragraphAlignment = app.settings.textAlignment
             onWordTap = { app.engine.jumpToToken(it) }
         }
         countdown = TextView(context).apply {
@@ -186,6 +193,7 @@ class OverlayController(private val context: Context, private val windowType: In
             visibility = if (app.settings.showDiagnostics) View.VISIBLE else View.GONE
         }
         grabber = FrameLayout(context).apply {
+            contentDescription = context.getString(R.string.overlay_move_hint)
             addView(View(context).apply {
                 background = GradientDrawable().apply {
                     cornerRadius = dp(2).toFloat()
@@ -203,18 +211,23 @@ class OverlayController(private val context: Context, private val windowType: In
             addView(controls, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(44)))
             addView(tuneRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             addView(diag, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-            addView(grabber, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(18)))
+            addView(grabber, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(40)))
         }
         val root = RotatedFrame(context).apply {
             keepScreenOn = true
-            onScale = { factor ->
-                if (factor.isFinite() && factor > 0f) {
-                    windowScale = (windowScale * factor).coerceIn(0.5f, 2f)
-                    applyPlacement()
-                    wm.updateViewLayout(this, params)
+            onResizeStart = { edges ->
+                resizeEdges = edges
+                dragStart = windowBounds
+                dragPlacement = placement
+            }
+            onResize = { dx, dy ->
+                val start = dragStart
+                if (start != null && dragPlacement == placement) {
+                    val (minW, minH) = minimumWindowSize()
+                    updateBounds(OverlayGeometry.resize(start, resizeEdges, dx, dy, boundsScreenW, boundsScreenH, minW, minH))
                 }
             }
-            onScaleEnd = { app.settings.overlayScale = windowScale }
+            onResizeEnd = { saveBounds() }
             addView(panel, android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT))
         }
 
@@ -236,21 +249,23 @@ class OverlayController(private val context: Context, private val windowType: In
         placement = computePlacement()
         applyPlacement()
 
+        var downX = 0f
         var downY = 0f
-        var startY = 0
         grabber.setOnTouchListener { _, e ->
-            if (placement != Placement.PORTRAIT) return@setOnTouchListener false
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    downX = e.rawX
                     downY = e.rawY
-                    startY = portraitY
+                    dragStart = windowBounds
+                    dragPlacement = placement
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    portraitY = (startY + (e.rawY - downY)).toInt().coerceIn(0, context.resources.displayMetrics.heightPixels / 2)
-                    applyPlacement()
-                    frame?.let { wm.updateViewLayout(it, params) }
+                    val start = dragStart
+                    if (start != null && dragPlacement == placement) {
+                        updateBounds(start.copy(x = start.x + (e.rawX - downX).toInt(), y = start.y + (e.rawY - downY).toInt()))
+                    }
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> app.settings.overlayY = portraitY
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> saveBounds()
             }
             true
         }
@@ -313,7 +328,6 @@ class OverlayController(private val context: Context, private val windowType: In
     private fun relayoutIfNeeded() {
         val root = frame ?: return
         val next = computePlacement()
-        if (next == placement) return
         placement = next
         DiagLog.i("Window: ${describe(next)}")
         applyPlacement()
@@ -327,87 +341,89 @@ class OverlayController(private val context: Context, private val windowType: In
         Placement.SIDE_LEFT, Placement.SIDE_RIGHT -> "landscape screen — window next to the lens"
     }
 
-    /** Window size and position, content rotation, paddings that keep text clear of the camera cut-out. */
+    private fun minimumWindowSize(): Pair<Int, Int> {
+        val chrome = (if (locked) 0 else dp(84)) +
+            (if (tuneRow.visibility == View.VISIBLE) tuneRow.measuredHeight.coerceAtLeast(dp(96)) else 0) +
+            (if (diag.visibility == View.VISIBLE) dp(44) else 0)
+        return OverlayGeometry.minimum(frame?.angle ?: 0,
+            dp(if (tuneRow.visibility == View.VISIBLE) 320 else 240), prompter.lineHeightPx + dp(36) + chrome + safeTop)
+    }
+
+    private fun updateBounds(next: OverlayGeometry.Rect) {
+        val (minW, minH) = minimumWindowSize()
+        val fitted = OverlayGeometry.fit(next, boundsScreenW, boundsScreenH, minW, minH)
+        if (fitted == windowBounds) return
+        windowBounds = fitted
+        val root = frame ?: return
+        if (boundsUpdatePosted) return
+        boundsUpdatePosted = true
+        root.postOnAnimation {
+            boundsUpdatePosted = false
+            if (frame === root) {
+                applyPlacement()
+                wm.updateViewLayout(root, params)
+            }
+        }
+    }
+
+    private fun saveBounds() {
+        windowBounds?.let { app.settings.saveOverlayBounds(placement.name, OverlayGeometry.save(it, boundsScreenW, boundsScreenH)) }
+    }
+
+    /** Physical screen coordinates avoid swapped or reversed deltas when the panel is turned. */
     private fun applyPlacement() {
         val root = frame ?: return
         val bounds = if (Build.VERSION.SDK_INT >= 30) wm.currentWindowMetrics.bounds else null
-        val screenW = bounds?.width() ?: context.resources.displayMetrics.widthPixels
-        val screenH = bounds?.height() ?: context.resources.displayMetrics.heightPixels
-        val r = dp(22).toFloat()
-        val textBox = prompter.parent as View
-        val portrait = placement == Placement.PORTRAIT
-        val minTextHeight = prompter.lineHeightPx + dp(36)
-        val basePadStart = dp(18)
-        val basePadEnd = dp(14)
-
+        val screenW = (bounds?.width() ?: context.resources.displayMetrics.widthPixels).coerceAtLeast(1)
+        val screenH = (bounds?.height() ?: context.resources.displayMetrics.heightPixels).coerceAtLeast(1)
         root.angle = when (placement) {
             Placement.TURNED_LEFT -> 90
             Placement.TURNED_RIGHT -> -90
             else -> 0
         }
+        root.resizeEnabled = !locked
         panel.layoutParams = panel.layoutParams.apply {
             width = android.view.ViewGroup.LayoutParams.MATCH_PARENT
-            height = if (portrait) android.view.ViewGroup.LayoutParams.WRAP_CONTENT else android.view.ViewGroup.LayoutParams.MATCH_PARENT
+            height = android.view.ViewGroup.LayoutParams.MATCH_PARENT
         }
-        textBox.layoutParams = (textBox.layoutParams as LinearLayout.LayoutParams).apply {
-            if (portrait) {
-                height = (prompterHeight() * windowScale).toInt().coerceIn(
-                    minTextHeight, (screenH - portraitY - safeTop - dp(200)).coerceAtLeast(minTextHeight),
-                )
-                weight = 0f
-            } else {
-                height = 0
-                weight = 1f
+        (prompter.parent as View).layoutParams = ((prompter.parent as View).layoutParams as LinearLayout.LayoutParams).apply {
+            height = 0
+            weight = 1f
+        }
+        grabber.visibility = if (locked) View.GONE else View.VISIBLE
+        linesGroup?.visibility = View.VISIBLE
+        if (boundsPlacement != placement || boundsScreenW != screenW || boundsScreenH != screenH) {
+            windowBounds = OverlayGeometry.restore(app.settings.overlayBounds(placement.name), screenW, screenH) ?: when (placement) {
+                Placement.PORTRAIT -> OverlayGeometry.Rect(0, app.settings.overlayY.coerceAtLeast(0), screenW, prompterHeight() + dp(84) + safeTop)
+                Placement.TURNED_LEFT, Placement.TURNED_RIGHT -> OverlayGeometry.Rect(0, 0, screenW, (screenH * 0.46f).toInt())
+                Placement.SIDE_LEFT -> OverlayGeometry.Rect(0, 0, (screenW * 0.46f).toInt(), screenH)
+                Placement.SIDE_RIGHT -> OverlayGeometry.Rect(screenW - (screenW * 0.46f).toInt(), 0, (screenW * 0.46f).toInt(), screenH)
             }
+            boundsPlacement = placement
+            boundsScreenW = screenW
+            boundsScreenH = screenH
         }
-        grabber.visibility = if (portrait && !locked) View.VISIBLE else View.GONE
-        linesGroup?.visibility = if (portrait) View.VISIBLE else View.INVISIBLE
+        val (minW, minH) = minimumWindowSize()
+        val rect = OverlayGeometry.fit(windowBounds!!, screenW, screenH, minW, minH)
+        windowBounds = rect
+        params.width = rect.width
+        params.height = rect.height
+        params.x = rect.x
+        params.y = rect.y
+        params.gravity = Gravity.TOP or Gravity.LEFT
+        background.cornerRadius = dp(18).toFloat()
         panel.setPadding(0, 0, 0, 0)
-        prompter.setPadding(basePadStart, dp(4), basePadEnd, dp(2))
-        topSpacer.layoutParams = topSpacer.layoutParams.apply { height = 0 }
-
+        prompter.setPadding(dp(18), dp(4), dp(14), dp(2))
+        topSpacer.layoutParams = topSpacer.layoutParams.apply {
+            height = if (placement == Placement.PORTRAIT) (safeTop - rect.y).coerceAtLeast(0) else 0
+        }
+        val cut = (safeTop - rect.y).coerceAtLeast(0)
         when (placement) {
-            Placement.PORTRAIT -> {
-                params.width = (screenW * windowScale).toInt().coerceIn(dp(324).coerceAtMost(screenW), screenW)
-                params.height = WindowManager.LayoutParams.WRAP_CONTENT
-                params.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                params.x = 0
-                params.y = portraitY
-                topSpacer.layoutParams = topSpacer.layoutParams.apply { height = (safeTop - params.y).coerceAtLeast(0) }
-                val top = if (params.y == 0) 0f else r
-                background.cornerRadii = floatArrayOf(top, top, top, top, r, r, r, r)
-            }
-            Placement.TURNED_LEFT, Placement.TURNED_RIGHT -> {
-                params.width = (screenW * windowScale).toInt().coerceIn(dp(324).coerceAtMost(screenW), screenW)
-                params.height = (screenH * 0.46f * windowScale).toInt().coerceIn(dp(324).coerceAtMost(screenH), screenH)
-                params.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                params.x = 0
-                params.y = 0
-                // The lens is at the screen's top edge = the start (left) or the end (right) of every text line.
-                if (placement == Placement.TURNED_LEFT) {
-                    prompter.setPadding(basePadStart + safeTop, dp(6), basePadEnd, dp(4))
-                    background.cornerRadii = floatArrayOf(0f, 0f, r, r, r, r, 0f, 0f)
-                } else {
-                    prompter.setPadding(basePadStart, dp(6), basePadEnd + safeTop, dp(4))
-                    background.cornerRadii = floatArrayOf(r, r, 0f, 0f, 0f, 0f, r, r)
-                }
-            }
-            Placement.SIDE_LEFT, Placement.SIDE_RIGHT -> {
-                params.width = (screenW * 0.46f * windowScale).toInt().coerceIn(dp(324).coerceAtMost(screenW), screenW)
-                params.height = (screenH * windowScale).toInt().coerceIn(dp(160).coerceAtMost(screenH), screenH)
-                params.x = 0
-                params.y = 0
-                val cut = sideCutout()
-                if (placement == Placement.SIDE_LEFT) {
-                    params.gravity = Gravity.TOP or Gravity.LEFT
-                    panel.setPadding(cut, 0, 0, 0)
-                    background.cornerRadii = floatArrayOf(0f, 0f, r, r, r, r, 0f, 0f)
-                } else {
-                    params.gravity = Gravity.TOP or Gravity.RIGHT
-                    panel.setPadding(0, 0, cut, 0)
-                    background.cornerRadii = floatArrayOf(r, r, 0f, 0f, 0f, 0f, r, r)
-                }
-            }
+            Placement.TURNED_LEFT -> prompter.setPadding(dp(18) + cut, dp(4), dp(14), dp(2))
+            Placement.TURNED_RIGHT -> prompter.setPadding(dp(18), dp(4), dp(14) + cut, dp(2))
+            Placement.SIDE_LEFT -> if (rect.x == 0) panel.setPadding(sideCutout(), 0, 0, 0)
+            Placement.SIDE_RIGHT -> if (rect.x + rect.width == screenW) panel.setPadding(0, 0, sideCutout(), 0)
+            else -> Unit
         }
         panel.requestLayout()
     }
@@ -438,7 +454,9 @@ class OverlayController(private val context: Context, private val windowType: In
         locked = value
         controls.visibility = if (value) View.GONE else View.VISIBLE
         if (value) tuneRow.visibility = View.GONE
-        grabber.visibility = if (!value && placement == Placement.PORTRAIT) View.VISIBLE else View.GONE
+        grabber.visibility = if (value) View.GONE else View.VISIBLE
+        root.resizeEnabled = !value
+        applyPlacement()
         params.flags = if (value) {
             params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         } else {
@@ -505,6 +523,8 @@ class OverlayController(private val context: Context, private val windowType: In
                     p.y = loc[1] + root.height + dp(6)
                 }
             }
+            p.x = p.x.coerceIn(0, (boundsScreenW - size).coerceAtLeast(0))
+            p.y = p.y.coerceIn(0, (boundsScreenH - size).coerceAtLeast(0))
             runCatching { wm.updateViewLayout(view, p) }
         }
     }
@@ -519,6 +539,7 @@ class OverlayController(private val context: Context, private val windowType: In
 
     private fun render(s: SessionEngine.State) {
         if (frame == null) return
+        prompter.paragraphAlignment = app.settings.textAlignment
         if (lastScript !== app.scripts.model) {
             lastScript = app.scripts.model
             prompter.setScript(app.scripts.model)
@@ -555,6 +576,8 @@ class OverlayController(private val context: Context, private val windowType: In
         val showDiag = app.settings.showDiagnostics || s.error != null
         if (showDiag != (diag.visibility == View.VISIBLE)) {
             diag.visibility = if (showDiag) View.VISIBLE else View.GONE
+            applyPlacement()
+            frame?.let { wm.updateViewLayout(it, params) }
             // The window's height changes: the unlock button sits right under it.
             if (locked) positionBubble()
         }
@@ -642,13 +665,20 @@ class OverlayController(private val context: Context, private val windowType: In
     private fun setTuneOpen(open: Boolean) {
         tuneRow.visibility = if (open) View.VISIBLE else View.GONE
         tuneValues.forEach { it() }
+        applyPlacement()
         frame?.let { wm.updateViewLayout(it, params) }
         if (locked) positionBubble()
     }
 
     private fun changeLines(delta: Int) {
-        app.settings.overlayLines = (app.settings.overlayLines + delta).coerceIn(1, 8)
+        val old = app.settings.overlayLines
+        app.settings.overlayLines = (old + delta).coerceIn(1, 8)
+        val change = (app.settings.overlayLines - old) * prompter.lineHeightPx
+        windowBounds?.let { rect ->
+            windowBounds = if (frame?.angle == 0) rect.copy(height = rect.height + change) else rect.copy(width = rect.width + change)
+        }
         applyPlacement()
+        saveBounds()
         frame?.let { wm.updateViewLayout(it, params) }
     }
 
@@ -698,7 +728,7 @@ class OverlayController(private val context: Context, private val windowType: In
         contentDescription = context.getString(description)
         scaleType = ImageView.ScaleType.CENTER
         background = ripple()
-        layoutParams = LinearLayout.LayoutParams(dp(38), dp(40))
+        layoutParams = LinearLayout.LayoutParams(0, dp(40), 1f)
         setOnClickListener { onClick() }
     }
 

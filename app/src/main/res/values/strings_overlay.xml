@@ -18,7 +18,7 @@
     <string name="overlay_toast_closed_a11y_off">Suflyor window closed: the accessibility service was turned off</string>
 
     <!-- Quick Settings tile. The subtitle shows the script title when not running. -->
-    <string name="tile_label">提词器</string>
+    <string name="tile_label">欧了提词器</string>
     <string name="tile_subtitle_listening">Listening</string>
 
     <!-- Notification while the window is over other apps -->

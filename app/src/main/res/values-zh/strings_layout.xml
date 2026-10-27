@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="text_alignment_title">文字对齐</string>
+    <string name="text_align_left">左对齐</string>
+    <string name="text_align_center">居中对齐</string>
+    <string name="text_align_right">右对齐</string>
+    <string name="overlay_resize_hint">拖左右边缘调整宽度，拖上下边缘调整高度；拖动窗内把手移动位置。横竖屏分别记忆大小和位置。</string>
+    <string name="overlay_move_hint">拖动把手移动悬浮窗</string>
+</resources>

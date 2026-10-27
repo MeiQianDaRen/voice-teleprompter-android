@@ -251,11 +251,19 @@ private fun OverlayPage() {
     val s = App.instance.settings
     val context = LocalContext.current
     var floatingButton by remember { mutableStateOf(s.floatingButton) }
+    var alignment by remember { mutableIntStateOf(s.textAlignment) }
     var lines by remember { mutableIntStateOf(s.overlayLines) }
     var font by remember { mutableIntStateOf(s.fontSp) }
     var alpha by remember { mutableIntStateOf(s.overlayAlpha) }
     var autoRotate by remember { mutableStateOf(s.autoRotate) }
     Hint(stringResource(R.string.settings_overlay_page_hint))
+    Hint(stringResource(R.string.overlay_resize_hint))
+    SectionTitle(stringResource(R.string.text_alignment_title))
+    Row(Modifier.padding(horizontal = 20.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(R.string.text_align_left, R.string.text_align_center, R.string.text_align_right).forEachIndexed { index, label ->
+            Pill(stringResource(label), alignment == index) { alignment = index; s.textAlignment = index }
+        }
+    }
     ToggleRow(stringResource(R.string.floating_button_title), stringResource(R.string.floating_button_hint), floatingButton) {
         floatingButton = it
         s.floatingButton = it
