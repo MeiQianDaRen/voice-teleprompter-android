@@ -108,7 +108,7 @@
     <string name="settings_language_title">应用语言</string>
     <string name="settings_language_value">简体中文</string>
     <string name="settings_log_hint">查看麦克风和语音识别的运行情况</string>
-    <string name="settings_about_version">提词器 %1$s · 语音识别：sherpa-onnx；模型：alphacep（俄语）、icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0</string>
+    <string name="settings_about_version">提词器 %1$s · 语音识别：sherpa-onnx；模型：icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0</string>
     <string name="rehearsal_status_error">发生错误，详情见下方</string>
     <string name="rehearsal_status_sound">说话时滚动 · %1$d 字词/分钟</string>
     <string name="library_save_failed">无法保存稿件：%1$s</string>

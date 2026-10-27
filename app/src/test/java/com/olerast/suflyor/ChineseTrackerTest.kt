@@ -35,9 +35,11 @@ class ChineseTrackerTest {
         assertEquals(zh, detect(Paragraph("这是一个中文提词稿件。")))
         assertEquals(zh, detect(Paragraph("今天我们介绍 AI 手机拍摄。")))
         assertEquals(SpeechLang.EN, detect(Paragraph("中文标题", Paragraph.Kind.HEADING), Paragraph("[微笑] Hello everyone.")))
-        assertEquals(SpeechLang.RU, detect())
+        assertEquals(SpeechLang.EN, detect())
         assertEquals(zh, detect(Paragraph("𠀀𠀁")))
         assertEquals(zh, SpeechLang.fromCode("zh"))
+        assertEquals(listOf(zh, SpeechLang.EN), SpeechLang.supported)
+        assertEquals(null, SpeechLang.fromCode("ru"))
     }
 
     @Test

@@ -28,7 +28,7 @@
 It is made for creators who hold the phone, read a couple of lines to the lens, look back at the text and carry on. If you stumble and start a sentence again, the text goes back with you. If you skip a paragraph, it catches up.
 
 > [!NOTE]
-> **Works in English and Russian.** The interface follows your phone's language, and Suflyor picks the speech language from your script's letters (or set it in Settings). More languages are on the [roadmap](#roadmap).
+> **Works in Chinese and English.** The interface follows your phone's language, and Suflyor picks the speech language from your script's letters (or set it in Settings). More languages are on the [roadmap](#roadmap).
 
 ## Screenshots
 
@@ -43,7 +43,7 @@ It is made for creators who hold the phone, read a couple of lines to the lens, 
 ## Features
 
 **Follows your voice**
-- On-device streaming speech recognition for **Chinese, English and Russian** ([sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)). No cloud, no account, no delay from the network.
+- On-device streaming speech recognition for **Chinese and English** ([sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)). No cloud, no account, no delay from the network.
 - Understands how people read English: contractions (don't, it's), numbers written as digits but said as words, abbreviations (Mr., Dr.), acronyms (AI, CEO) and "um"s.
 - Searches the whole script, not only the next few words. Rare words count more than common ones, so it doesn't jump on every "and".
 - Re-reading a line brings the text back to it after about two words. A skipped block is found after three or four.
@@ -148,7 +148,7 @@ cd suflyor
 ./gradlew assembleDebug testDebugUnitTest
 ```
 
-- **Downloads on first build.** The speech library (sherpa-onnx 1.13.8, ~50 MB), the Russian model (~28 MB) and the English model (~73 MB) are not stored in git. The `fetchSpeechAssets` task downloads them from pinned revisions and checks every file against a pinned SHA-256.
+- **Downloads on first build.** The speech library (sherpa-onnx 1.13.8, ~50 MB), the Chinese model (~31 MB) and the English model (~73 MB) are not stored in git. The `fetchSpeechAssets` task downloads them from pinned revisions and checks every file against a pinned SHA-256.
 - **Release builds** (`./gradlew assembleRelease`) are signed only when a key is configured, through `keystore.properties` or the `SUFLYOR_*` environment variables. Without a key they come out unsigned. See [RELEASING.md](RELEASING.md).
 - **On Windows,** `.\build.ps1` and `.\install.ps1` read `sdk.dir` and `jdk.dir` from `local.properties`.
 
@@ -209,7 +209,7 @@ Speech recognition works offline; audio is never recorded or uploaded. Optional 
 <details>
 <summary><b>Which languages does it understand?</b></summary>
 
-Chinese, English and Russian speech, picked automatically from the script or set in Settings. The interface supports Simplified Chinese, English and Russian. More languages are planned as downloadable packs.
+Chinese and English speech, picked automatically from the script or set in Settings. The interface supports Simplified Chinese, English and Russian. More languages are planned as downloadable packs.
 </details>
 
 <details>
@@ -247,7 +247,6 @@ Bug reports from different phones are the most valuable help. Attach the in-app 
 ## Credits
 
 - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) by the k2-fsa team: streaming speech recognition (Apache-2.0).
-- [vosk-model-small-streaming-ru](https://huggingface.co/alphacep/vosk-model-small-streaming-ru) by Alpha Cephei: the Russian model (Apache-2.0).
 - The [icefall](https://github.com/k2-fsa/icefall) streaming Zipformer trained on LibriSpeech: the English model (Apache-2.0).
 - [ONNX Runtime](https://github.com/microsoft/onnxruntime) (MIT), Jetpack Compose (Apache-2.0).
 - The full list is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

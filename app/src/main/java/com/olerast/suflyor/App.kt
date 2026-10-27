@@ -32,6 +32,7 @@ class App : Application() {
         engine = SessionEngine(this)
         scripts = ScriptRepository(this, settings)
         onlineLibrary = OnlineLibrary(settings, scripts)
+        onlineLibrary.sync()
         offerPdfImport()
         DiagLog.i("App started, Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT}), ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
     }
@@ -121,6 +122,9 @@ class Settings(context: Context) {
     var overlayAlpha: Int
         get() = prefs.getInt("overlayAlpha", 72)
         set(v) = prefs.edit().putInt("overlayAlpha", v).apply()
+    var overlayScale: Float
+        get() = prefs.getFloat("overlayScale", 1f).coerceIn(0.5f, 2f)
+        set(v) = prefs.edit().putFloat("overlayScale", v.coerceIn(0.5f, 2f)).apply()
     var overlayY: Int
         get() = prefs.getInt("overlayY2", 0)
         set(v) = prefs.edit().putInt("overlayY2", v).apply()

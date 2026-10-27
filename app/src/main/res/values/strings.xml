@@ -3,5 +3,5 @@
 <resources>
     <string name="app_name">提词器</string>
     <string name="a11y_label">提词器：悬浮窗与语音</string>
-    <string name="a11y_description">Lets Suflyor hear your voice while another app records video, and show your text over the camera. Works only during a Suflyor session: it sees which app is on screen (for the log) and receives the volume, Bluetooth-remote and keyboard buttons set up in Settings. It doesn\'t read screen content. Speech recognition stays on your phone. Only manual script catalog synchronization accesses your configured URL.</string>
+    <string name="a11y_description">Lets Suflyor hear your voice while another app records video, and show your text over the camera. Works only during a Suflyor session: it sees which app is on screen (for the log) and receives the volume, Bluetooth-remote and keyboard buttons set up in Settings. It doesn\'t read screen content. Speech recognition stays on your phone. Your configured script catalog updates on app startup or when you choose Sync.</string>
 </resources>

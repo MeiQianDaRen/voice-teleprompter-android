@@ -95,7 +95,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
 
     /** Language of [model], readable from the audio thread without the lock. */
     @Volatile
-    private var lang = SpeechLang.RU
+    private var lang = SpeechLang.EN
 
     @Volatile
     private var asr: AsrEngine? = null
@@ -477,6 +477,9 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         if (engine != null && !feeding) {
             // Audio from before the pause must not complete a word now.
             runCatching { engine.reset() }
+            synchronized(lock) {
+                if (lang == SpeechLang.ZH) tracker.reset(tracker.position)
+            }
         }
         feeding = engine != null
         if (engine != null) {
@@ -520,13 +523,14 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             }
             val before = tracker.position
             if (!state.paused && state.scroll == Scroll.VOICE) {
-                moved = tracker.onHypothesis(finalWords.toList() + partialWords)
+                moved = if (lang == SpeechLang.ZH) tracker.onTranscript(upd.text, upd.isFinal)
+                    else tracker.onHypothesis(finalWords.toList() + partialWords)
             }
             pos = tracker.position
             if (pos < before) displayPos = pos
             // The lead hides recognition latency while following the voice; it has no meaning when paused or timed.
             val voice = !state.paused && state.scroll == Scroll.VOICE
-            val maxLead = if (voice) app.settings.leadWords else 0
+            val maxLead = if (voice && lang != SpeechLang.ZH) app.settings.leadWords else 0
             val lead = if (voice && now - lastSpeechAt < SPEAKING_MS) maxLead else 0
             displayPos = maxOf(displayPos, minOf(pos + lead, tracker.size)).coerceAtMost(pos + maxLead)
             next = tracker.tokenIndexAt(displayPos)

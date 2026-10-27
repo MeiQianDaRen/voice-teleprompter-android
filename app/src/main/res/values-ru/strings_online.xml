@@ -20,4 +20,5 @@
     <string name="online_error_entry">Некорректные поля, повторяющийся id или текст длиннее 100 000 символов.</string>
     <string name="online_error_storage">Часть сценариев не сохранена. Проверьте свободное место и повторите синхронизацию.</string>
     <string name="format_online">онлайн</string>
+    <string name="online_update">Обновить</string>
 </resources>

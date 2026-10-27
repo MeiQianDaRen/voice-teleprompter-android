@@ -123,12 +123,9 @@ dependencies {
     testImplementation("org.json:json:20240303")
 }
 
-// ---- Speech engine, Russian, English and Chinese models -------------------------------------------------------
+// ---- Speech engine, English and Chinese models -------------------------------------------------------
 // Not stored in git: downloaded once from their official sources, pinned to exact revisions and
 // checked by SHA-256. Licenses: see THIRD_PARTY_NOTICES.md.
-
-private val modelBase =
-    "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-small-ru-vosk-int8-2025-08-16/resolve/31fa603e4f31279c6e1f7600fed13dc4312663ab"
 
 private val enModelBase =
     "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-26/resolve/672fbf1b30579d6585301139bb363f42a0ad4a24"
@@ -141,16 +138,6 @@ private val speechAssets = listOf(
         "libs/sherpa-onnx-1.13.8.aar",
         "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-1.13.8.aar",
         "633c24321e06b1fe79feafa03ea16cbc0f8a286641e2da3559bac91bdb13bd96",
-    ),
-    Triple("src/main/assets/asr-ru/encoder.int8.onnx", "$modelBase/encoder.int8.onnx", "e0db705e94ec35d803b1df4f40cda23d064e1142977c80ab288430b109777a9d"),
-    Triple("src/main/assets/asr-ru/decoder.onnx", "$modelBase/decoder.onnx", "89b3088a9e20e1ef7f2e85ce1a3478afe6a9c4ac57369cabcc4beb8e95328ea0"),
-    Triple("src/main/assets/asr-ru/joiner.int8.onnx", "$modelBase/joiner.int8.onnx", "b55784b071ab7512eab4c7c44e4f5478284ef33c83562cc6a249b972515a31e5"),
-    Triple("src/main/assets/asr-ru/tokens.txt", "$modelBase/tokens.txt", "93bbbc0bae6b78c0bbb743d4aa9fded3bb5ff3aac5f0200e3a769a5a05e0fdf6"),
-    // The model's BPE vocabulary for script-word hints; its pieces match tokens.txt.
-    Triple(
-        "src/main/assets/asr-ru/bpe.vocab",
-        "https://huggingface.co/alphacep/vosk-model-small-streaming-ru/resolve/e18123ee13f694036a1eea82eb43f9895387cb59/lang/unigram_500.vocab",
-        "b159479dd209823a82698ea4092b2627272d96fbe616b91409ed02bc6cfb8df4",
     ),
     // English: streaming Zipformer trained on LibriSpeech (icefall 2023-05-17, 320 ms chunks), int8 encoder and joiner.
     Triple("src/main/assets/asr-en/encoder.int8.onnx", "$enModelBase/encoder-epoch-99-avg-1-chunk-16-left-128.int8.onnx", "563fde436d16cf7607cf408cd6b30909819d03162652ef389c2450ced3f45ac1"),
@@ -203,9 +190,11 @@ private fun download(url: String, to: File) {
 
 val fetchSpeechAssets by tasks.registering {
     group = "build setup"
-    description = "Downloads the speech recognition library and Russian, English and Chinese models (not stored in git)."
+    description = "Downloads the speech recognition library and English and Chinese models (not stored in git)."
     val dir = layout.projectDirectory.asFile
     doLast {
+        // Remove obsolete downloaded assets from existing checkouts before packaging.
+        delete(File(dir, "src/main/assets/asr-ru"))
         for ((path, url, sha) in speechAssets) {
             val target = File(dir, path)
             if (target.exists() && sha256(target) == sha) continue

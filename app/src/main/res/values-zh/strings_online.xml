@@ -20,4 +20,5 @@
     <string name="online_error_entry">稿件字段无效、ID 重复或正文超过 10 万字符。</string>
     <string name="online_error_storage">部分稿件保存失败，请检查存储空间后重新同步。</string>
     <string name="format_online">在线</string>
+    <string name="online_update">更新</string>
 </resources>

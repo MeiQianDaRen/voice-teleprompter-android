@@ -41,9 +41,6 @@ jobs:
         with:
           path: |
             app/libs/*.aar
-            app/src/main/assets/asr-ru/*.onnx
-            app/src/main/assets/asr-ru/tokens.txt
-            app/src/main/assets/asr-ru/bpe.vocab
             app/src/main/assets/asr-en/*.onnx
             app/src/main/assets/asr-en/tokens.txt
             app/src/main/assets/asr-en/bpe.vocab

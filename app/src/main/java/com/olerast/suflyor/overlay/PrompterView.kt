@@ -124,9 +124,10 @@ class PrompterView(context: Context) : View(context) {
         text.removeSpan(nextSpan)
         val atEnd = nextToken >= tokens.size
         currentLine = if (atEnd) l.lineCount - 1 else l.getLineForOffset(tokens[nextToken].start)
-        val dimEnd = if (atEnd) text.length else l.getLineStart(currentLine)
+        val chinese = model.lang == com.olerast.suflyor.script.SpeechLang.ZH
+        val dimEnd = if (atEnd) text.length else if (chinese) tokens[nextToken].start else l.getLineStart(currentLine)
         if (dimEnd > 0) text.setSpan(spokenSpan, 0, dimEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        if (wordHighlight && !atEnd) {
+        if ((wordHighlight || chinese) && !atEnd) {
             val t = tokens[nextToken]
             text.setSpan(nextSpan, t.start, t.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }

@@ -51,9 +51,6 @@ jobs:
         with:
           path: |
             app/libs/*.aar
-            app/src/main/assets/asr-ru/*.onnx
-            app/src/main/assets/asr-ru/tokens.txt
-            app/src/main/assets/asr-ru/bpe.vocab
             app/src/main/assets/asr-en/*.onnx
             app/src/main/assets/asr-en/tokens.txt
             app/src/main/assets/asr-en/bpe.vocab
@@ -71,6 +68,12 @@ jobs:
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk dist/提词器.apk
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          with ZipFile('dist/提词器.apk') as apk:
+              languages = {name.split('/')[1] for name in apk.namelist() if name.startswith('assets/asr-')}
+              assert languages == {'asr-zh', 'asr-en'}, languages
+          PY
           (cd dist && sha256sum 提词器.apk > SHA256SUMS.txt)
 
       - name: Upload APK

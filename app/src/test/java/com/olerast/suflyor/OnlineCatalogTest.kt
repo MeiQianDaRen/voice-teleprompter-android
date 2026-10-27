@@ -47,7 +47,7 @@ class OnlineCatalogTest {
             val script = script().apply { if (value == null) remove("speechLang") else put("speechLang", value) }
             assertEquals(null, OnlineCatalog.parse(catalog(script)).single().speechLang)
         }
-        for (code in listOf("zh", "en", "ru")) {
+        for (code in listOf("zh", "en")) {
             assertEquals(code, OnlineCatalog.parse(catalog(script().put("speechLang", code))).single().speechLang)
         }
     }
@@ -71,6 +71,7 @@ class OnlineCatalogTest {
         fails(OnlineProblem.ENTRY) { OnlineCatalog.parse(catalog(script(content = "  "))) }
         fails(OnlineProblem.ENTRY) { OnlineCatalog.parse(catalog(script("..\n../"))) }
         fails(OnlineProblem.ENTRY) { OnlineCatalog.parse(catalog(script().put("speechLang", "fr"))) }
+        fails(OnlineProblem.ENTRY) { OnlineCatalog.parse(catalog(script().put("speechLang", "ru"))) }
         fails(OnlineProblem.ENTRY) { OnlineCatalog.parse(catalog(script().put("title", "x".repeat(201)))) }
         fails(OnlineProblem.ENTRY) { OnlineCatalog.parse(catalog(script(content = "中".repeat(OnlineCatalog.MAX_CONTENT_CHARS + 1)))) }
     }

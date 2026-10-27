@@ -138,7 +138,7 @@
     <!-- The language this file is in: shows which translation the app uses now. -->
     <string name="settings_language_value">English</string>
     <string name="settings_log_hint">What happened with the microphone and recognition</string>
-    <string name="settings_about_version">Suflyor %1$s · speech recognition: sherpa-onnx; models: alphacep (Russian), icefall LibriSpeech (English), WenetSpeech (Chinese), Apache-2.0</string>
+    <string name="settings_about_version">Suflyor %1$s · speech recognition: sherpa-onnx; models: icefall LibriSpeech (English), WenetSpeech (Chinese), Apache-2.0</string>
     <string name="rehearsal_status_error">error, see below</string>
     <string name="rehearsal_status_sound">while you talk · %1$d wpm</string>
     <string name="library_save_failed">Couldn\'t save the script: %1$s</string>

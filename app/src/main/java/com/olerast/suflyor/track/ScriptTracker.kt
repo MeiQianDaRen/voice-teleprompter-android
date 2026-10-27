@@ -28,6 +28,7 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
     private val words: Array<String> = Array(spokenIdx.size) { tokens[spokenIdx[it]].norm }
     private val weights: FloatArray
     private val tokenCount = tokens.size
+    private val chineseAlignment = if (lang == SpeechLang.ZH) ChineseAlignment(spokenIdx.map { tokens[it] }) else null
 
     /** Word starts a displayed line / sentence: readers restart and jump to such places. */
     private val anchors = BooleanArray(spokenIdx.size) { tokens[spokenIdx[it]].anchor }
@@ -116,6 +117,7 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
 
     fun reset(toPosition: Int = 0) {
         position = toPosition.coerceIn(0, size)
+        chineseAlignment?.reset(position)
         pendingTarget = -1
         lastHyp = emptyList()
     }
@@ -125,6 +127,15 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
         var p = spokenIdx.binarySearch(tokenIndex)
         if (p < 0) p = -p - 1
         reset(p)
+    }
+
+    /** Raw sherpa-onnx utterance: Chinese partials replace each other; finals commit a stable character anchor. */
+    fun onTranscript(text: String, isFinal: Boolean): Update {
+        val alignment = chineseAlignment ?: return onHypothesis(lang.words(text))
+        val before = position
+        val result = alignment.consume(text, isFinal)
+        position = result.position
+        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason)
     }
 
     /** @param hypothesis normalized recognized words, oldest first (finalized history + current partial). */

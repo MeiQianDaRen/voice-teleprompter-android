@@ -26,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -74,6 +75,10 @@ fun LibraryScreen(
                         style = MaterialTheme.typography.headlineMedium,
                         modifier = Modifier.weight(1f),
                     )
+                    TextButton(
+                        onClick = { app.onlineLibrary.sync() },
+                        enabled = app.onlineLibrary.url.isNotEmpty() && !app.onlineLibrary.syncing,
+                    ) { Text(stringResource(R.string.online_update)) }
                     IconButton(onClick = onSettings) {
                         Ic(R.drawable.ic_settings, stringResource(R.string.settings_title), tint = Palette.TextSecondary)
                     }

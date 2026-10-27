@@ -92,6 +92,7 @@ class OverlayController(private val context: Context, private val windowType: In
     private var pendingSince = 0L
     private var orientationListener: OrientationEventListener? = null
     private var fontSp = app.settings.fontSp
+    private var windowScale = app.settings.overlayScale
     private var portraitY = app.settings.overlayY.coerceAtLeast(0)
     private var safeTop = 0
     private var lastScript: Any? = null
@@ -206,6 +207,14 @@ class OverlayController(private val context: Context, private val windowType: In
         }
         val root = RotatedFrame(context).apply {
             keepScreenOn = true
+            onScale = { factor ->
+                if (factor.isFinite() && factor > 0f) {
+                    windowScale = (windowScale * factor).coerceIn(0.5f, 2f)
+                    applyPlacement()
+                    wm.updateViewLayout(this, params)
+                }
+            }
+            onScaleEnd = { app.settings.overlayScale = windowScale }
             addView(panel, android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT))
         }
 
@@ -327,6 +336,7 @@ class OverlayController(private val context: Context, private val windowType: In
         val r = dp(22).toFloat()
         val textBox = prompter.parent as View
         val portrait = placement == Placement.PORTRAIT
+        val minTextHeight = prompter.lineHeightPx + dp(36)
         val basePadStart = dp(18)
         val basePadEnd = dp(14)
 
@@ -341,7 +351,9 @@ class OverlayController(private val context: Context, private val windowType: In
         }
         textBox.layoutParams = (textBox.layoutParams as LinearLayout.LayoutParams).apply {
             if (portrait) {
-                height = prompterHeight()
+                height = (prompterHeight() * windowScale).toInt().coerceIn(
+                    minTextHeight, (screenH - portraitY - safeTop - dp(200)).coerceAtLeast(minTextHeight),
+                )
                 weight = 0f
             } else {
                 height = 0
@@ -356,7 +368,7 @@ class OverlayController(private val context: Context, private val windowType: In
 
         when (placement) {
             Placement.PORTRAIT -> {
-                params.width = WindowManager.LayoutParams.MATCH_PARENT
+                params.width = (screenW * windowScale).toInt().coerceIn(dp(324).coerceAtMost(screenW), screenW)
                 params.height = WindowManager.LayoutParams.WRAP_CONTENT
                 params.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                 params.x = 0
@@ -366,8 +378,8 @@ class OverlayController(private val context: Context, private val windowType: In
                 background.cornerRadii = floatArrayOf(top, top, top, top, r, r, r, r)
             }
             Placement.TURNED_LEFT, Placement.TURNED_RIGHT -> {
-                params.width = WindowManager.LayoutParams.MATCH_PARENT
-                params.height = (screenH * 0.46f).toInt()
+                params.width = (screenW * windowScale).toInt().coerceIn(dp(324).coerceAtMost(screenW), screenW)
+                params.height = (screenH * 0.46f * windowScale).toInt().coerceIn(dp(324).coerceAtMost(screenH), screenH)
                 params.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                 params.x = 0
                 params.y = 0
@@ -381,8 +393,8 @@ class OverlayController(private val context: Context, private val windowType: In
                 }
             }
             Placement.SIDE_LEFT, Placement.SIDE_RIGHT -> {
-                params.width = (screenW * 0.46f).toInt()
-                params.height = WindowManager.LayoutParams.MATCH_PARENT
+                params.width = (screenW * 0.46f * windowScale).toInt().coerceIn(dp(324).coerceAtMost(screenW), screenW)
+                params.height = (screenH * windowScale).toInt().coerceIn(dp(160).coerceAtMost(screenH), screenH)
                 params.x = 0
                 params.y = 0
                 val cut = sideCutout()
@@ -671,8 +683,7 @@ class OverlayController(private val context: Context, private val windowType: In
     }
 
     private fun prompterHeight(): Int {
-        val probe = PrompterView(context).apply { setTextSizeSp(fontSp.toFloat()) }
-        return probe.lineHeightPx * app.settings.overlayLines + dp(36)
+        return prompter.lineHeightPx * app.settings.overlayLines + dp(36)
     }
 
     private fun ripple() = context.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackgroundBorderless)).let {

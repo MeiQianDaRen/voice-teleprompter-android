@@ -159,7 +159,7 @@ class AsrBench : BroadcastReceiver() {
             val t = tracker ?: return
             val heard = finalCount + partialWords.size
             val before = t.position
-            val u = t.onHypothesis(finalWords.toList() + partialWords)
+            val u = if (lang == SpeechLang.ZH) t.onTranscript(upd.text, upd.isFinal) else t.onHypothesis(finalWords.toList() + partialWords)
             updates++
             if (u.moved && u.reason != "follow") {
                 log(

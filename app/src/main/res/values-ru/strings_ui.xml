@@ -131,7 +131,7 @@
     <string name="settings_language_title">Язык приложения</string>
     <string name="settings_language_value">Русский</string>
     <string name="settings_log_hint">Что происходило с микрофоном и распознаванием</string>
-    <string name="settings_about_version">Суфлёр %1$s · распознавание sherpa-onnx; модели: alphacep (русский), icefall LibriSpeech (английский), WenetSpeech (китайский), Apache-2.0</string>
+    <string name="settings_about_version">Суфлёр %1$s · распознавание sherpa-onnx; модели: icefall LibriSpeech (английский), WenetSpeech (китайский), Apache-2.0</string>
     <string name="rehearsal_status_error">ошибка, текст ниже</string>
     <string name="rehearsal_status_sound">по звуку %1$d сл/мин</string>
     <string name="library_save_failed">Не удалось сохранить сценарий: %1$s</string>

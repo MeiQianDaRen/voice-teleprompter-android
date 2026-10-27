@@ -8,7 +8,6 @@ Suflyor is licensed under the GNU GPL v3.0 (see [LICENSE](LICENSE)). It includes
 |---|---|---|---|
 | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 1.13.8 (Android AAR) | Streaming speech recognition on the device | Apache-2.0 | [v1.13.8](https://github.com/k2-fsa/sherpa-onnx/tree/v1.13.8) |
 | [ONNX Runtime](https://github.com/microsoft/onnxruntime) (`libonnxruntime.so`, from the AAR) | Runs the neural network | MIT | https://github.com/microsoft/onnxruntime |
-| [vosk-model-small-streaming-ru](https://huggingface.co/alphacep/vosk-model-small-streaming-ru), int8 export by sherpa-onnx | Russian speech model | Apache-2.0 | [model](https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-small-ru-vosk-int8-2025-08-16) |
 | Streaming Zipformer for English by the [icefall](https://github.com/k2-fsa/icefall) project (LibriSpeech, 2023-05-17), exported by sherpa-onnx | English speech model | Apache-2.0 | [model](https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-26), [checkpoint](https://huggingface.co/Zengwei/icefall-asr-librispeech-streaming-zipformer-2023-05-17) |
 | LibriSpeech BPE-500 vocabulary (icefall) | Script-word hints for the English model | Apache-2.0 | [vocab](https://huggingface.co/csukuangfj/icefall-asr-librispeech-conformer-ctc-jit-bpe-500-2021-11-09) |
 | Streaming Zipformer 14M for Chinese (WenetSpeech, 2023-02-23), exported by sherpa-onnx | Chinese speech model and character vocabulary | Apache-2.0 | [pinned model](https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23/tree/204ad334e2e683fd295359930cc16fc0432a23ac), [usage](https://k2-fsa.github.io/sherpa/onnx/pretrained_models/online-transducer/zipformer-transducer-models.html#csukuangfj-sherpa-onnx-streaming-zipformer-zh-14m-2023-02-23-chinese) |
@@ -33,6 +32,13 @@ The prebuilt sherpa-onnx library also contains code the app does not call (text-
 The corresponding source for these binaries is the sherpa-onnx [v1.13.8 tag](https://github.com/k2-fsa/sherpa-onnx/tree/v1.13.8) together with the dependency versions its CMake files pin. If you need a copy of that source and cannot get it from there, open an issue and it will be provided.
 
 The English model was trained on [LibriSpeech](https://www.openslr.org/12) by V. Panayotov, G. Chen, D. Povey and S. Khudanpur (CC BY 4.0).
+
+## Character alignment adaptation
+
+Chinese utterance anchors, character-window alignment and confirmed retakes are adapted from
+[Storm-Teleprompter-Plus](https://github.com/html5syt/Storm-Teleprompter-Plus/blob/f345ae2f79d7222ce444664c9ca0e8b89f7e79de/lib/services/asr/alignment_engine.dart),
+Copyright (c) 2026 Html5syt, MIT License. The full license is preserved in
+[licenses/Storm-Teleprompter-Plus-MIT.txt](licenses/Storm-Teleprompter-Plus-MIT.txt).
 
 ## Not stored in this repository
 

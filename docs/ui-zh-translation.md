@@ -2,7 +2,7 @@
 
 中文系统会自动使用中文界面。Android 13 及以上也可在“设置 → 关于 → 应用语言”中单独选择中文。
 
-界面支持简体中文，离线语音跟随支持中文、英语和俄语。中文按汉字匹配和统计，速度单位为字/分钟；英语和俄语按词统计。设置中的“自动”会根据稿件正文选择语音模型，详见 [中文语音识别](chinese-asr.md)。已有稿件（包括已创建的示例）不会被自动翻译或覆盖。诊断日志内容及系统返回的错误详情保留原文。
+界面支持简体中文，离线语音跟随支持中文和英语。中文按汉字匹配和统计，速度单位为字/分钟；英语按词统计。设置中的“自动”会根据稿件正文选择语音模型，详见 [中文语音识别](chinese-asr.md)。已有稿件（包括已创建的示例）不会被自动翻译或覆盖。诊断日志内容及系统返回的错误详情保留原文。
 
 下表包含全部 301 条可翻译字符串及 3 组数量文案；品牌名、文件格式等标记为不可翻译的资源沿用原值。数量文案按中文规则使用 `other`，动态占位符保持兼容。
 
@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | `app_name` | 提词器 | 提词器 |
 | `a11y_label` | 提词器：悬浮窗与语音 | 提词器：悬浮窗与语音 |
-| `a11y_description` | Lets Suflyor hear your voice while another app records video, and show your text over the camera. Works only during a Suflyor session: it sees which app is on screen (for the log) and receives the volume, Bluetooth-remote and keyboard buttons set up in Settings. It doesn't read screen content. Speech recognition stays on your phone. Only manual script catalog synchronization accesses your configured URL. | 让 提词器 在其他应用录制视频时仍能听到你的声音，并在相机画面上方显示提词。仅在 提词器 提词期间运行：读取前台应用名称（用于日志），并接收你在设置中指定的音量键、蓝牙遥控器和键盘按键。不读取屏幕内容。语音识别在本机完成；仅主动同步在线稿件时访问你配置的地址。 |
+| `a11y_description` | Lets Suflyor hear your voice while another app records video, and show your text over the camera. Works only during a Suflyor session: it sees which app is on screen (for the log) and receives the volume, Bluetooth-remote and keyboard buttons set up in Settings. It doesn't read screen content. Speech recognition stays on your phone. Your configured script catalog updates on app startup or when you choose Sync. | 让 提词器 在其他应用录制视频时仍能听到你的声音，并在相机画面上方显示提词。仅在 提词器 提词期间运行：读取前台应用名称（用于日志），并接收你在设置中指定的音量键、蓝牙遥控器和键盘按键。不读取屏幕内容。语音识别在本机完成；应用启动或手动更新稿件时访问你配置的在线地址。 |
 
 ## strings_common.xml
 
@@ -244,7 +244,7 @@
 | `settings_language_title` | App language | 应用语言 |
 | `settings_language_value` | English | 简体中文 |
 | `settings_log_hint` | What happened with the microphone and recognition | 查看麦克风和语音识别的运行情况 |
-| `settings_about_version` | Suflyor %1$s · speech recognition: sherpa-onnx; models: alphacep (Russian), icefall LibriSpeech (English), WenetSpeech (Chinese), Apache-2.0 | 提词器 %1$s · 语音识别：sherpa-onnx；模型：alphacep（俄语）、icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0 |
+| `settings_about_version` | Suflyor %1$s · speech recognition: sherpa-onnx; models: icefall LibriSpeech (English), WenetSpeech (Chinese), Apache-2.0 | 提词器 %1$s · 语音识别：sherpa-onnx；模型：icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0 |
 | `rehearsal_status_error` | error, see below | 发生错误，详情见下方 |
 | `rehearsal_status_sound` | while you talk · %1$d wpm | 说话时滚动 · %1$d 字词/分钟 |
 | `library_save_failed` | Couldn't save the script: %1$s | 无法保存稿件：%1$s |
@@ -347,3 +347,5 @@
 | `online_error_entry` | Invalid script fields, repeated id, or content over 100,000 characters. | 稿件字段无效、ID 重复或正文超过 10 万字符。 |
 | `online_error_storage` | Some scripts could not be saved. Check free storage and sync again. | 部分稿件保存失败，请检查存储空间后重新同步。 |
 | `format_online` | online | 在线 |
+
+| `online_update` | Refresh | 更新 |

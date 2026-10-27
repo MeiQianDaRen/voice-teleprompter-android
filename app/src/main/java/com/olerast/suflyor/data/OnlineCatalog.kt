@@ -63,7 +63,7 @@ object OnlineCatalog {
                 val language = if (!script.has("speechLang") || script.isNull("speechLang")) null else {
                     when (val code = script.opt("speechLang")) {
                         "auto" -> null
-                        "zh", "en", "ru" -> code as String
+                        "zh", "en" -> code as String
                         else -> throw OnlineLibraryException(OnlineProblem.ENTRY)
                     }
                 }

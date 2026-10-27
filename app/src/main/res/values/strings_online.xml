@@ -20,4 +20,5 @@
     <string name="online_error_entry">Invalid script fields, repeated id, or content over 100,000 characters.</string>
     <string name="online_error_storage">Some scripts could not be saved. Check free storage and sync again.</string>
     <string name="format_online">online</string>
+    <string name="online_update">Refresh</string>
 </resources>

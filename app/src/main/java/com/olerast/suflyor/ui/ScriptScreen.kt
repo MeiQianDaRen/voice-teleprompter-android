@@ -178,7 +178,6 @@ fun ScriptScreen(
                 val defaultLang = app.settings.speechLangFor(doc.copy(speechLang = null))
                 listOf(
                     null to stringResource(R.string.script_lang_follow, stringResource(speechLangName(defaultLang))),
-                    SpeechLang.RU.code to stringResource(R.string.speech_lang_ru),
                     SpeechLang.EN.code to stringResource(R.string.speech_lang_en),
                     SpeechLang.ZH.code to stringResource(R.string.speech_lang_zh),
                 ).forEach { (code, label) ->

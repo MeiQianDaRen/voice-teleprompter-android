@@ -14,14 +14,14 @@ import com.olerast.suflyor.script.ChineseNorm
 import com.olerast.suflyor.script.SpeechLang
 
 /**
- * Offline streaming recognizer: sherpa-onnx with a streaming Zipformer per language (int8, in assets). Russian:
- * alphacep's small model (~28 MB). English: icefall's LibriSpeech model of 2023-06-26 (~73 MB), which prints UPPER CASE.
+ * Offline streaming recognizer: sherpa-onnx with Chinese and English streaming Zipformer models (int8, in assets).
+ * English: icefall's LibriSpeech model of 2023-06-26 (~73 MB), which prints UPPER CASE.
  * Chinese: WenetSpeech 14M of 2023-02-23 (~31 MB), which prints Han characters.
  * With "hotwords" on, words or Chinese character phrases are boosted through modified beam search.
  */
 class SherpaAsr private constructor(
     private val recognizer: OnlineRecognizer,
-    /** Modified beam search with BPE for Russian/English, or cjkchar for Chinese. */
+    /** Modified beam search with BPE for English, or cjkchar for Chinese. */
     private val hotwordsEnabled: Boolean,
     override val lang: SpeechLang,
     override val description: String,
@@ -86,7 +86,7 @@ class SherpaAsr private constructor(
         private class Model(val dir: String, val label: String, val type: String = "zipformer2", val unit: String = "bpe")
 
         private fun modelFor(lang: SpeechLang) = when (lang) {
-            SpeechLang.RU -> Model("asr-ru", "Zipformer ru small int8")
+            SpeechLang.RU -> error("Unsupported speech language: ${lang.code}")
             SpeechLang.EN -> Model("asr-en", "Zipformer en LibriSpeech 2023-06-26 int8")
             SpeechLang.ZH -> Model("asr-zh", "Zipformer zh 14M 2023-02-23 int8", "zipformer", "cjkchar")
         }
@@ -95,7 +95,7 @@ class SherpaAsr private constructor(
          * Loads the model of [lang] from assets (a second or two; call it off the main thread).
          * @param hotwords boost script words ([setBiasWords]); the app setting unless a caller (the benchmark) overrides it.
          */
-        fun create(context: Context, lang: SpeechLang = SpeechLang.RU, hotwords: Boolean = App.instance.settings.useHotwords): SherpaAsr {
+        fun create(context: Context, lang: SpeechLang = SpeechLang.EN, hotwords: Boolean = App.instance.settings.useHotwords): SherpaAsr {
             val model = modelFor(lang)
             val dir = model.dir
             val config = OnlineRecognizerConfig(
@@ -124,7 +124,7 @@ class SherpaAsr private constructor(
                 maxActivePaths = 4,
                 hotwordsScore = 1.5f,
             )
-            // Chinese uses cjkchar directly; English and Russian need a BPE vocabulary.
+            // Chinese uses cjkchar directly; English needs a BPE vocabulary.
             val canEncodeHotwords = config.decodingMethod == "modified_beam_search" &&
                 (config.modelConfig.modelingUnit == "cjkchar" ||
                     (config.modelConfig.modelingUnit == "bpe" && config.modelConfig.bpeVocab.isNotEmpty()))

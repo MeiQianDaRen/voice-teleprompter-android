@@ -8,6 +8,7 @@ import com.olerast.suflyor.doc.ScriptDocument
  * Russian calls [TextNorm] exactly as before English existed; English uses [EnglishNorm], Chinese [ChineseNorm].
  */
 enum class SpeechLang(val code: String) {
+    /** Legacy text normalization for regression fixtures; not a supported speech language. */
     RU("ru"),
     EN("en"),
     ZH("zh");
@@ -106,11 +107,13 @@ enum class SpeechLang(val code: String) {
         get() = this == EN || this == ZH
 
     companion object {
-        fun fromCode(code: String?): SpeechLang? = entries.firstOrNull { it.code == code }
+        val supported: List<SpeechLang> = listOf(ZH, EN)
+
+        fun fromCode(code: String?): SpeechLang? = supported.firstOrNull { it.code == code }
 
         /**
          * Majority alphabet of what the reader will say: body paragraphs outside [stage directions].
-         * Han-majority scripts use Chinese; otherwise Latin/Cyrillic detection and the empty-script default stay unchanged.
+         * Han-majority scripts use Chinese; all other scripts use English. Russian is no longer a recognition option.
          */
         fun detect(doc: ScriptDocument): SpeechLang {
             var cyrillic = 0
@@ -133,7 +136,7 @@ enum class SpeechLang(val code: String) {
                     }
                 }
             }
-            return if (han > 0 && han >= maxOf(latin, cyrillic)) ZH else if (latin > cyrillic) EN else RU
+            return if (han > 0 && han >= maxOf(latin, cyrillic)) ZH else EN
         }
     }
 }

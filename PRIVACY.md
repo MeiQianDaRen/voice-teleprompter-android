@@ -2,7 +2,7 @@
 
 **Speech recognition stays on your phone. Network access is optional and used only for an online script catalog you configure.**
 
-- **Network.** Saving a catalog URL or choosing Sync sends an HTTP GET request to that address (and its redirects). The server receives the normal connection metadata, such as your IP address. No microphone audio, recognized phrases or local scripts are uploaded. HTTPS is recommended; HTTP is also supported for local servers. Cached scripts work offline, and clearing the URL disables synchronization.
+- **Network.** Starting the app with a configured catalog URL, saving that URL or choosing Sync sends an HTTP GET request to that address (and its redirects). The server receives the normal connection metadata, such as your IP address. No microphone audio, recognized phrases or local scripts are uploaded. HTTPS is recommended; HTTP is also supported for local servers. Cached scripts work offline, and clearing the URL disables synchronization.
 - **Microphone.** Audio is used only while the prompter listens: during a session over another app or a rehearsal inside the app. During a session over another app, a notification is shown (on Android 13 and newer only if you allowed notifications; otherwise the session is listed among active apps in Quick Settings). On Android 12 and newer the system also shows its microphone indicator. The speech model built into the app turns the sound into words. Audio is never recorded to a file, stored or sent anywhere.
 - **Accessibility service.** Its shortcut button opens or closes the floating prompter without disabling the service. During a session over another app:
   - Android keeps giving the prompter the microphone while another app (the camera, 剪映, 抖音, 快手, 小红书) records video;
@@ -24,7 +24,7 @@ Questions: open an issue on GitHub.
 
 **Распознавание речи работает на телефоне. Сеть используется только для указанного вами каталога сценариев.**
 
-- **Сеть.** При сохранении ссылки или ручной синхронизации приложение отправляет GET-запрос по указанному адресу и перенаправлениям. Сервер получает обычные сетевые данные, включая IP-адрес. Звук, распознанная речь и локальные сценарии не отправляются. Рекомендуется HTTPS; для локального сервера поддерживается HTTP. Сохранённые сценарии доступны офлайн; пустая ссылка отключает синхронизацию.
+- **Сеть.** При запуске приложения с настроенным каталогом, сохранении ссылки или ручной синхронизации приложение отправляет GET-запрос по указанному адресу и перенаправлениям. Сервер получает обычные сетевые данные, включая IP-адрес. Звук, распознанная речь и локальные сценарии не отправляются. Рекомендуется HTTPS; для локального сервера поддерживается HTTP. Сохранённые сценарии доступны офлайн; пустая ссылка отключает синхронизацию.
 - **Микрофон** работает только тогда, когда суфлёр слушает: во время сессии поверх другого приложения или репетиции внутри приложения. Во время сессии поверх другого приложения видно уведомление (на Android 13 и новее — если уведомления разрешены; иначе сессия видна в списке активных приложений в шторке). На Android 12 и новее система вдобавок показывает свой индикатор микрофона. Звук превращается в слова встроенной моделью прямо на телефоне. Он не записывается в файлы, не хранится и никуда не отправляется.
 - **Служба специальных возможностей** работает только во время сессии поверх другого приложения. Она нужна для трёх вещей:
   - чтобы Android не отнимал микрофон, пока другое приложение снимает видео;
@@ -42,6 +42,6 @@ Questions: open an issue on GitHub.
 
 # 隐私说明
 
-语音识别在手机本地完成，麦克风音频和识别结果不会上传。在线稿件功能仅在保存链接或点击同步时向你配置的地址发起 GET 请求；服务器可以看到 IP 地址等正常连接信息。推荐 HTTPS，也支持局域网 HTTP。链接保存在应用私有设置中，清空链接后停止同步，已缓存稿件保留。
+语音识别在手机本地完成，麦克风音频和识别结果不会上传。在线稿件功能在已配置链接的应用启动时、保存链接或点击更新时向你配置的地址发起 GET 请求；服务器可以看到 IP 地址等正常连接信息。推荐 HTTPS，也支持局域网 HTTP。链接保存在应用私有设置中，清空链接后停止同步，已缓存稿件保留。
 
 无障碍快捷按钮仅控制提词悬浮窗的开关；服务不读取屏幕内容。提词时保持屏幕常亮，结束提词后恢复正常息屏行为，不修改手机的全局锁屏时间。

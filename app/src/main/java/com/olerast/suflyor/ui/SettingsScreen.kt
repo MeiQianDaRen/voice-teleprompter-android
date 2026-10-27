@@ -177,7 +177,7 @@ private fun SettingsHome(readiness: Readiness, onOpen: (SettingsPage) -> Unit) {
 
 @StringRes
 private fun defaultLangLabel(code: String): Int = when (SpeechLang.fromCode(code)) {
-    SpeechLang.RU -> R.string.speech_lang_ru
+    SpeechLang.RU -> R.string.speech_lang_auto
     SpeechLang.EN -> R.string.speech_lang_en
     SpeechLang.ZH -> R.string.speech_lang_zh
     null -> R.string.speech_lang_auto
@@ -319,7 +319,6 @@ private fun VoicePage() {
     Row(Modifier.padding(horizontal = 20.dp).padding(bottom = 6.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(
             AUTO to R.string.speech_lang_auto,
-            SpeechLang.RU.code to R.string.speech_lang_ru,
             SpeechLang.EN.code to R.string.speech_lang_en,
             SpeechLang.ZH.code to R.string.speech_lang_zh,
         ).forEach { (value, label) ->
@@ -559,7 +558,7 @@ private fun LinkRow(title: String, subtitle: String, onClick: () -> Unit) {
 /** Language name for running text ("now: English"); the pills use the names written in their own language. */
 @StringRes
 fun speechLangName(lang: SpeechLang): Int = when (lang) {
-    SpeechLang.RU -> R.string.settings_speech_lang_name_ru
+    SpeechLang.RU -> R.string.settings_speech_lang_name_en
     SpeechLang.EN -> R.string.settings_speech_lang_name_en
     SpeechLang.ZH -> R.string.settings_speech_lang_name_zh
 }
