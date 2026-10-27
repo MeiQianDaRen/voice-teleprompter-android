@@ -16,6 +16,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -178,6 +179,7 @@ private fun SettingsHome(readiness: Readiness, onOpen: (SettingsPage) -> Unit) {
 private fun defaultLangLabel(code: String): Int = when (SpeechLang.fromCode(code)) {
     SpeechLang.RU -> R.string.speech_lang_ru
     SpeechLang.EN -> R.string.speech_lang_en
+    SpeechLang.ZH -> R.string.speech_lang_zh
     null -> R.string.speech_lang_auto
 }
 
@@ -314,11 +316,12 @@ private fun VoicePage() {
             color = Palette.TextMuted,
         )
     }
-    Row(Modifier.padding(horizontal = 20.dp).padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.padding(horizontal = 20.dp).padding(bottom = 6.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(
             AUTO to R.string.speech_lang_auto,
             SpeechLang.RU.code to R.string.speech_lang_ru,
             SpeechLang.EN.code to R.string.speech_lang_en,
+            SpeechLang.ZH.code to R.string.speech_lang_zh,
         ).forEach { (value, label) ->
             Pill(stringResource(label), speechLang == value) {
                 if (speechLang != value) {
@@ -557,6 +560,7 @@ private fun LinkRow(title: String, subtitle: String, onClick: () -> Unit) {
 fun speechLangName(lang: SpeechLang): Int = when (lang) {
     SpeechLang.RU -> R.string.settings_speech_lang_name_ru
     SpeechLang.EN -> R.string.settings_speech_lang_name_en
+    SpeechLang.ZH -> R.string.settings_speech_lang_name_zh
 }
 
 /** Which action waits for a key press on the settings screen (MainActivity routes the next key here). */

@@ -10,16 +10,18 @@ import com.k2fsa.sherpa.onnx.OnlineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OnlineStream
 import com.k2fsa.sherpa.onnx.OnlineTransducerModelConfig
 import com.olerast.suflyor.App
+import com.olerast.suflyor.script.ChineseNorm
 import com.olerast.suflyor.script.SpeechLang
 
 /**
  * Offline streaming recognizer: sherpa-onnx with a streaming Zipformer per language (int8, in assets). Russian:
  * alphacep's small model (~28 MB). English: icefall's LibriSpeech model of 2023-06-26 (~73 MB), which prints UPPER CASE.
- * With "hotwords" on, words of the script are boosted through modified beam search.
+ * Chinese: WenetSpeech 14M of 2023-02-23 (~31 MB), which prints Han characters.
+ * With "hotwords" on, words or Chinese character phrases are boosted through modified beam search.
  */
 class SherpaAsr private constructor(
     private val recognizer: OnlineRecognizer,
-    /** The config can encode hotwords: modified beam search over BPE units with the model's vocabulary loaded. */
+    /** Modified beam search with BPE for Russian/English, or cjkchar for Chinese. */
     private val hotwordsEnabled: Boolean,
     override val lang: SpeechLang,
     override val description: String,
@@ -81,11 +83,12 @@ class SherpaAsr private constructor(
     }
 
     companion object {
-        private class Model(val dir: String, val label: String)
+        private class Model(val dir: String, val label: String, val type: String = "zipformer2", val unit: String = "bpe")
 
         private fun modelFor(lang: SpeechLang) = when (lang) {
             SpeechLang.RU -> Model("asr-ru", "Zipformer ru small int8")
             SpeechLang.EN -> Model("asr-en", "Zipformer en LibriSpeech 2023-06-26 int8")
+            SpeechLang.ZH -> Model("asr-zh", "Zipformer zh 14M 2023-02-23 int8", "zipformer", "cjkchar")
         }
 
         /**
@@ -106,9 +109,9 @@ class SherpaAsr private constructor(
                     tokens = "$dir/tokens.txt",
                     numThreads = 2,
                     provider = "cpu",
-                    modelType = "zipformer2",
-                    modelingUnit = if (hotwords) "bpe" else "",
-                    bpeVocab = if (hotwords) "$dir/bpe.vocab" else "",
+                    modelType = model.type,
+                    modelingUnit = if (hotwords) model.unit else "",
+                    bpeVocab = if (hotwords && model.unit == "bpe") "$dir/bpe.vocab" else "",
                 ),
                 // Close an utterance after 0.8 s of silence following speech; the tracker keeps its own history anyway.
                 endpointConfig = EndpointConfig(
@@ -121,9 +124,10 @@ class SherpaAsr private constructor(
                 maxActivePaths = 4,
                 hotwordsScore = 1.5f,
             )
-            // sherpa-onnx 1.13.8 builds the BPE encoder for hotwords only under exactly these settings.
+            // Chinese uses cjkchar directly; English and Russian need a BPE vocabulary.
             val canEncodeHotwords = config.decodingMethod == "modified_beam_search" &&
-                config.modelConfig.modelingUnit == "bpe" && config.modelConfig.bpeVocab.isNotEmpty()
+                (config.modelConfig.modelingUnit == "cjkchar" ||
+                    (config.modelConfig.modelingUnit == "bpe" && config.modelConfig.bpeVocab.isNotEmpty()))
             val recognizer = OnlineRecognizer(assetManager = context.assets, config = config)
             val desc = "sherpa-onnx, ${model.label}, ${config.decodingMethod}" + if (canEncodeHotwords) ", script words" else ""
             return SherpaAsr(recognizer, canEncodeHotwords, lang, desc, hotwords)
@@ -137,6 +141,7 @@ class SherpaAsr private constructor(
  * - Russian: the vocabulary is lowercase Cyrillic, so plain Cyrillic words of 4+ letters.
  * - English: LibriSpeech pieces are UPPER CASE Latin plus an apostrophe piece, so words of A–Z and "'" with 4+ letters.
  *   The words come normalized (ScriptModel.biasWords), so stop words, numbers and Cyrillic are already gone.
+ * - Chinese: Han phrases of 2–8 characters, encoded with cjkchar without a BPE vocabulary.
  */
 internal fun hotwordList(lang: SpeechLang, words: List<String>): String {
     val usable = when (lang) {
@@ -146,6 +151,9 @@ internal fun hotwordList(lang: SpeechLang, words: List<String>): String {
         SpeechLang.EN -> words.asSequence()
             .map { it.uppercase() }
             .filter { w -> w.count { it in 'A'..'Z' } >= 4 && w.all { it in 'A'..'Z' || it == '\'' } }
+        SpeechLang.ZH -> words.asSequence()
+            .map { ChineseNorm.normalizeWord(it) }
+            .filter { it.codePointCount(0, it.length) in 2..8 && ChineseNorm.isHan(it) }
     }
     return usable.distinct().take(1500).joinToString("/")
 }

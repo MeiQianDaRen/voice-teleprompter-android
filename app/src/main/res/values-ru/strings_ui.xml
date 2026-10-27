@@ -64,6 +64,7 @@
     <string name="settings_speech_lang_auto_hint">Авто выбирает по буквам сценария — сейчас %1$s</string>
     <string name="settings_speech_lang_name_ru">русский</string>
     <string name="settings_speech_lang_name_en">английский</string>
+    <string name="settings_speech_lang_name_zh">китайский</string>
     <string name="settings_lead_title">Упреждение</string>
     <plurals name="settings_lead_value">
         <item quantity="one">%d сл.</item>
@@ -130,7 +131,7 @@
     <string name="settings_language_title">Язык приложения</string>
     <string name="settings_language_value">Русский</string>
     <string name="settings_log_hint">Что происходило с микрофоном и распознаванием</string>
-    <string name="settings_about_version">Суфлёр %1$s · распознавание sherpa-onnx; модели: alphacep (русский), icefall LibriSpeech (английский), Apache-2.0</string>
+    <string name="settings_about_version">Суфлёр %1$s · распознавание sherpa-onnx; модели: alphacep (русский), icefall LibriSpeech (английский), WenetSpeech (китайский), Apache-2.0</string>
     <string name="rehearsal_status_error">ошибка, текст ниже</string>
     <string name="rehearsal_status_sound">по звуку %1$d сл/мин</string>
     <string name="library_save_failed">Не удалось сохранить сценарий: %1$s</string>

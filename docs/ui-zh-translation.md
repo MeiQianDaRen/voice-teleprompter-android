@@ -2,9 +2,9 @@
 
 中文系统会自动使用中文界面。Android 13 及以上也可在“设置 → 关于 → 应用语言”中单独选择中文。
 
-本次仅本地化界面。语音跟随目前仍只支持英语和俄语，中文稿件可使用定速或声音模式；速度和词数仍按现有分词规则计算。已有稿件（包括已创建的示例）不会被自动翻译或覆盖。诊断日志内容及系统返回的错误详情保留原文。
+界面支持简体中文，离线语音跟随支持中文、英语和俄语。中文按汉字匹配和统计，速度单位为字/分钟；英语和俄语按词统计。设置中的“自动”会根据稿件正文选择语音模型，详见 [中文语音识别](chinese-asr.md)。已有稿件（包括已创建的示例）不会被自动翻译或覆盖。诊断日志内容及系统返回的错误详情保留原文。
 
-下表包含全部 280 条可翻译字符串及 3 组数量文案；品牌名、文件格式等标记为不可翻译的资源沿用原值。数量文案按中文规则使用 `other`，动态占位符保持兼容。
+下表包含全部 281 条可翻译字符串及 3 组数量文案；品牌名、文件格式等标记为不可翻译的资源沿用原值。数量文案按中文规则使用 `other`，动态占位符保持兼容。
 
 ## strings.xml
 
@@ -28,7 +28,7 @@
 | `common_cancel` | Cancel | 取消 |
 | `common_delete` | Delete | 删除 |
 | `common_untitled` | Untitled | 未命名 |
-| `words_count` | one: %d word<br>other: %d words | %d 个词 |
+| `words_count` | one: %d word<br>other: %d words | %d 个字词 |
 | `format_typed` | text | 文本 |
 | `format_sample` | built-in | 内置 |
 | `key_action_pause` | Pause / resume | 暂停 / 继续 |
@@ -159,7 +159,7 @@
 | `rehearsal_status_starting` | starting… | 启动中… |
 | `rehearsal_status_idle` | not listening | 未在聆听 |
 | `rehearsal_status_paused` | paused | 已暂停 |
-| `rehearsal_status_auto` | speed · %1$d wpm | 定速 · %1$d 词/分钟 |
+| `rehearsal_status_auto` | speed · %1$d wpm | 定速 · %1$d 字词/分钟 |
 | `rehearsal_status_mic_busy` | another app is using the mic | 其他应用正在使用麦克风 |
 | `rehearsal_status_fallback` | can't hear you — scrolling on my own | 未听到你的声音，正在自动滚动 |
 | `rehearsal_status_listening` | listening | 正在聆听 |
@@ -186,20 +186,21 @@
 | `settings_notifications_title` | Notifications | 通知 |
 | `settings_notifications_hint` | An icon in the notification shade while Suflyor listens, with a Stop button | Suflyor 聆听时在通知栏显示图标，并提供停止按钮 |
 | `settings_section_voice` | Voice following | 语音跟随 |
-| `settings_speech_lang_auto_hint` | Auto picks it from the script's letters — now: %1$s | 根据稿件中的字母自动选择，当前为：%1$s |
+| `settings_speech_lang_auto_hint` | Auto picks it from the script's letters — now: %1$s | 根据稿件中的文字自动选择，当前为：%1$s |
 | `settings_speech_lang_name_ru` | Russian | 俄语 |
 | `settings_speech_lang_name_en` | English | 英语 |
+| `settings_speech_lang_name_zh` | Chinese | 中文 |
 | `settings_lead_title` | Look-ahead | 提前显示 |
-| `settings_lead_value` | one: %d word<br>other: %d words | %d 个词 |
-| `settings_lead_hint` | How far the text runs ahead of what's recognized while you speak | 朗读时，文字比已识别的内容提前显示多少个词 |
-| `settings_highlight_title` | Highlight the next word | 高亮下一个词 |
+| `settings_lead_value` | one: %d word<br>other: %d words | %d 个字词 |
+| `settings_lead_hint` | How far the text runs ahead of what's recognized while you speak | 朗读时，文字比已识别的内容提前显示多少个字词 |
+| `settings_highlight_title` | Highlight the next word | 高亮下一个字词 |
 | `settings_highlight_hint` | Otherwise only the current line is marked | 关闭时仅标记当前行 |
 | `settings_hotwords_title` | Boost script words | 增强稿件词汇识别 |
 | `settings_hotwords_hint` | Better at rare words. Takes effect the next time the app starts | 提高生僻词识别效果，下次启动应用时生效 |
 | `settings_section_text` | Text | 文本 |
 | `settings_phrase_title` | One phrase per line | 每行一个短语 |
 | `settings_phrase_hint` | Split the text into phrases you can say in one breath | 将文本拆分成一口气能读完的短语 |
-| `settings_max_words_title` | Words per line | 每行词数 |
+| `settings_max_words_title` | Words per line | 每行字词数 |
 | `settings_max_words_value` | up to %1$d | 最多 %1$d 个 |
 | `settings_font_title` | Text size | 字号 |
 | `settings_section_tile` | Quick Settings tile | 快捷设置磁贴 |
@@ -227,7 +228,7 @@
 | `settings_diag_hint` | What Suflyor hears and who else is recording audio | 显示 Suflyor 听到的内容及其他正在录音的应用 |
 | `settings_section_autoscroll` | Scrolling without voice | 非语音跟随滚动 |
 | `settings_wpm_title` | Speed | 速度 |
-| `settings_wpm_hint` | Words per minute: for auto-scroll and timing estimates | 每分钟词数，用于自动滚动和时长估算 |
+| `settings_wpm_hint` | Words per minute: for auto-scroll and timing estimates | 每分钟字词数（中文按字计算），用于自动滚动和时长估算 |
 | `settings_countdown_title` | Countdown before start | 开始前倒计时 |
 | `settings_countdown_off` | off | 关闭 |
 | `settings_countdown_value` | %1$d s | %1$d 秒 |
@@ -243,9 +244,9 @@
 | `settings_language_title` | App language | 应用语言 |
 | `settings_language_value` | English | 简体中文 |
 | `settings_log_hint` | What happened with the microphone and recognition | 查看麦克风和语音识别的运行情况 |
-| `settings_about_version` | Suflyor %1$s · speech recognition: sherpa-onnx; models: alphacep (Russian), icefall LibriSpeech (English), Apache-2.0 | Suflyor %1$s · 语音识别：sherpa-onnx；模型：alphacep（俄语）、icefall LibriSpeech（英语），Apache-2.0 |
+| `settings_about_version` | Suflyor %1$s · speech recognition: sherpa-onnx; models: alphacep (Russian), icefall LibriSpeech (English), WenetSpeech (Chinese), Apache-2.0 | Suflyor %1$s · 语音识别：sherpa-onnx；模型：alphacep（俄语）、icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0 |
 | `rehearsal_status_error` | error, see below | 发生错误，详情见下方 |
-| `rehearsal_status_sound` | while you talk · %1$d wpm | 说话时滚动 · %1$d 词/分钟 |
+| `rehearsal_status_sound` | while you talk · %1$d wpm | 说话时滚动 · %1$d 字词/分钟 |
 | `library_save_failed` | Couldn't save the script: %1$s | 无法保存稿件：%1$s |
 | `script_copy_title` | %1$s (copy) | %1$s（副本） |
 | `script_cd_share` | Share text | 分享文本 |
@@ -269,7 +270,7 @@
 | `settings_link_donate` | Support the project | 支持项目 |
 | `settings_link_donate_hint` | Boosty, crypto: donations pay for new languages and test phones | 通过 Boosty 或加密货币捐赠，用于支持新增语言和购买测试手机 |
 | `settings_about_license` | Free software under GPL-3.0, provided without warranty. | 基于 GPL-3.0 的自由软件，不提供任何担保。 |
-| `editor_stats` | %1$s · ≈%2$s at %3$d wpm | %1$s · 按 %3$d 词/分钟估算约 %2$s |
+| `editor_stats` | %1$s · ≈%2$s at %3$d wpm | %1$s · 按 %3$d 字词/分钟估算约 %2$s |
 | `journal_crash_title` | The last run ended with a crash | 上次运行发生了崩溃 |
 | `journal_crash_hint` | The report is kept on this phone. Recognized speech, app names and script titles are not in it. | 报告保存在本机，不包含识别的语音、应用名称或稿件标题。 |
 | `journal_crash_share` | Share report | 分享报告 |
@@ -279,8 +280,8 @@
 | `settings_sum_overlay` | Lines: %1$d · text %2$d · background %3$d%% | 行数：%1$d · 字号：%2$d · 背景：%3$d%% |
 | `settings_sum_fullscreen` | Text %1$d · mirror: %2$s | 字号：%1$d · 镜像：%2$s |
 | `settings_sum_voice` | Speech language: %1$s | 语音识别语言：%1$s |
-| `settings_sum_timed` | %1$d wpm · countdown: %2$s | %1$d 词/分钟 · 倒计时：%2$s |
-| `settings_sum_text_phrases` | Phrases of up to %1$d words | 每个短语最多 %1$d 个词 |
+| `settings_sum_timed` | %1$d wpm · countdown: %2$s | %1$d 字词/分钟 · 倒计时：%2$s |
+| `settings_sum_text_phrases` | Phrases of up to %1$d words | 每个短语最多 %1$d 个字词 |
 | `settings_sum_text_paragraphs` | Paragraphs as in the text | 保留原文分段 |
 | `settings_sum_keys_on` | On | 开启 |
 | `settings_sum_keys_off` | Off | 关闭 |
@@ -298,10 +299,10 @@
 | `mirror_horizontal` | Horizontal | 水平 |
 | `mirror_vertical` | Vertical | 垂直 |
 | `mirror_both` | Both | 水平和垂直 |
-| `speed_value` | %1$d wpm | %1$d 词/分钟 |
+| `speed_value` | %1$d wpm | %1$d 字词/分钟 |
 | `script_lang_chip` | Speech: %1$s | 语音：%1$s |
 | `script_lang_sheet_title` | Speech language of this script | 此稿件的语音识别语言 |
-| `script_lang_sheet_hint` | The speech model of this language listens, and the words are matched and counted by its rules. | 使用所选语言的语音模型进行识别，并按该语言的规则匹配和统计词数。 |
+| `script_lang_sheet_hint` | The speech model of this language listens, and the words are matched and counted by its rules. | 使用所选语言的语音模型进行识别，并按该语言的规则匹配和统计字词数。 |
 | `script_lang_follow` | As in Settings (%1$s now) | 跟随设置（当前：%1$s） |
 | `script_speed_sheet_title` | Speed without voice | 非语音跟随滚动速度 |
 | `script_speed_sheet_hint` | For the Speed and Sound modes and the length estimate. | 用于定速模式、声音模式和时长估算。 |
@@ -312,7 +313,7 @@
 | `scroll_mode_voice` | Voice | 语音 |
 | `scroll_mode_auto` | Speed | 定速 |
 | `scroll_mode_sound` | Sound | 声音 |
-| `speed_unit` | words per minute | 词/分钟 |
+| `speed_unit` | words per minute | 字词/分钟 |
 
 ## 开发版名称覆盖
 

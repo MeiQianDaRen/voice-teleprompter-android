@@ -122,8 +122,8 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
 }
 
-// ---- Speech engine, Russian and English models ----------------------------------------------------------------
-// Not stored in git (about 155 MB of binaries): downloaded once from their official sources, pinned to exact revisions and
+// ---- Speech engine, Russian, English and Chinese models -------------------------------------------------------
+// Not stored in git: downloaded once from their official sources, pinned to exact revisions and
 // checked by SHA-256. Licenses: see THIRD_PARTY_NOTICES.md.
 
 private val modelBase =
@@ -131,6 +131,9 @@ private val modelBase =
 
 private val enModelBase =
     "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-26/resolve/672fbf1b30579d6585301139bb363f42a0ad4a24"
+
+private val zhModelBase =
+    "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23/resolve/204ad334e2e683fd295359930cc16fc0432a23ac"
 
 private val speechAssets = listOf(
     Triple(
@@ -159,6 +162,11 @@ private val speechAssets = listOf(
         "https://huggingface.co/csukuangfj/icefall-asr-librispeech-conformer-ctc-jit-bpe-500-2021-11-09/resolve/66448a2164b7a67cc4d2118a2f1b2709d9fde148/data/lang_bpe_500/unigram_500.vocab",
         "28c02989b3cd8c2ffa974b1e33f97ec6cded170bda622ca627b7330b41c6c827",
     ),
+    // Chinese: WenetSpeech 14M streaming Zipformer, character tokens (no BPE vocabulary).
+    Triple("src/main/assets/asr-zh/encoder.int8.onnx", "$zhModelBase/encoder-epoch-99-avg-1.int8.onnx", "1c556ea57cec304e55ec4b72e52c1cc098bb01476ed7d90f3de939fe126487b1"),
+    Triple("src/main/assets/asr-zh/decoder.onnx", "$zhModelBase/decoder-epoch-99-avg-1.onnx", "5ee0f03a2768ff1d5c83ef3a493243c7935d316cd41280037b14783a3467cc78"),
+    Triple("src/main/assets/asr-zh/joiner.int8.onnx", "$zhModelBase/joiner-epoch-99-avg-1.int8.onnx", "a7cf9d82757bdcf786059454495a9ca95e4bd7347f72473fc08d794475c36169"),
+    Triple("src/main/assets/asr-zh/tokens.txt", "$zhModelBase/tokens.txt", "8b294db9045d6e5f94647f4c1eec1af4da143a75053c399611444b378ff966ac"),
 )
 
 private fun sha256(file: File): String {
@@ -194,7 +202,7 @@ private fun download(url: String, to: File) {
 
 val fetchSpeechAssets by tasks.registering {
     group = "build setup"
-    description = "Downloads the speech recognition library and the speech models (not stored in git)."
+    description = "Downloads the speech recognition library and Russian, English and Chinese models (not stored in git)."
     val dir = layout.projectDirectory.asFile
     doLast {
         for ((path, url, sha) in speechAssets) {

@@ -31,7 +31,7 @@ class ScriptModel(
 ) {
     val spokenTokens: Int = tokens.count { it.spoken }
 
-    /** Reading time at a given pace, words per minute. */
+    /** Reading time at a given pace: Han characters per minute for Chinese, words per minute otherwise. */
     fun durationSeconds(wpm: Int): Int = if (wpm <= 0) 0 else (spokenTokens * 60 + wpm - 1) / wpm
 
     companion object {
@@ -44,7 +44,7 @@ class ScriptModel(
  * would print them. Russian takes the written word, as before English existed; English takes the normalized form, so
  * apostrophes are straight and "Mr." is "mister". The recognizer keeps only what its vocabulary can encode.
  */
-fun ScriptModel.biasWords(): List<String> = tokens.indices.asSequence()
+fun ScriptModel.biasWords(): List<String> = if (lang == SpeechLang.ZH) ChineseNorm.biasPhrases(this) else tokens.indices.asSequence()
     .mapNotNull { i ->
         val t = tokens[i]
         when {
@@ -85,11 +85,25 @@ object ScriptLayout {
             if (sb.isNotEmpty()) sb.append(PARAGRAPH_SEPARATOR)
             val offset = sb.length
             val chars = p.text.toCharArray()
-            if (phraseMode && p.kind == Paragraph.Kind.BODY) {
-                for (pos in PhraseBreaker.breakPositions(p.text, maxWords, lang)) chars[pos] = '\n'
+            val chineseBreaks = if (phraseMode && p.kind == Paragraph.Kind.BODY && lang == SpeechLang.ZH) {
+                ChineseNorm.lineBreaks(p.text, maxWords)
+            } else emptySet()
+            val mappedOffsets = if (chineseBreaks.isNotEmpty()) IntArray(chars.size) else null
+            if (mappedOffsets != null) {
+                for (i in chars.indices) {
+                    if (i in chineseBreaks) sb.append('\n')
+                    mappedOffsets[i] = sb.length
+                    sb.append(chars[i])
+                }
+            } else {
+                if (phraseMode && p.kind == Paragraph.Kind.BODY && lang != SpeechLang.ZH) {
+                    for (pos in PhraseBreaker.breakPositions(p.text, maxWords, lang)) chars[pos] = '\n'
+                }
+                sb.append(chars)
             }
-            sb.append(chars)
-            p.emphasis.forEach { emphasis += (it.first + offset)..(it.last + offset) }
+            p.emphasis.forEach {
+                emphasis += (mappedOffsets?.get(it.first) ?: (it.first + offset))..(mappedOffsets?.get(it.last) ?: (it.last + offset))
+            }
             if (p.kind == Paragraph.Kind.HEADING) notes += offset until offset + p.text.length
         }
         val text = sb.toString()
@@ -147,12 +161,13 @@ object ScriptLayout {
      */
     private fun startsLine(text: String, offset: Int, lang: SpeechLang): Boolean {
         val en = lang == SpeechLang.EN
+        val zh = lang == SpeechLang.ZH
         var i = offset - 1
         while (i >= 0 && (text[i] == ' ' || text[i] == '"' || text[i] == '«' || text[i] == '(' || text[i] == '—' || text[i] == '–' ||
-                (en && text[i] in "“”‘’"))
+                ((en || zh) && text[i] in "“”‘’") || (zh && text[i] in "「」『』（）"))
         ) i--
         if (i < 0) return true
-        if (text[i] !in "\n.!?…:;]") return false
+        if (text[i] !in (if (zh) "\n.!?…:;]。！？；：，" else "\n.!?…:;]")) return false
         return !(en && text[i] == '.' && EnglishNorm.isAbbreviation(wordEndingAt(text, i)))
     }
 

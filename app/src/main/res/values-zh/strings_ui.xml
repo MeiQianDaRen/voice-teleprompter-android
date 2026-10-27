@@ -21,7 +21,7 @@
     <string name="rehearsal_status_starting">启动中…</string>
     <string name="rehearsal_status_idle">未在聆听</string>
     <string name="rehearsal_status_paused">已暂停</string>
-    <string name="rehearsal_status_auto">定速 · %1$d 词/分钟</string>
+    <string name="rehearsal_status_auto">定速 · %1$d 字词/分钟</string>
     <string name="rehearsal_status_mic_busy">其他应用正在使用麦克风</string>
     <string name="rehearsal_status_fallback">未听到你的声音，正在自动滚动</string>
     <string name="rehearsal_status_listening">正在聆听</string>
@@ -48,22 +48,23 @@
     <string name="settings_notifications_title">通知</string>
     <string name="settings_notifications_hint">Suflyor 聆听时在通知栏显示图标，并提供停止按钮</string>
     <string name="settings_section_voice">语音跟随</string>
-    <string name="settings_speech_lang_auto_hint">根据稿件中的字母自动选择，当前为：%1$s</string>
+    <string name="settings_speech_lang_auto_hint">根据稿件中的文字自动选择，当前为：%1$s</string>
     <string name="settings_speech_lang_name_ru">俄语</string>
     <string name="settings_speech_lang_name_en">英语</string>
+    <string name="settings_speech_lang_name_zh">中文</string>
     <string name="settings_lead_title">提前显示</string>
     <plurals name="settings_lead_value">
-        <item quantity="other">%d 个词</item>
+        <item quantity="other">%d 个字词</item>
     </plurals>
-    <string name="settings_lead_hint">朗读时，文字比已识别的内容提前显示多少个词</string>
-    <string name="settings_highlight_title">高亮下一个词</string>
+    <string name="settings_lead_hint">朗读时，文字比已识别的内容提前显示多少个字词</string>
+    <string name="settings_highlight_title">高亮下一个字词</string>
     <string name="settings_highlight_hint">关闭时仅标记当前行</string>
     <string name="settings_hotwords_title">增强稿件词汇识别</string>
     <string name="settings_hotwords_hint">提高生僻词识别效果，下次启动应用时生效</string>
     <string name="settings_section_text">文本</string>
     <string name="settings_phrase_title">每行一个短语</string>
     <string name="settings_phrase_hint">将文本拆分成一口气能读完的短语</string>
-    <string name="settings_max_words_title">每行词数</string>
+    <string name="settings_max_words_title">每行字词数</string>
     <string name="settings_max_words_value">最多 %1$d 个</string>
     <string name="settings_font_title">字号</string>
     <string name="settings_section_tile">快捷设置磁贴</string>
@@ -91,7 +92,7 @@
     <string name="settings_diag_hint">显示 Suflyor 听到的内容及其他正在录音的应用</string>
     <string name="settings_section_autoscroll">非语音跟随滚动</string>
     <string name="settings_wpm_title">速度</string>
-    <string name="settings_wpm_hint">每分钟词数，用于自动滚动和时长估算</string>
+    <string name="settings_wpm_hint">每分钟字词数（中文按字计算），用于自动滚动和时长估算</string>
     <string name="settings_countdown_title">开始前倒计时</string>
     <string name="settings_countdown_off">关闭</string>
     <string name="settings_countdown_value">%1$d 秒</string>
@@ -107,9 +108,9 @@
     <string name="settings_language_title">应用语言</string>
     <string name="settings_language_value">简体中文</string>
     <string name="settings_log_hint">查看麦克风和语音识别的运行情况</string>
-    <string name="settings_about_version">Suflyor %1$s · 语音识别：sherpa-onnx；模型：alphacep（俄语）、icefall LibriSpeech（英语），Apache-2.0</string>
+    <string name="settings_about_version">Suflyor %1$s · 语音识别：sherpa-onnx；模型：alphacep（俄语）、icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0</string>
     <string name="rehearsal_status_error">发生错误，详情见下方</string>
-    <string name="rehearsal_status_sound">说话时滚动 · %1$d 词/分钟</string>
+    <string name="rehearsal_status_sound">说话时滚动 · %1$d 字词/分钟</string>
     <string name="library_save_failed">无法保存稿件：%1$s</string>
     <string name="script_copy_title">%1$s（副本）</string>
     <string name="script_cd_share">分享文本</string>
@@ -133,7 +134,7 @@
     <string name="settings_link_donate">支持项目</string>
     <string name="settings_link_donate_hint">通过 Boosty 或加密货币捐赠，用于支持新增语言和购买测试手机</string>
     <string name="settings_about_license">基于 GPL-3.0 的自由软件，不提供任何担保。</string>
-    <string name="editor_stats">%1$s · 按 %3$d 词/分钟估算约 %2$s</string>
+    <string name="editor_stats">%1$s · 按 %3$d 字词/分钟估算约 %2$s</string>
     <string name="journal_crash_title">上次运行发生了崩溃</string>
     <string name="journal_crash_hint">报告保存在本机，不包含识别的语音、应用名称或稿件标题。</string>
     <string name="journal_crash_share">分享报告</string>
@@ -143,8 +144,8 @@
     <string name="settings_sum_overlay">行数：%1$d · 字号：%2$d · 背景：%3$d%%</string>
     <string name="settings_sum_fullscreen">字号：%1$d · 镜像：%2$s</string>
     <string name="settings_sum_voice">语音识别语言：%1$s</string>
-    <string name="settings_sum_timed">%1$d 词/分钟 · 倒计时：%2$s</string>
-    <string name="settings_sum_text_phrases">每个短语最多 %1$d 个词</string>
+    <string name="settings_sum_timed">%1$d 字词/分钟 · 倒计时：%2$s</string>
+    <string name="settings_sum_text_phrases">每个短语最多 %1$d 个字词</string>
     <string name="settings_sum_text_paragraphs">保留原文分段</string>
     <string name="settings_sum_keys_on">开启</string>
     <string name="settings_sum_keys_off">关闭</string>
@@ -162,10 +163,10 @@
     <string name="mirror_horizontal">水平</string>
     <string name="mirror_vertical">垂直</string>
     <string name="mirror_both">水平和垂直</string>
-    <string name="speed_value">%1$d 词/分钟</string>
+    <string name="speed_value">%1$d 字词/分钟</string>
     <string name="script_lang_chip">语音：%1$s</string>
     <string name="script_lang_sheet_title">此稿件的语音识别语言</string>
-    <string name="script_lang_sheet_hint">使用所选语言的语音模型进行识别，并按该语言的规则匹配和统计词数。</string>
+    <string name="script_lang_sheet_hint">使用所选语言的语音模型进行识别，并按该语言的规则匹配和统计字词数。</string>
     <string name="script_lang_follow">跟随设置（当前：%1$s）</string>
     <string name="script_speed_sheet_title">非语音跟随滚动速度</string>
     <string name="script_speed_sheet_hint">用于定速模式、声音模式和时长估算。</string>
@@ -176,5 +177,5 @@
     <string name="scroll_mode_voice">语音</string>
     <string name="scroll_mode_auto">定速</string>
     <string name="scroll_mode_sound">声音</string>
-    <string name="speed_unit">词/分钟</string>
+    <string name="speed_unit">字词/分钟</string>
 </resources>

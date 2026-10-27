@@ -130,7 +130,8 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
     /** @param hypothesis normalized recognized words, oldest first (finalized history + current partial). */
     fun onHypothesis(hypothesis: List<String>): Update {
         val heard = hypothesis.filter { it.isNotEmpty() && it !in lang.fillers }
-        val hyp = lang.prepareHypothesis(heard, vocabSet, scriptHasDigits, chains).takeLast(TAIL)
+        val chinese = lang == SpeechLang.ZH
+        val hyp = lang.prepareHypothesis(heard, vocabSet, scriptHasDigits, chains).takeLast(if (chinese) 16 else TAIL)
         if (hyp.isEmpty() || hyp == lastHyp || size == 0) return noMove("no new words")
         lastHyp = hyp
 
@@ -141,7 +142,7 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
         val delta = wordDelta(target)
 
         if (delta in 0..FOLLOW_MAX) {
-            if (best.score < FOLLOW_MIN_SCORE) return noMove("weak follow")
+            if (best.score < FOLLOW_MIN_SCORE || (chinese && best.strong < minOf(2, size))) return noMove("weak follow")
             pendingTarget = -1
             return move(target, best, "follow")
         }
@@ -153,9 +154,10 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
         // start of the next — are enough. This is the common case of re-reading a line or skipping to the next one.
         if (isNear(best)) {
             val anchored = startsAtAnchor(best)
-            val quick = anchored && best.evidence >= NEAR_MIN_EVIDENCE && lead >= NEAR_MARGIN &&
+            val quick = !chinese && anchored && best.evidence >= NEAR_MIN_EVIDENCE && lead >= NEAR_MARGIN &&
                 (best.strong >= 2 || (best.strong >= 1 && best.endsWithPrefix))
-            val solid = best.strong >= 3 && best.evidence >= NEAR_MIN_EVIDENCE && lead >= NEAR_MARGIN
+            val solid = best.strong >= (if (chinese) 4 else 3) &&
+                best.evidence >= (if (chinese) 2f else NEAR_MIN_EVIDENCE) && lead >= (if (chinese) 0.8f else NEAR_MARGIN)
             if (quick || solid) {
                 pendingTarget = -1
                 return move(target, best, if (delta < 0) "back (retake)" else "jump ahead")
@@ -163,13 +165,14 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
         }
 
         // A far jump: back (retake) or ahead (skipped text). Demand strong, unambiguous, repeated evidence.
-        val strong = best.strong >= 3 && best.evidence >= JUMP_MIN_EVIDENCE && lead >= JUMP_MARGIN
+        val strong = best.strong >= (if (chinese) 6 else 3) &&
+            best.evidence >= (if (chinese) 3f else JUMP_MIN_EVIDENCE) && lead >= (if (chinese) 1.2f else JUMP_MARGIN)
         if (!strong) {
             return noMove("weak jump to $target (%d words, evidence %.1f, lead %.1f)".format(best.strong, best.evidence, net(best) - rival))
         }
         val confirmed = pendingTarget >= 0 && target - pendingTarget in 0..2
         pendingTarget = target
-        if (!confirmed && best.evidence < JUMP_SURE_EVIDENCE) return noMove("jump to $target pending confirmation")
+        if (!confirmed && best.evidence < (if (chinese) 4.8f else JUMP_SURE_EVIDENCE)) return noMove("jump to $target pending confirmation")
         pendingTarget = -1
         return move(target, best, if (delta < 0) "back (retake)" else "jump ahead")
     }

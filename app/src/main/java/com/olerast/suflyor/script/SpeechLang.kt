@@ -5,17 +5,19 @@ import com.olerast.suflyor.doc.ScriptDocument
 
 /**
  * Language the reader speaks: picks the recognizer model and the rules for comparing heard and written words.
- * Russian calls [TextNorm] exactly as before English existed; English uses [EnglishNorm].
+ * Russian calls [TextNorm] exactly as before English existed; English uses [EnglishNorm], Chinese [ChineseNorm].
  */
 enum class SpeechLang(val code: String) {
     RU("ru"),
-    EN("en");
+    EN("en"),
+    ZH("zh");
 
     /** One word of script or recognizer text. English keeps inner apostrophes ("don't"); Russian splits on them. */
     val wordRegex: Regex
         get() = when (this) {
             RU -> TextNorm.WORD
             EN -> EnglishNorm.WORD
+            ZH -> ChineseNorm.WORD
         }
 
     /** Hesitations the recognizer prints that never appear in a script. */
@@ -23,17 +25,20 @@ enum class SpeechLang(val code: String) {
         get() = when (this) {
             RU -> TextNorm.FILLERS
             EN -> EnglishNorm.FILLERS
+            ZH -> ChineseNorm.FILLERS
         }
 
     fun normalize(raw: String): String = when (this) {
         RU -> TextNorm.normalizeWord(raw)
         EN -> EnglishNorm.normalizeWord(raw)
+        ZH -> ChineseNorm.normalizeWord(raw)
     }
 
     /** Normalized words of a text in this language: the recognizer's output on every update, or script text. */
     fun words(text: String): List<String> = when (this) {
         RU -> TextNorm.words(text)
         EN -> EnglishNorm.WORD.findAll(text).map { EnglishNorm.normalizeWord(it.value) }.filter { it.isNotEmpty() }.toList()
+        ZH -> ChineseNorm.words(text)
     }
 
     /**
@@ -43,17 +48,20 @@ enum class SpeechLang(val code: String) {
     fun isForeign(raw: String): Boolean = when (this) {
         RU -> raw.any { it in 'a'..'z' || it in 'A'..'Z' }
         EN -> raw.any { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.CYRILLIC }
+        ZH -> raw.any { it.isLetter() } && !ChineseNorm.isHan(raw)
     }
 
     /** How much a matched script word proves the position (before the tracker's frequency adjustment). */
     fun weight(norm: String, foreign: Boolean): Float = when (this) {
         RU -> TextNorm.weight(norm, foreign)
         EN -> EnglishNorm.weight(norm, foreign)
+        ZH -> ChineseNorm.weight(norm, foreign)
     }
 
     fun similarity(a: String, b: String): Float = when (this) {
         RU -> TextNorm.similarity(a, b)
         EN -> EnglishNorm.similarity(a, b)
+        ZH -> ChineseNorm.similarity(a, b)
     }
 
     /** Groups word forms for the frequency weights: a word repeated in another form still proves little. */
@@ -61,6 +69,7 @@ enum class SpeechLang(val code: String) {
         // Word forms of one Russian word usually share the first five letters.
         RU -> if (w.length > 5) w.substring(0, 5) else w
         EN -> EnglishNorm.stem(w)
+        ZH -> w
     }
 
     /**
@@ -70,6 +79,7 @@ enum class SpeechLang(val code: String) {
     fun canBePrefix(partial: String): Boolean = when (this) {
         RU -> true
         EN -> partial !in EnglishNorm.STOP
+        ZH -> false
     }
 
     /**
@@ -84,6 +94,7 @@ enum class SpeechLang(val code: String) {
     ): List<String> = when (this) {
         RU -> TextNorm.regroupLetterNames(hyp, vocab, chains)
         EN -> EnglishNorm.prepareHypothesis(hyp, vocab, scriptHasDigits)
+        ZH -> hyp
     }
 
     /**
@@ -92,35 +103,37 @@ enum class SpeechLang(val code: String) {
      * a step in the other direction restarts the run, so its behaviour stays exactly as tuned.
      */
     val strictGapRuns: Boolean
-        get() = this == EN
+        get() = this == EN || this == ZH
 
     companion object {
         fun fromCode(code: String?): SpeechLang? = entries.firstOrNull { it.code == code }
 
         /**
          * Majority alphabet of what the reader will say: body paragraphs outside [stage directions].
-         * Ties and empty scripts count as Russian.
+         * Han-majority scripts use Chinese; otherwise Latin/Cyrillic detection and the empty-script default stay unchanged.
          */
         fun detect(doc: ScriptDocument): SpeechLang {
             var cyrillic = 0
             var latin = 0
+            var han = 0
             for (p in doc.paragraphs) {
                 if (p.kind != Paragraph.Kind.BODY) continue
                 var note = false
-                for (ch in p.text) {
+                for (ch in p.text.codePoints().toArray()) {
                     when {
-                        ch == '[' -> note = true
-                        ch == ']' -> note = false
-                        note || !ch.isLetter() -> Unit
-                        else -> when (Character.UnicodeScript.of(ch.code)) {
+                        ch == '['.code -> note = true
+                        ch == ']'.code -> note = false
+                        note || !Character.isLetter(ch) -> Unit
+                        else -> when (Character.UnicodeScript.of(ch)) {
                             Character.UnicodeScript.CYRILLIC -> cyrillic++
                             Character.UnicodeScript.LATIN -> latin++
+                            Character.UnicodeScript.HAN -> han++
                             else -> Unit
                         }
                     }
                 }
             }
-            return if (latin > cyrillic) EN else RU
+            return if (han > 0 && han >= maxOf(latin, cyrillic)) ZH else if (latin > cyrillic) EN else RU
         }
     }
 }

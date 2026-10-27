@@ -35,7 +35,7 @@ jobs:
         with:
           cache-provider: basic
 
-      # The speech library and model (~80 MB) come from fetchSpeechAssets, which re-checks them against the pinned
+      # The speech library and models come from fetchSpeechAssets, which re-checks them against the pinned
       # SHA-256 on every build, so a cached copy cannot smuggle in a different file.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -47,6 +47,8 @@ jobs:
             app/src/main/assets/asr-en/*.onnx
             app/src/main/assets/asr-en/tokens.txt
             app/src/main/assets/asr-en/bpe.vocab
+            app/src/main/assets/asr-zh/*.onnx
+            app/src/main/assets/asr-zh/tokens.txt
           key: speech-assets-${{ hashFiles('app/build.gradle.kts') }}
 
       # Lint fails on new problems only; those known when it was added are listed in app/lint-baseline.xml.

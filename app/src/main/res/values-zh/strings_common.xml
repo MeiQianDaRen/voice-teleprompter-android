@@ -11,7 +11,7 @@
     <string name="common_delete">删除</string>
     <string name="common_untitled">未命名</string>
     <plurals name="words_count">
-        <item quantity="other">%d 个词</item>
+        <item quantity="other">%d 个字词</item>
     </plurals>
     <string name="format_typed">文本</string>
     <string name="format_sample">内置</string>
