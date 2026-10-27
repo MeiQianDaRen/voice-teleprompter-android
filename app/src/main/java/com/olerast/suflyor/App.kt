@@ -159,7 +159,7 @@ class Settings(context: Context) {
 
     /** Language the reader speaks: "auto" (from the script's alphabet), or a [SpeechLang] code. */
     var speechLang: String
-        get() = prefs.getString("speechLang", "auto") ?: "auto"
+        get() = SpeechLang.fromCode(prefs.getString("speechLang", "auto"))?.code ?: "auto"
         set(v) = prefs.edit().putString("speechLang", v).apply()
 
     /** The script's own choice first, then the default from Settings, then the script's alphabet. */
