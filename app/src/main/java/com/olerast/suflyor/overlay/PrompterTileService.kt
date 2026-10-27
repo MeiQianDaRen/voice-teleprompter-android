@@ -28,7 +28,7 @@ class PrompterTileService : TileService() {
     override fun onClick() {
         val app = App.instance
         if (app.engine.state.mode == SessionEngine.Mode.OVERLAY) {
-            OverlayHost.stopSession(this)
+            app.exit()
             refresh()
             return
         }
@@ -78,6 +78,8 @@ class QuickStartActivity : ComponentActivity() {
     }
 
     private fun start() {
+        if (isFinishing) return
+        App.instance.open()
         val problem = OverlayHost.startSession(this)
         if (problem != null) {
             Toast.makeText(this, getString(problem.message), Toast.LENGTH_LONG).show()

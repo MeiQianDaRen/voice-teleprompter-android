@@ -53,6 +53,8 @@ import com.olerast.suflyor.App
 import com.olerast.suflyor.BuildConfig
 import com.olerast.suflyor.R
 import com.olerast.suflyor.overlay.KeyAction
+import com.olerast.suflyor.overlay.OverlayHost
+import com.olerast.suflyor.overlay.PrompterAccessibilityService
 import com.olerast.suflyor.overlay.KeyBindings
 import com.olerast.suflyor.overlay.PrompterTileService
 import com.olerast.suflyor.script.SpeechLang
@@ -247,11 +249,21 @@ private fun ReadinessPage(readiness: Readiness, onRequestPermissions: () -> Unit
 @Composable
 private fun OverlayPage() {
     val s = App.instance.settings
+    val context = LocalContext.current
+    var floatingButton by remember { mutableStateOf(s.floatingButton) }
     var lines by remember { mutableIntStateOf(s.overlayLines) }
     var font by remember { mutableIntStateOf(s.fontSp) }
     var alpha by remember { mutableIntStateOf(s.overlayAlpha) }
     var autoRotate by remember { mutableStateOf(s.autoRotate) }
     Hint(stringResource(R.string.settings_overlay_page_hint))
+    ToggleRow(stringResource(R.string.floating_button_title), stringResource(R.string.floating_button_hint), floatingButton) {
+        floatingButton = it
+        s.floatingButton = it
+        OverlayHost.refreshButton(context)
+        if (it && PrompterAccessibilityService.instance == null && !Settings.canDrawOverlays(context)) {
+            context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")))
+        }
+    }
     StepperRow(
         stringResource(R.string.settings_lines_title), "$lines", null,
         onMinus = { lines = (lines - 1).coerceAtLeast(1); s.overlayLines = lines },

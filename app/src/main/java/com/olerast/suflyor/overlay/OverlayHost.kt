@@ -1,7 +1,6 @@
 package com.olerast.suflyor.overlay
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.AccessibilityButtonController
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -30,6 +29,8 @@ enum class StartProblem(@StringRes val message: Int) {
 /** Starts and stops the "over other apps" session: foreground service + engine + floating window. */
 object OverlayHost {
     private var controller: OverlayController? = null
+    private var button: FloatingButton? = null
+    private var buttonHost: Context? = null
     private var watching = false
 
     /** A session over other apps is running (independent of whether its window currently exists). */
@@ -77,6 +78,7 @@ object OverlayHost {
         context.startForegroundService(Intent(context, SessionService::class.java))
         watchScreen(appContext)
         PrompterAccessibilityService.instance?.onSessionChanged(true)
+        refreshButton(context)
         PrompterTileService.requestUpdate(appContext)
         return null
     }
@@ -96,6 +98,7 @@ object OverlayHost {
         // kill the app); its pending onStartCommand sees the session is over and stops itself.
         SessionService.stop(appContext)
         PrompterAccessibilityService.instance?.onSessionChanged(false)
+        refreshButton(appContext)
         PrompterTileService.requestUpdate(appContext)
     }
 
@@ -109,7 +112,7 @@ object OverlayHost {
             override fun onReceive(c: Context, intent: Intent) {
                 if (intent.action == Intent.ACTION_SCREEN_OFF && active) {
                     DiagLog.i("Screen off — session stopped")
-                    stopSession(appContext)
+                    App.instance.exit()
                 }
             }
         }
@@ -151,35 +154,45 @@ object OverlayHost {
         controller = null
     }
 
+    /** App-owned shortcut: unlike a system accessibility shortcut, it has an app-controlled lifetime. */
+    fun refreshButton(context: Context) {
+        val app = App.instance
+        val host: Context? = if (!app.isOpen || !app.settings.floatingButton) null else
+            PrompterAccessibilityService.instance ?: context.applicationContext.takeIf { Settings.canDrawOverlays(it) }
+        if (host !== buttonHost) {
+            button?.hide()
+            button = null
+            buttonHost = null
+            if (host != null) {
+                val type = if (host is PrompterAccessibilityService) WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+                    else WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                val next = FloatingButton(host, type)
+                if (runCatching { next.show() }.onFailure { DiagLog.e("Couldn't show floating button", it) }.isSuccess) {
+                    button = next
+                    buttonHost = host
+                }
+            }
+        }
+        button?.render(active)
+    }
+
     /** Re-creates the window with the right host when the accessibility service connects or disconnects mid-session. */
     fun onHostChanged(context: Context) {
         if (active && App.instance.engine.state.mode == SessionEngine.Mode.OVERLAY) showOrStop(context)
+        refreshButton(context)
     }
 }
 
 /**
- * Accessibility service of the app. It shows nothing by itself; its jobs are to make Android treat our microphone
+ * Accessibility service of the app. It hosts the app-owned shortcut while the app is open and marks our microphone
  * capture as an accessibility capture (allowed concurrently with a camera app, CDD 5.4.5), host the floating window
  * as a trusted accessibility overlay, and — only while a session runs over another app — report which app is on
  * screen and let bound hardware keys (volume, Bluetooth remote, keyboard) control the prompter.
  * It never reads window content.
  */
 class PrompterAccessibilityService : AccessibilityService() {
-    private val buttonCallback = object : AccessibilityButtonController.AccessibilityButtonCallback() {
-        override fun onClicked(controller: AccessibilityButtonController) {
-            if (OverlayHost.active) {
-                OverlayHost.stopSession(this@PrompterAccessibilityService)
-            } else {
-                // A visible activity requests the microphone if needed, then starts the floating prompter.
-                startActivity(Intent(this@PrompterAccessibilityService, QuickStartActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }
-        }
-    }
-
     override fun onServiceConnected() {
         instance = this
-        accessibilityButtonController.registerAccessibilityButtonCallback(buttonCallback)
         DiagLog.i("Accessibility service connected")
         onSessionChanged(OverlayHost.active)
         OverlayHost.onHostChanged(this)
@@ -220,7 +233,6 @@ class PrompterAccessibilityService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     override fun onUnbind(intent: Intent?): Boolean {
-        accessibilityButtonController.unregisterAccessibilityButtonCallback(buttonCallback)
         instance = null
         DiagLog.i("Accessibility service disconnected")
         OverlayHost.onHostChanged(applicationContext)

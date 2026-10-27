@@ -175,7 +175,7 @@ class OverlayController(private val context: Context, private val windowType: In
             addView(modeBtn)
             addView(icon(R.drawable.ic_settings, R.string.overlay_cd_tune) { setTuneOpen(tuneRow.visibility != View.VISIBLE) })
             addView(icon(R.drawable.ic_lock, R.string.overlay_cd_lock) { setLocked(true) })
-            addView(icon(R.drawable.ic_close, R.string.overlay_cd_close) { OverlayHost.stopSession(context) })
+            addView(icon(R.drawable.ic_close, R.string.floating_button_close) { app.exit() })
         }
         tuneRow = buildTuneRow()
         diag = TextView(context).apply {

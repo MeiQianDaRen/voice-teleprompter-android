@@ -386,7 +386,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
 
     /** Frees the model when no session runs (after a while idle, or when Android is short of memory). */
     fun releaseIdleRecognizer(why: String) {
-        if (state.mode != Mode.IDLE || asr == null) return
+        if (state.mode != Mode.IDLE) return
         Thread({
             synchronized(asrLoadLock) {
                 if (state.mode != Mode.IDLE) return@Thread

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="floating_button_title">Floating button</string>
+    <string name="floating_button_hint">Open the floating prompter. The button closes when you exit the app.</string>
+    <string name="floating_button_open">Open floating prompter</string>
+    <string name="floating_button_close">Close prompter and exit</string>
+</resources>

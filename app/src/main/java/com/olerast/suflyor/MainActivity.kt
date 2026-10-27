@@ -98,6 +98,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        app.open()
         savedInstanceState?.getStringArrayList(KEY_BACK_STACK)?.let { saved ->
             val restored = saved.mapNotNull(::decodeScreen)
             if (restored.isNotEmpty()) {
@@ -152,6 +153,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        OverlayHost.refreshButton(this)
         readiness = Readiness.check(this)
         PrompterAccessibilityService.stateListeners += a11yListener
     }
@@ -166,8 +168,15 @@ class MainActivity : ComponentActivity() {
         if (app.engine.state.mode == SessionEngine.Mode.IN_APP) app.engine.stop()
     }
 
+    override fun onDestroy() {
+        // Removing the app from Recents also removes its shortcut and any session over another app.
+        if (isFinishing && !isChangingConfigurations && app.isOpen) app.exit()
+        super.onDestroy()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        app.open()
         handleIncoming(intent)
         openScreenForScreenshot(intent)
     }
@@ -239,7 +248,7 @@ class MainActivity : ComponentActivity() {
     private fun Root() {
         val r = readiness ?: Readiness.check(this)
         val screen = backStack.last()
-        BackHandler(enabled = backStack.size > 1) { pop() }
+        BackHandler { if (backStack.size > 1) pop() else app.exit() }
         key(screen) {
             when (screen) {
                 Screen.Library -> LibraryScreen(

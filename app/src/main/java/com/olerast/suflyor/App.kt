@@ -1,6 +1,7 @@
 package com.olerast.suflyor
 
 import android.app.Application
+import android.app.ActivityManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
@@ -12,6 +13,7 @@ import com.olerast.suflyor.diag.DiagLog
 import com.olerast.suflyor.doc.PdfTextExtractor
 import com.olerast.suflyor.doc.ScriptDocument
 import com.olerast.suflyor.script.SpeechLang
+import com.olerast.suflyor.overlay.OverlayHost
 import com.olerast.suflyor.session.SessionEngine
 
 class App : Application() {
@@ -23,6 +25,25 @@ class App : Application() {
         private set
     lateinit var onlineLibrary: OnlineLibrary
         private set
+
+    /** Only an explicit app/tile launch opens the UI lifetime; a bound service must not resurrect its button. */
+    var isOpen = false
+        private set
+
+    fun open() {
+        isOpen = true
+        OverlayHost.refreshButton(this)
+    }
+
+    fun exit() {
+        isOpen = false
+        OverlayHost.refreshButton(this)
+        OverlayHost.stopSession(this)
+        engine.releaseIdleRecognizer("app exit")
+        getSystemService(ActivityManager::class.java).appTasks.forEach { task ->
+            runCatching { task.finishAndRemoveTask() }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -125,6 +146,9 @@ class Settings(context: Context) {
     var overlayScale: Float
         get() = prefs.getFloat("overlayScale", 1f).coerceIn(0.5f, 2f)
         set(v) = prefs.edit().putFloat("overlayScale", v.coerceIn(0.5f, 2f)).apply()
+    var floatingButton: Boolean
+        get() = prefs.getBoolean("floatingButton", true)
+        set(v) = prefs.edit().putBoolean("floatingButton", v).apply()
     var overlayY: Int
         get() = prefs.getInt("overlayY2", 0)
         set(v) = prefs.edit().putInt("overlayY2", v).apply()

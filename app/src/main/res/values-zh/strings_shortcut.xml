@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="floating_button_title">悬浮按钮</string>
+    <string name="floating_button_hint">点击打开悬浮提词器，退出应用时自动关闭按钮。需要无障碍服务或悬浮窗权限。</string>
+    <string name="floating_button_open">打开悬浮提词器</string>
+    <string name="floating_button_close">关闭提词器并退出</string>
+</resources>

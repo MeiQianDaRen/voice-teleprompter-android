@@ -11,6 +11,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import com.olerast.suflyor.MainActivity
+import com.olerast.suflyor.App
 import com.olerast.suflyor.R
 import com.olerast.suflyor.diag.DiagLog
 import com.olerast.suflyor.overlay.OverlayHost
@@ -22,7 +23,7 @@ import com.olerast.suflyor.overlay.OverlayHost
 class SessionService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
-            OverlayHost.stopSession(this)
+            App.instance.exit()
             stopSelf()
             return START_NOT_STICKY
         }
@@ -65,6 +66,11 @@ class SessionService : Service() {
             stopSelf()
         }
         return START_NOT_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        App.instance.exit()
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
