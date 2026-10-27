@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="online_link_title">Настройка ссылки</string>
+    <string name="online_link_title">Настройка онлайн-каталога</string>
     <string name="online_link_hint">Укажите адрес онлайн-библиотеки</string>
     <string name="online_link_address">Адрес каталога HTTP(S)</string>
     <string name="online_link_format">Адрес должен возвращать каталог сценариев в JSON. Пустое поле отключает ссылку; сохранённые сценарии остаются.</string>

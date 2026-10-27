@@ -7,6 +7,22 @@ import org.junit.Test
 class OverlayGeometryTest {
     private val rect = G.Rect(100, 120, 400, 300)
 
+    @Test fun resizeControlsAreLargeAndInsetFromDeviceNavigationEdges() {
+        val w = 360
+        val h = 400
+        fun hit(x: Int, y: Int) = G.handleAt(x.toFloat(), y.toFloat(), w, h, 48, 48)
+        assertEquals(0, hit(0, h / 2))
+        assertEquals(0, hit(15, h / 2))
+        assertEquals(0, hit(w - 15, h / 2))
+        assertEquals(0, hit(w / 2, 5))
+        assertEquals(G.LEFT, hit(48, h / 2))
+        assertEquals(G.RIGHT, hit(w - 48, h / 2))
+        assertEquals(G.TOP, hit(w / 2, 48))
+        assertEquals(G.BOTTOM, hit(w / 2, h - 48))
+        assertEquals(G.DONE, hit(w / 2, h / 2))
+        assertEquals(G.LEFT, hit(48 + 23, h / 2 + 23))
+    }
+
     @Test fun horizontalEdgesChangeWidthWithoutChangingHeight() {
         assertEquals(G.Rect(70, 120, 430, 300), G.resize(rect, G.LEFT, -30, 90, 1000, 800, 240, 180))
         assertEquals(G.Rect(100, 120, 460, 300), G.resize(rect, G.RIGHT, 60, -80, 1000, 800, 240, 180))

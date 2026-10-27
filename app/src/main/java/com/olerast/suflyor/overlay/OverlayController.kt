@@ -99,6 +99,7 @@ class OverlayController(private val context: Context, private val windowType: In
     private var dragStart: OverlayGeometry.Rect? = null
     private var dragPlacement = Placement.PORTRAIT
     private var resizeEdges = 0
+    private var resizeRequested = false
     private var boundsUpdatePosted = false
     private var safeTop = 0
     private var lastScript: Any? = null
@@ -228,6 +229,11 @@ class OverlayController(private val context: Context, private val windowType: In
                 }
             }
             onResizeEnd = { saveBounds() }
+            onResizeDone = {
+                resizeRequested = false
+                resizeEnabled = false
+                saveBounds()
+            }
             addView(panel, android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT))
         }
 
@@ -343,7 +349,7 @@ class OverlayController(private val context: Context, private val windowType: In
 
     private fun minimumWindowSize(): Pair<Int, Int> {
         val chrome = (if (locked) 0 else dp(84)) +
-            (if (tuneRow.visibility == View.VISIBLE) tuneRow.measuredHeight.coerceAtLeast(dp(96)) else 0) +
+            (if (tuneRow.visibility == View.VISIBLE) tuneRow.measuredHeight.coerceAtLeast(dp(144)) else 0) +
             (if (diag.visibility == View.VISIBLE) dp(44) else 0)
         return OverlayGeometry.minimum(frame?.angle ?: 0,
             dp(if (tuneRow.visibility == View.VISIBLE) 320 else 240), prompter.lineHeightPx + dp(36) + chrome + safeTop)
@@ -381,7 +387,7 @@ class OverlayController(private val context: Context, private val windowType: In
             Placement.TURNED_RIGHT -> -90
             else -> 0
         }
-        root.resizeEnabled = !locked
+        root.resizeEnabled = resizeRequested && !locked
         panel.layoutParams = panel.layoutParams.apply {
             width = android.view.ViewGroup.LayoutParams.MATCH_PARENT
             height = android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -455,7 +461,8 @@ class OverlayController(private val context: Context, private val windowType: In
         controls.visibility = if (value) View.GONE else View.VISIBLE
         if (value) tuneRow.visibility = View.GONE
         grabber.visibility = if (value) View.GONE else View.VISIBLE
-        root.resizeEnabled = !value
+        if (value) resizeRequested = false
+        root.resizeEnabled = resizeRequested && !value
         applyPlacement()
         params.flags = if (value) {
             params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
@@ -605,6 +612,18 @@ class OverlayController(private val context: Context, private val windowType: In
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10), 0, dp(10), dp(4))
             visibility = View.GONE
+            addView(TextView(context).apply {
+                text = context.getString(R.string.overlay_resize_title)
+                textSize = 15f
+                setTextColor(PrompterView.ACCENT)
+                gravity = Gravity.CENTER
+                background = ripple()
+                setOnClickListener {
+                    setTuneOpen(false)
+                    resizeRequested = true
+                    frame?.resizeEnabled = true
+                }
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)))
             addView(
                 row(
                     tuneGroup(R.string.overlay_tune_font, { "$fontSp" }, { changeFont(-2) }, { changeFont(2) }),
@@ -663,6 +682,8 @@ class OverlayController(private val context: Context, private val windowType: In
     }
 
     private fun setTuneOpen(open: Boolean) {
+        resizeRequested = false
+        frame?.resizeEnabled = false
         tuneRow.visibility = if (open) View.VISIBLE else View.GONE
         tuneValues.forEach { it() }
         applyPlacement()

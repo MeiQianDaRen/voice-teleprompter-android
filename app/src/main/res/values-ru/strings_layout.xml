@@ -4,6 +4,8 @@
     <string name="text_align_left">Слева</string>
     <string name="text_align_center">По центру</string>
     <string name="text_align_right">Справа</string>
-    <string name="overlay_resize_hint">Тяните левый или правый край для ширины, верхний или нижний для высоты. Внутренняя ручка перемещает окно. Размер и положение сохраняются для каждой ориентации.</string>
+    <string name="overlay_resize_hint">В настройках окна нажмите «Размер», чтобы показать крупные ручки внутри окна. Нажмите «Готово» после настройки. Внутренняя ручка перемещает окно.</string>
     <string name="overlay_move_hint">Переместить плавающее окно</string>
+    <string name="overlay_resize_title">Размер</string>
+    <string name="overlay_resize_done">Готово</string>
 </resources>

@@ -27,12 +27,8 @@ import com.olerast.suflyor.data.OnlineProblem
 fun OnlineLibrarySettings() {
     val online = App.instance.onlineLibrary
     var showDialog by remember { mutableStateOf(false) }
-    var address by remember { mutableStateOf("") }
-    var invalid by remember { mutableStateOf(false) }
     Column(Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
         TextButton(onClick = {
-            address = online.url
-            invalid = false
             showDialog = true
         }) { Text(stringResource(R.string.online_link_title)) }
         Text(online.url.ifEmpty { stringResource(R.string.online_link_hint) }, color = Palette.TextMuted)
@@ -43,39 +39,45 @@ fun OnlineLibrarySettings() {
             Text(onlineLibraryStatus(online), color = if (online.error != null) Palette.Danger else Palette.TextMuted)
         }
     }
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text(stringResource(R.string.online_link_title)) },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = address,
-                        onValueChange = { address = it; invalid = false },
-                        label = { Text(stringResource(R.string.online_link_address)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                        isError = invalid,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Text(stringResource(if (invalid) R.string.online_error_url else R.string.online_link_format))
+    if (showDialog) OnlineLibraryLinkDialog { showDialog = false }
+}
+
+@Composable
+fun OnlineLibraryLinkDialog(onDismiss: () -> Unit) {
+    val online = App.instance.onlineLibrary
+    var address by remember { mutableStateOf(online.url) }
+    var invalid by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.online_link_title)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it; invalid = false },
+                    label = { Text(stringResource(R.string.online_link_address)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                    isError = invalid,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(stringResource(if (invalid) R.string.online_error_url else R.string.online_link_format))
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = !online.syncing, onClick = {
+                try {
+                    online.configure(address)
+                    onDismiss()
+                } catch (_: OnlineLibraryException) {
+                    invalid = true
                 }
-            },
-            confirmButton = {
-                TextButton(enabled = !online.syncing, onClick = {
-                    try {
-                        online.configure(address)
-                        showDialog = false
-                    } catch (_: OnlineLibraryException) {
-                        invalid = true
-                    }
-                }) { Text(stringResource(R.string.online_link_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) { Text(stringResource(R.string.common_cancel)) }
-            },
-        )
-    }
+            }) { Text(stringResource(R.string.online_link_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.common_cancel)) }
+        },
+    )
 }
 
 @Composable

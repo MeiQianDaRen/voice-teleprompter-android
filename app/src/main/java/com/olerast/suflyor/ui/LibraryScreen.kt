@@ -61,6 +61,7 @@ fun LibraryScreen(
     var query by remember { mutableStateOf("") }
     var showAdd by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
+    var showOnlineSettings by remember { mutableStateOf(false) }
     val items = app.scripts.items.filter { query.isBlank() || it.title.contains(query.trim(), ignoreCase = true) }
 
     Box(Modifier.fillMaxSize().background(Palette.Bg)) {
@@ -108,12 +109,11 @@ fun LibraryScreen(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.online_sync)) },
-                                leadingIcon = { Ic(R.drawable.ic_replay, null, tint = Palette.TextSecondary, size = 20.dp) },
-                                enabled = app.onlineLibrary.url.isNotEmpty() && !app.onlineLibrary.syncing,
+                                text = { Text(stringResource(R.string.online_link_title)) },
+                                leadingIcon = { Ic(R.drawable.ic_settings, null, tint = Palette.TextSecondary, size = 20.dp) },
                                 onClick = {
                                     showMenu = false
-                                    app.onlineLibrary.sync()
+                                    showOnlineSettings = true
                                 },
                             )
                         }
@@ -180,6 +180,8 @@ fun LibraryScreen(
             contentAlignment = Alignment.Center,
         ) { Ic(R.drawable.ic_plus, stringResource(R.string.library_cd_add), tint = Palette.OnAccent, size = 30.dp) }
     }
+
+    if (showOnlineSettings) OnlineLibraryLinkDialog { showOnlineSettings = false }
 
     if (showAdd) {
         ModalBottomSheet(onDismissRequest = { showAdd = false }, containerColor = Palette.Surface, contentColor = Palette.Text) {

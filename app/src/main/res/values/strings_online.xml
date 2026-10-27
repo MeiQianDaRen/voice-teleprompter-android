@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="online_link_title">Link settings</string>
+    <string name="online_link_title">Online link settings</string>
     <string name="online_link_hint">Configure an online script catalog address</string>
     <string name="online_link_address">HTTP(S) catalog URL</string>
     <string name="online_link_format">The address must return the script JSON catalog directly. Leave it empty to disconnect; cached scripts are kept.</string>

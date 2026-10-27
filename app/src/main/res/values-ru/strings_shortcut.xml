@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="floating_button_title">Плавающая кнопка</string>
-    <string name="floating_button_hint">Открывает плавающий суфлёр. При выходе из приложения кнопка скрывается.</string>
-    <string name="floating_button_open">Открыть плавающий суфлёр</string>
+    <string name="floating_button_hint">Появляется после запуска суфлёра. Нажатие скрывает или показывает текст, удержание завершает сеанс.</string>
+    <string name="floating_button_open">Показать плавающий суфлёр</string>
     <string name="floating_button_close">Закрыть суфлёр и выйти</string>
+    <string name="floating_button_hide">Скрыть плавающий суфлёр</string>
+    <string name="floating_button_long_press">Удерживайте для выхода</string>
 </resources>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="online_link_title">链接设置</string>
+    <string name="online_link_title">在线链接设置</string>
     <string name="online_link_hint">填写在线稿件库地址</string>
     <string name="online_link_address">在线稿件地址（HTTP/HTTPS）</string>
     <string name="online_link_format">地址需直接返回稿件 JSON。留空可断开链接，已缓存稿件会保留。</string>

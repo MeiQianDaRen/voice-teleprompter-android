@@ -2,7 +2,6 @@ package com.olerast.suflyor.overlay
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
 import android.content.res.Configuration
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -18,7 +17,7 @@ import com.olerast.suflyor.App
 import com.olerast.suflyor.R
 import kotlin.math.abs
 
-/** A draggable shortcut owned by the open app, with no microphone or keep-screen-on flag of its own. */
+/** Session shortcut: tap to show/hide the prompter, long press to exit, drag to move. */
 class FloatingButton(private val context: Context, private val windowType: Int) {
     private val wm = context.getSystemService(WindowManager::class.java)
     private var view: ImageView? = null
@@ -51,10 +50,9 @@ class FloatingButton(private val context: Context, private val windowType: Int) 
             setPadding(dp(12), dp(12), dp(12), dp(12))
             elevation = dp(4).toFloat()
             setOnClickListener {
-                if (OverlayHost.active) App.instance.exit() else {
-                    context.startActivity(Intent(context, QuickStartActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                }
+                OverlayHost.toggleWindow(context)
             }
+            setOnLongClickListener { App.instance.exit(); true }
         }
         var downX = 0f
         var downY = 0f
@@ -62,8 +60,14 @@ class FloatingButton(private val context: Context, private val windowType: Int) 
         var startY = 0
         var dragging = false
         val slop = ViewConfiguration.get(context).scaledTouchSlop
+        fun cancelPress(v: ImageView, event: MotionEvent) {
+            val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
+            v.onTouchEvent(cancel)
+            cancel.recycle()
+        }
         button.setOnTouchListener { v, event ->
-            if (event.pointerCount > 1) { dragging = true; return@setOnTouchListener true }
+            if (view !== button) return@setOnTouchListener true
+            if (event.pointerCount > 1) { cancelPress(button, event); dragging = true; return@setOnTouchListener true }
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     downX = event.rawX
@@ -71,26 +75,30 @@ class FloatingButton(private val context: Context, private val windowType: Int) 
                     startX = params.x
                     startY = params.y
                     dragging = false
+                    v.onTouchEvent(event)
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - downX
                     val dy = event.rawY - downY
-                    if (abs(dx) > slop || abs(dy) > slop) dragging = true
+                    if (!dragging && (abs(dx) > slop || abs(dy) > slop)) {
+                        dragging = true
+                        cancelPress(button, event)
+                    }
                     if (dragging) {
                         params.x = startX + dx.toInt()
                         params.y = startY + dy.toInt()
                         fitOnScreen()
                         wm.updateViewLayout(button, params)
-                    }
+                    } else v.onTouchEvent(event)
                 }
-                MotionEvent.ACTION_UP -> if (!dragging) v.performClick()
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> if (!dragging) v.onTouchEvent(event)
             }
             true
         }
         fitOnScreen()
         wm.addView(button, params)
         view = button
-        render(OverlayHost.active)
+        render(OverlayHost.windowVisible)
     }
 
     private fun fitOnScreen() {
@@ -100,10 +108,11 @@ class FloatingButton(private val context: Context, private val windowType: Int) 
         params.y = params.y.coerceIn(0, ((bounds?.height() ?: metrics.heightPixels) - params.height).coerceAtLeast(0))
     }
 
-    fun render(active: Boolean) {
+    fun render(visible: Boolean) {
         view?.apply {
-            setImageResource(if (active) R.drawable.ic_close else R.drawable.ic_layers)
-            contentDescription = context.getString(if (active) R.string.floating_button_close else R.string.floating_button_open)
+            setImageResource(if (visible) R.drawable.ic_visibility_off else R.drawable.ic_visibility)
+            contentDescription = context.getString(if (visible) R.string.floating_button_hide else R.string.floating_button_open) +
+                ". " + context.getString(R.string.floating_button_long_press)
         }
     }
 

@@ -34,8 +34,9 @@ object OverlayHost {
     private var watching = false
 
     /** A session over other apps is running (independent of whether its window currently exists). */
-    var active = false
-        private set
+    private val state = OverlayState()
+    val active: Boolean get() = state.active
+    val windowVisible: Boolean get() = state.visible
 
     private var screenOffReceiver: BroadcastReceiver? = null
 
@@ -51,7 +52,9 @@ object OverlayHost {
         // Already running (second tap, tile + app): keep the service, microphone and window; just make sure the
         // window is there. Restarting would publish a transient IDLE and tear the foreground service down.
         if (active && app.engine.state.mode == SessionEngine.Mode.OVERLAY) {
+            state.show()
             if (controller == null) showOrStop(context)
+            refreshButton(context)
             PrompterTileService.requestUpdate(appContext)
             return null
         }
@@ -69,7 +72,7 @@ object OverlayHost {
         }
         // Start the engine first: stopping a running rehearsal publishes IDLE, which must not end this new session.
         app.engine.start(SessionEngine.Mode.OVERLAY)
-        active = true
+        state.begin()
         // The window first: if it can't be shown, nothing else (foreground service, key filtering) is started.
         if (!showWindow(context)) {
             stopSession(context)
@@ -90,7 +93,7 @@ object OverlayHost {
 
     /** Idempotent cleanup after the engine went idle, whoever stopped it. */
     private fun endSession(appContext: Context) {
-        active = false
+        state.end()
         hideWindow()
         screenOffReceiver?.let { runCatching { appContext.unregisterReceiver(it) } }
         screenOffReceiver = null
@@ -154,10 +157,17 @@ object OverlayHost {
         controller = null
     }
 
+    fun toggleWindow(context: Context) {
+        if (!active) return
+        state.toggle()
+        if (windowVisible) showOrStop(context) else hideWindow()
+        refreshButton(context)
+    }
+
     /** App-owned shortcut: unlike a system accessibility shortcut, it has an app-controlled lifetime. */
     fun refreshButton(context: Context) {
         val app = App.instance
-        val host: Context? = if (!app.isOpen || !app.settings.floatingButton) null else
+        val host: Context? = if (!state.showButton(app.isOpen, app.settings.floatingButton)) null else
             PrompterAccessibilityService.instance ?: context.applicationContext.takeIf { Settings.canDrawOverlays(it) }
         if (host !== buttonHost) {
             button?.hide()
@@ -173,12 +183,15 @@ object OverlayHost {
                 }
             }
         }
-        button?.render(active)
+        button?.render(windowVisible)
     }
 
     /** Re-creates the window with the right host when the accessibility service connects or disconnects mid-session. */
     fun onHostChanged(context: Context) {
-        if (active && App.instance.engine.state.mode == SessionEngine.Mode.OVERLAY) showOrStop(context)
+        if (active && App.instance.engine.state.mode == SessionEngine.Mode.OVERLAY) {
+            if (windowVisible) showOrStop(context)
+            else if (PrompterAccessibilityService.instance == null && !Settings.canDrawOverlays(context)) stopSession(context)
+        }
         refreshButton(context)
     }
 }

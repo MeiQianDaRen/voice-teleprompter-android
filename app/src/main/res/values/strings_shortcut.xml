@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="floating_button_title">Floating button</string>
-    <string name="floating_button_hint">Open the floating prompter. The button closes when you exit the app.</string>
-    <string name="floating_button_open">Open floating prompter</string>
+    <string name="floating_button_hint">Shown after starting the floating prompter. Tap to show or hide the text; long press to exit.</string>
+    <string name="floating_button_open">Show floating prompter</string>
     <string name="floating_button_close">Close prompter and exit</string>
+    <string name="floating_button_hide">Hide floating prompter</string>
+    <string name="floating_button_long_press">Long press to exit</string>
 </resources>

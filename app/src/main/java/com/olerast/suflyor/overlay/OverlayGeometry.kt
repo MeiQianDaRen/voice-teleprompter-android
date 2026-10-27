@@ -6,7 +6,22 @@ object OverlayGeometry {
     const val TOP = 2
     const val RIGHT = 4
     const val BOTTOM = 8
+    const val DONE = 16
     data class Rect(val x: Int, val y: Int, val width: Int, val height: Int)
+
+    /** Large controls sit inside the window, leaving the device-edge navigation area untouched. */
+    fun handleAt(x: Float, y: Float, width: Int, height: Int, inset: Int, touchSize: Int): Int {
+        val half = touchSize / 2f
+        fun near(cx: Float, cy: Float) = kotlin.math.abs(x - cx) <= half && kotlin.math.abs(y - cy) <= half
+        return when {
+            near(inset.toFloat(), height / 2f) -> LEFT
+            near(width - inset.toFloat(), height / 2f) -> RIGHT
+            near(width / 2f, inset.toFloat()) -> TOP
+            near(width / 2f, height - inset.toFloat()) -> BOTTOM
+            near(width / 2f, height / 2f) -> DONE
+            else -> 0
+        }
+    }
 
     fun fit(rect: Rect, screenW: Int, screenH: Int, minW: Int, minH: Int): Rect {
         val width = rect.width.coerceIn(minW.coerceIn(1, screenW), screenW)

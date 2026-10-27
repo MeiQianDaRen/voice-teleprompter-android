@@ -4,6 +4,8 @@
     <string name="text_align_left">左对齐</string>
     <string name="text_align_center">居中对齐</string>
     <string name="text_align_right">右对齐</string>
-    <string name="overlay_resize_hint">拖左右边缘调整宽度，拖上下边缘调整高度；拖动窗内把手移动位置。横竖屏分别记忆大小和位置。</string>
+    <string name="overlay_resize_hint">点击悬浮窗设置，再点“调整大小”显示窗内大把手，调整后点“完成”。拖动窗内把手可移动位置。</string>
     <string name="overlay_move_hint">拖动把手移动悬浮窗</string>
+    <string name="overlay_resize_title">调整大小</string>
+    <string name="overlay_resize_done">完成</string>
 </resources>
