@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="online_link_title">链接设置</string>
+    <string name="online_link_hint">填写在线稿件库地址</string>
+    <string name="online_link_address">在线稿件地址（HTTP/HTTPS）</string>
+    <string name="online_link_format">地址需直接返回稿件 JSON。留空可断开链接，已缓存稿件会保留。</string>
+    <string name="online_link_save">保存</string>
+    <string name="online_sync">同步在线稿件</string>
+    <string name="online_syncing">正在同步在线稿件…</string>
+    <string name="online_synced">已同步 %1$d 篇稿件，可离线使用</string>
+    <string name="online_cached_hint">点击同步获取最新稿件，已缓存稿件可离线使用。</string>
+    <string name="online_error_url">请输入有效的 HTTP/HTTPS 地址，不要包含片段标记或用户名密码。</string>
+    <string name="online_error_network">无法连接稿件服务器，请检查地址和网络。</string>
+    <string name="online_error_timeout">稿件服务器响应超时，请重试。</string>
+    <string name="online_error_http">稿件服务器返回 HTTP %1$d。</string>
+    <string name="online_error_format">返回内容不是有效的 UTF-8 稿件 JSON。</string>
+    <string name="online_error_version">不支持此格式版本，version 必须为 1。</string>
+    <string name="online_error_size">在线稿件数据超过 8 MB 限制。</string>
+    <string name="online_error_count">在线稿件库一次最多支持 500 篇稿件。</string>
+    <string name="online_error_entry">稿件字段无效、ID 重复或正文超过 10 万字符。</string>
+    <string name="online_error_storage">部分稿件保存失败，请检查存储空间后重新同步。</string>
+    <string name="format_online">在线</string>
+</resources>

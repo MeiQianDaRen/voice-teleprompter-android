@@ -25,8 +25,10 @@
     <string name="key_action_back">Previous line</string>
     <string name="key_action_forward">Next line</string>
 
-    <string name="camera_target_instagram" translatable="false">Instagram</string>
-    <string name="camera_target_tiktok" translatable="false">TikTok</string>
+    <string name="camera_target_jianying" translatable="false">剪映</string>
+    <string name="camera_target_douyin" translatable="false">抖音</string>
+    <string name="camera_target_kuaishou" translatable="false">快手</string>
+    <string name="camera_target_xiaohongshu" translatable="false">小红书</string>
     <string name="camera_target_camera">Camera</string>
     <string name="camera_target_window_only">Window only</string>
 

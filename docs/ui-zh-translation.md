@@ -4,15 +4,15 @@
 
 界面支持简体中文，离线语音跟随支持中文、英语和俄语。中文按汉字匹配和统计，速度单位为字/分钟；英语和俄语按词统计。设置中的“自动”会根据稿件正文选择语音模型，详见 [中文语音识别](chinese-asr.md)。已有稿件（包括已创建的示例）不会被自动翻译或覆盖。诊断日志内容及系统返回的错误详情保留原文。
 
-下表包含全部 281 条可翻译字符串及 3 组数量文案；品牌名、文件格式等标记为不可翻译的资源沿用原值。数量文案按中文规则使用 `other`，动态占位符保持兼容。
+下表包含全部 301 条可翻译字符串及 3 组数量文案；品牌名、文件格式等标记为不可翻译的资源沿用原值。数量文案按中文规则使用 `other`，动态占位符保持兼容。
 
 ## strings.xml
 
 | 资源名 | 英文原文 | 中文译文 |
 | --- | --- | --- |
-| `app_name` | Suflyor | Suflyor 提词器 |
-| `a11y_label` | Suflyor: floating window and voice | Suflyor：悬浮窗与语音 |
-| `a11y_description` | Lets Suflyor hear your voice while another app records video, and show your text over the camera. Works only during a Suflyor session: it sees which app is on screen (for the log) and receives the volume, Bluetooth-remote and keyboard buttons set up in Settings. It doesn't read screen content. Nothing leaves your phone — the app has no internet access. | 让 Suflyor 在其他应用录制视频时仍能听到你的声音，并在相机画面上方显示提词。仅在 Suflyor 提词期间运行：读取前台应用名称（用于日志），并接收你在设置中指定的音量键、蓝牙遥控器和键盘按键。不读取屏幕内容。所有数据均留在手机上，应用无法访问互联网。 |
+| `app_name` | 提词器 | 提词器 |
+| `a11y_label` | 提词器：悬浮窗与语音 | 提词器：悬浮窗与语音 |
+| `a11y_description` | Lets Suflyor hear your voice while another app records video, and show your text over the camera. Works only during a Suflyor session: it sees which app is on screen (for the log) and receives the volume, Bluetooth-remote and keyboard buttons set up in Settings. It doesn't read screen content. Speech recognition stays on your phone. Only manual script catalog synchronization accesses your configured URL. | 让 提词器 在其他应用录制视频时仍能听到你的声音，并在相机画面上方显示提词。仅在 提词器 提词期间运行：读取前台应用名称（用于日志），并接收你在设置中指定的音量键、蓝牙遥控器和键盘按键。不读取屏幕内容。语音识别在本机完成；仅主动同步在线稿件时访问你配置的地址。 |
 
 ## strings_common.xml
 
@@ -36,8 +36,8 @@
 | `key_action_forward` | Next line | 下一行 |
 | `camera_target_camera` | Camera | 相机 |
 | `camera_target_window_only` | Window only | 仅悬浮窗 |
-| `start_problem_no_host` | Turn on the Suflyor accessibility service or allow display over other apps | 请开启 Suflyor 无障碍服务，或允许显示在其他应用上层 |
-| `start_problem_window_failed` | Couldn't show the Suflyor window. Check the Suflyor accessibility service. | 无法显示 Suflyor 悬浮窗，请检查 Suflyor 无障碍服务。 |
+| `start_problem_no_host` | Turn on the Suflyor accessibility service or allow display over other apps | 请开启 提词器 无障碍服务，或允许显示在其他应用上层 |
+| `start_problem_window_failed` | Couldn't show the Suflyor window. Check the Suflyor accessibility service. | 无法显示 提词器 悬浮窗，请检查 提词器 无障碍服务。 |
 | `speech_lang_auto` | Auto | 自动 |
 
 ## strings_import.xml
@@ -53,8 +53,8 @@
 | `import_error_no_text` | No text found in the file | 文件中未找到文本 |
 | `import_error_not_text` | This isn't a text file | 这不是文本文件 |
 | `import_error_pasted_too_long` | The text is too long for a script | 文本过长，无法作为稿件导入 |
-| `import_error_text_too_long_count` | The text is too long: %1$dK characters. Suflyor takes up to %2$dK. | 文本过长：共 %1$d 千个字符，Suflyor 最多支持 %2$d 千个字符。 |
-| `import_error_text_too_long_max` | The text is too long: Suflyor takes up to %1$dK characters. | 文本过长：Suflyor 最多支持 %1$d 千个字符。 |
+| `import_error_text_too_long_count` | The text is too long: %1$dK characters. Suflyor takes up to %2$dK. | 文本过长：共 %1$d 千个字符，提词器 最多支持 %2$d 千个字符。 |
+| `import_error_text_too_long_max` | The text is too long: Suflyor takes up to %1$dK characters. | 文本过长：提词器 最多支持 %1$d 千个字符。 |
 | `import_error_not_rtf` | This isn't an RTF file | 这不是 RTF 文件 |
 | `import_error_zip_too_many_files` | The archive contains too many files | 压缩包中的文件过多 |
 | `import_error_zip_too_large` | The archive unpacks to too much data | 压缩包解压后的数据过大 |
@@ -76,17 +76,17 @@
 | `import_clipboard_empty` | There's no text in the clipboard | 剪贴板中没有文本 |
 | `main_mic_blocked` | The microphone is blocked — turn it on in the app's permissions | 麦克风被禁用，请在应用权限中开启 |
 | `main_open_app_failed` | Couldn't open %1$s | 无法打开 %1$s |
-| `main_no_words` | There are no words in the text | 文本中没有可识别的单词 |
+| `main_no_words` | There are no words in the text | 文本中没有可用于提词的内容 |
 | `script_cd_edit` | Edit | 编辑 |
 | `script_stats` | ≈ %1$s · %2$s · %3$s | ≈ %1$s · %2$s · %3$s |
-| `script_setup_mic` | Allow the microphone so Suflyor can hear you | 请允许使用麦克风，让 Suflyor 听到你的声音 |
-| `script_setup_a11y` | Turn on the Suflyor service in Accessibility — otherwise Suflyor can't hear you while recording | 请在无障碍设置中开启 Suflyor 服务，否则录制视频时无法听到你的声音 |
+| `script_setup_mic` | Allow the microphone so Suflyor can hear you | 请允许使用麦克风，让 提词器 听到你的声音 |
+| `script_setup_a11y` | Turn on the Suflyor service in Accessibility — otherwise Suflyor can't hear you while recording | 请在无障碍设置中开启 提词器 服务，否则录制视频时无法听到你的声音 |
 | `script_action_overlay` | Over the camera | 悬浮提词 |
 | `script_action_rehearse` | Rehearse | 排练 |
 | `script_delete_title` | Delete script? | 删除稿件？ |
 | `script_delete_message` | “%1$s” will be removed from the library. The original file stays on your phone. | 将从稿件库中删除“%1$s”，手机上的原始文件会保留。 |
 | `sample_title` | Sample | 示例 |
-| `sample_script` | # Sample script<br><br>Hi! Today I'll show you how this teleprompter follows your voice and scrolls the text by itself, so you never have to chase it.<br><br>**Read a couple of lines**, look into the camera, then glance back at the text. If you slip and start a sentence over, the text jumps back to where that sentence begins.<br><br>[Pause, smile] And if you go quiet, the text simply waits for you.<br><br>Now try reading this paragraph over the camera, Instagram or TikTok — the prompter keeps listening to you even while you record. | # 示例稿件<br><br>你好！今天我来演示这款提词器如何跟随声音自动滚动文字，让你不必追着文字读。<br><br>**先读几行**，看看镜头，再看回文字。如果读错后重新读一句，文字会跳回这句话的开头。<br><br>[停顿，微笑] 如果你暂时不说话，文字也会停下来等你。<br><br>现在试着在相机、Instagram 或 TikTok 画面上方读这段话，录制时提词器也能继续听到你的声音。<br><br>[说明：目前语音跟随仅支持英语和俄语。此中文示例可用于定速或声音模式；测试语音跟随时，请导入英语或俄语稿件。] |
+| `sample_script` | # Sample script<br><br>Hi! Today I'll show you how this teleprompter follows your voice and scrolls the text by itself, so you never have to chase it.<br><br>**Read a couple of lines**, look into the camera, then glance back at the text. If you slip and start a sentence over, the text jumps back to where that sentence begins.<br><br>[Pause, smile] And if you go quiet, the text simply waits for you.<br><br>Now try reading this paragraph over the camera, 抖音 or 小红书 — the prompter keeps listening to you even while you record. | # 示例稿件<br><br>你好！今天我来演示这款提词器如何跟随声音自动滚动文字，让你不必追着文字读。<br><br>**先读几行**，看看镜头，再看回文字。如果读错后重新读一句，文字会跳回这句话的开头。<br><br>[停顿，微笑] 如果你暂时不说话，文字也会停下来等你。<br><br>现在试着在相机、抖音 或 小红书 画面上方读这段话，录制时提词器也能继续听到你的声音。 |
 
 ## strings_overlay.xml
 
@@ -102,11 +102,11 @@
 | `overlay_status_mic_busy` | mic busy | 麦克风占用 |
 | `overlay_status_cant_hear` | can't hear | 未听到声音 |
 | `overlay_status_listening` | listening | 正在聆听 |
-| `overlay_toast_closed_a11y_off` | Suflyor window closed: the accessibility service was turned off | Suflyor 悬浮窗已关闭：无障碍服务已关闭 |
-| `tile_label` | Suflyor | Suflyor 提词器 |
+| `overlay_toast_closed_a11y_off` | Suflyor window closed: the accessibility service was turned off | 提词器 悬浮窗已关闭：无障碍服务已关闭 |
+| `tile_label` | 提词器 | 提词器 |
 | `tile_subtitle_listening` | Listening | 正在聆听 |
-| `notification_channel_session` | Suflyor running | Suflyor 提词运行中 |
-| `notification_session_title` | Suflyor is listening | Suflyor 正在聆听 |
+| `notification_channel_session` | Suflyor running | 提词器 提词运行中 |
+| `notification_session_title` | Suflyor is listening | 提词器 正在聆听 |
 | `notification_session_text` | The floating window is on | 悬浮窗已开启 |
 | `notification_action_stop` | Stop | 停止 |
 | `session_error_asr_failed` | Speech recognition didn't load: %1$s | 语音识别加载失败：%1$s |
@@ -149,7 +149,7 @@
 | `library_add_write` | Write | 手动输入 |
 | `library_add_write_hint` | Type or paste the text yourself | 自行输入或粘贴文本 |
 | `library_setup_title` | Set up recording over the camera | 设置悬浮提词录制 |
-| `library_setup_progress` | %1$d of %2$d done: needs the microphone and the Suflyor service | 已完成 %1$d / %2$d 项：需要麦克风权限和 Suflyor 服务 |
+| `library_setup_progress` | %1$d of %2$d done: needs the microphone and the Suflyor service | 已完成 %1$d / %2$d 项：需要麦克风权限和 提词器 服务 |
 | `editor_title_new` | New script | 新建稿件 |
 | `editor_title_edit` | Edit script | 编辑稿件 |
 | `editor_action_done` | Done | 完成 |
@@ -164,7 +164,7 @@
 | `rehearsal_status_fallback` | can't hear you — scrolling on my own | 未听到你的声音，正在自动滚动 |
 | `rehearsal_status_listening` | listening | 正在聆听 |
 | `journal_title` | Log | 日志 |
-| `journal_clip_label` | Suflyor log | Suflyor 日志 |
+| `journal_clip_label` | Suflyor log | 提词器 日志 |
 | `journal_toast_copied` | Log copied | 日志已复制 |
 | `journal_cd_copy` | Copy | 复制 |
 | `journal_share_title` | Send log | 发送日志 |
@@ -178,13 +178,13 @@
 | `settings_section_readiness` | Ready to record over the camera | 悬浮提词录制准备 |
 | `settings_mic_title` | Microphone | 麦克风 |
 | `settings_mic_hint` | Best choice: “While using the app” | 建议选择“仅在使用该应用时允许” |
-| `settings_a11y_title` | Suflyor accessibility service | Suflyor 无障碍服务 |
+| `settings_a11y_title` | Suflyor accessibility service | 提词器 无障碍服务 |
 | `settings_a11y_not_running` | On but not running — turn it off and on again | 已开启但未运行，请关闭后重新开启 |
 | `settings_a11y_hint` | Without it, Android mutes the mic while another app records video | 未开启时，其他应用录制视频会导致 Android 将麦克风静音 |
 | `settings_a11y_restricted` | If the switch is greyed out: Settings → Apps → %1$s → ⋮ → “Allow restricted settings”. | 如果开关呈灰色：设置 → 应用 → %1$s → ⋮ → “允许受限设置”。 |
 | `settings_app_info` | App info | 应用信息 |
 | `settings_notifications_title` | Notifications | 通知 |
-| `settings_notifications_hint` | An icon in the notification shade while Suflyor listens, with a Stop button | Suflyor 聆听时在通知栏显示图标，并提供停止按钮 |
+| `settings_notifications_hint` | An icon in the notification shade while Suflyor listens, with a Stop button | 提词器 聆听时在通知栏显示图标，并提供停止按钮 |
 | `settings_section_voice` | Voice following | 语音跟随 |
 | `settings_speech_lang_auto_hint` | Auto picks it from the script's letters — now: %1$s | 根据稿件中的文字自动选择，当前为：%1$s |
 | `settings_speech_lang_name_ru` | Russian | 俄语 |
@@ -204,9 +204,9 @@
 | `settings_max_words_value` | up to %1$d | 最多 %1$d 个 |
 | `settings_font_title` | Text size | 字号 |
 | `settings_section_tile` | Quick Settings tile | 快捷设置磁贴 |
-| `settings_tile_hint` | Pull down the shade and tap “Suflyor” — a window with the current script appears over the open app. Tap again to stop. | 下拉通知栏，点击“Suflyor 提词器”，即可在当前应用上方显示稿件悬浮窗。再次点击可停止。 |
+| `settings_tile_hint` | Pull down the shade and tap “Suflyor” — a window with the current script appears over the open app. Tap again to stop. | 下拉通知栏，点击“提词器”，即可在当前应用上方显示稿件悬浮窗。再次点击可停止。 |
 | `settings_tile_add` | Add tile to Quick Settings | 添加到快捷设置 |
-| `settings_tile_manual` | Pull the shade all the way down → ✎ (edit) → drag the “Suflyor” tile up. | 完全展开通知栏 → 编辑 → 将“Suflyor 提词器”磁贴拖到上方。 |
+| `settings_tile_manual` | Pull the shade all the way down → ✎ (edit) → drag the “Suflyor” tile up. | 完全展开通知栏 → 编辑 → 将“提词器”磁贴拖到上方。 |
 | `settings_tile_added` | Tile added to Quick Settings | 已添加到快捷设置 |
 | `settings_tile_already_added` | The tile is already in Quick Settings | 快捷设置中已存在该磁贴 |
 | `settings_section_keys` | Remote and buttons | 遥控器与按键 |
@@ -225,7 +225,7 @@
 | `settings_opacity_title` | Background opacity | 背景不透明度 |
 | `settings_opacity_hint` | Lower lets you see yourself through the window | 调低后可透过悬浮窗看到自己 |
 | `settings_diag_title` | Diagnostics in the window | 在悬浮窗中显示诊断信息 |
-| `settings_diag_hint` | What Suflyor hears and who else is recording audio | 显示 Suflyor 听到的内容及其他正在录音的应用 |
+| `settings_diag_hint` | What Suflyor hears and who else is recording audio | 显示 提词器 听到的内容及其他正在录音的应用 |
 | `settings_section_autoscroll` | Scrolling without voice | 非语音跟随滚动 |
 | `settings_wpm_title` | Speed | 速度 |
 | `settings_wpm_hint` | Words per minute: for auto-scroll and timing estimates | 每分钟字词数（中文按字计算），用于自动滚动和时长估算 |
@@ -244,7 +244,7 @@
 | `settings_language_title` | App language | 应用语言 |
 | `settings_language_value` | English | 简体中文 |
 | `settings_log_hint` | What happened with the microphone and recognition | 查看麦克风和语音识别的运行情况 |
-| `settings_about_version` | Suflyor %1$s · speech recognition: sherpa-onnx; models: alphacep (Russian), icefall LibriSpeech (English), WenetSpeech (Chinese), Apache-2.0 | Suflyor %1$s · 语音识别：sherpa-onnx；模型：alphacep（俄语）、icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0 |
+| `settings_about_version` | Suflyor %1$s · speech recognition: sherpa-onnx; models: alphacep (Russian), icefall LibriSpeech (English), WenetSpeech (Chinese), Apache-2.0 | 提词器 %1$s · 语音识别：sherpa-onnx；模型：alphacep（俄语）、icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0 |
 | `rehearsal_status_error` | error, see below | 发生错误，详情见下方 |
 | `rehearsal_status_sound` | while you talk · %1$d wpm | 说话时滚动 · %1$d 字词/分钟 |
 | `library_save_failed` | Couldn't save the script: %1$s | 无法保存稿件：%1$s |
@@ -285,10 +285,10 @@
 | `settings_sum_text_paragraphs` | Paragraphs as in the text | 保留原文分段 |
 | `settings_sum_keys_on` | On | 开启 |
 | `settings_sum_keys_off` | Off | 关闭 |
-| `settings_sum_scripts` | Save all to an archive or restore | 备份全部稿件或从备份恢复 |
+| `settings_sum_scripts` | Back up, restore and sync online scripts | 备份、恢复与在线稿件 |
 | `settings_sum_advanced` | Microphone source and rate, diagnostics line | 麦克风来源、采样率和诊断信息 |
 | `settings_sum_about` | Version %1$s · log · links | 版本 %1$s · 日志 · 链接 |
-| `settings_overlay_page_hint` | The same can be changed right over the camera with the Aa button in the window. | 也可点击悬浮窗中的 Aa 按钮，在相机画面上方直接调整。 |
+| `settings_overlay_page_hint` | The same can be changed right over the camera with the settings button in the window. | 也可点击悬浮窗中的设置按钮，在相机画面上方直接调整。 |
 | `settings_fullscreen_page_hint` | The rehearsal screen: for practice, or for the phone under teleprompter glass. The same is under View on the rehearsal screen. | 用于排练或放在提词器反射玻璃下方，也可在排练界面的“显示”中调整。 |
 | `settings_mirror_pick_hint` | Pick the one in which the text reads the right way in the glass. | 请选择能让反射玻璃中的文字方向正确的模式。 |
 | `settings_speech_lang_default_title` | Default speech language | 默认语音识别语言 |
@@ -319,6 +319,31 @@
 
 | 资源名 | 英文原文 | 中文译文 |
 | --- | --- | --- |
-| `app_name` | Suflyor dev | Suflyor 提词器（开发版） |
-| `a11y_label` | Suflyor dev: floating window and voice | Suflyor 开发版：悬浮窗与语音 |
-| `tile_label` | Suflyor dev | Suflyor 提词器（开发版） |
+| `app_name` | 提词器 | 提词器 |
+| `a11y_label` | 提词器：悬浮窗与语音 | 提词器：悬浮窗与语音 |
+| `tile_label` | 提词器 | 提词器 |
+
+## 在线稿件
+
+| 资源名 | 英文 | 中文 |
+| --- | --- | --- |
+| `online_link_title` | Link settings | 链接设置 |
+| `online_link_hint` | Configure an online script catalog address | 填写在线稿件库地址 |
+| `online_link_address` | HTTP(S) catalog URL | 在线稿件地址（HTTP/HTTPS） |
+| `online_link_format` | The address must return the script JSON catalog directly. Leave it empty to disconnect; cached scripts are kept. | 地址需直接返回稿件 JSON。留空可断开链接，已缓存稿件会保留。 |
+| `online_link_save` | Save | 保存 |
+| `online_sync` | Sync online scripts | 同步在线稿件 |
+| `online_syncing` | Syncing online scripts… | 正在同步在线稿件… |
+| `online_synced` | Synced %1$d scripts; available offline | 已同步 %1$d 篇稿件，可离线使用 |
+| `online_cached_hint` | Sync to fetch the latest scripts. Cached scripts work offline. | 点击同步获取最新稿件，已缓存稿件可离线使用。 |
+| `online_error_url` | Enter a valid HTTP(S) URL without a fragment or username/password. | 请输入有效的 HTTP/HTTPS 地址，不要包含片段标记或用户名密码。 |
+| `online_error_network` | Could not reach the script server. Check the address and connection. | 无法连接稿件服务器，请检查地址和网络。 |
+| `online_error_timeout` | The script server timed out. Try again. | 稿件服务器响应超时，请重试。 |
+| `online_error_http` | The script server returned HTTP %1$d. | 稿件服务器返回 HTTP %1$d。 |
+| `online_error_format` | The response is not a valid UTF-8 script JSON catalog. | 返回内容不是有效的 UTF-8 稿件 JSON。 |
+| `online_error_version` | Unsupported catalog version. The version field must be 1. | 不支持此格式版本，version 必须为 1。 |
+| `online_error_size` | The catalog exceeds the 8 MB limit. | 在线稿件数据超过 8 MB 限制。 |
+| `online_error_count` | A catalog can contain at most 500 scripts. | 在线稿件库一次最多支持 500 篇稿件。 |
+| `online_error_entry` | Invalid script fields, repeated id, or content over 100,000 characters. | 稿件字段无效、ID 重复或正文超过 10 万字符。 |
+| `online_error_storage` | Some scripts could not be saved. Check free storage and sync again. | 部分稿件保存失败，请检查存储空间后重新同步。 |
+| `format_online` | online | 在线 |

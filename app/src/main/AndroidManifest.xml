@@ -2,7 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- No INTERNET permission: the app cannot connect anywhere (see PRIVACY.md). -->
+    <!-- Only the optional user-configured script catalog uses the network; speech recognition stays on device. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
@@ -11,10 +12,10 @@
 
     <!-- "Поверх камеры" opens one of these apps right after the floating prompter appears. -->
     <queries>
-        <package android:name="com.instagram.android" />
-        <package android:name="com.zhiliaoapp.musically" />
-        <package android:name="com.ss.android.ugc.trill" />
+        <package android:name="com.lemon.lv" />
         <package android:name="com.ss.android.ugc.aweme" />
+        <package android:name="com.smile.gifmaker" />
+        <package android:name="com.xingin.xhs" />
         <intent>
             <action android:name="android.media.action.VIDEO_CAMERA" />
         </intent>
@@ -23,6 +24,7 @@
     <application
         android:name=".App"
         android:allowBackup="false"
+        android:usesCleartextTraffic="true"
         android:hasFragileUserData="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:localeConfig="@xml/locales_config"

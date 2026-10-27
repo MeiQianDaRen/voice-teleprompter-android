@@ -105,6 +105,21 @@ class ScriptRepository(context: Context, private val settings: Settings) {
         return docs.withIndex().count { (i, doc) -> write(newId(), doc, createdAt = now - i, updatedAt = now - i) }
     }
 
+    /** Cache remote scripts by source + remote id. Missing server entries and unrelated local scripts are kept. */
+    fun writeOnline(source: String, docs: List<Pair<String, ScriptDocument>>): Int {
+        val now = System.currentTimeMillis()
+        return docs.withIndex().count { (i, entry) ->
+            val (remoteId, doc) = entry
+            val id = OnlineCatalog.localId(source, remoteId)
+            if (read(id) == doc) {
+                true
+            } else {
+                val created = runCatching { JSONObject(readText(file(id))).getLong("createdAt") }.getOrDefault(now - i)
+                write(id, doc, createdAt = created, updatedAt = now - i)
+            }
+        }
+    }
+
     /** Re-reads the library list (after [writeAll]). */
     fun refresh() {
         items = loadAllMeta()
@@ -189,6 +204,7 @@ class ScriptRepository(context: Context, private val settings: Settings) {
      * Whole-file replace: a full storage or a killed process leaves the previous version, never half a file.
      * AtomicFile also restores its backup if an earlier write was cut short.
      */
+    @Synchronized
     private fun writeText(f: File, text: String): Result<Unit> = runCatching {
         val atomic = AtomicFile(f)
         val out = atomic.startWrite()
@@ -201,6 +217,7 @@ class ScriptRepository(context: Context, private val settings: Settings) {
         }
     }
 
+    @Synchronized
     private fun readText(f: File): String = String(AtomicFile(f).readFully())
 
     private fun read(id: String): ScriptDocument? = runCatching { parse(JSONObject(readText(file(id)))) }.getOrNull()

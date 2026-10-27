@@ -10,11 +10,11 @@
     <string name="overlay_status_mic_busy">麦克风占用</string>
     <string name="overlay_status_cant_hear">未听到声音</string>
     <string name="overlay_status_listening">正在聆听</string>
-    <string name="overlay_toast_closed_a11y_off">Suflyor 悬浮窗已关闭：无障碍服务已关闭</string>
-    <string name="tile_label">Suflyor 提词器</string>
+    <string name="overlay_toast_closed_a11y_off">提词器 悬浮窗已关闭：无障碍服务已关闭</string>
+    <string name="tile_label">提词器</string>
     <string name="tile_subtitle_listening">正在聆听</string>
-    <string name="notification_channel_session">Suflyor 提词运行中</string>
-    <string name="notification_session_title">Suflyor 正在聆听</string>
+    <string name="notification_channel_session">提词器 提词运行中</string>
+    <string name="notification_session_title">提词器 正在聆听</string>
     <string name="notification_session_text">悬浮窗已开启</string>
     <string name="notification_action_stop">停止</string>
     <string name="session_error_asr_failed">语音识别加载失败：%1$s</string>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="online_link_title">Настройка ссылки</string>
+    <string name="online_link_hint">Укажите адрес онлайн-библиотеки</string>
+    <string name="online_link_address">Адрес каталога HTTP(S)</string>
+    <string name="online_link_format">Адрес должен возвращать каталог сценариев в JSON. Пустое поле отключает ссылку; сохранённые сценарии остаются.</string>
+    <string name="online_link_save">Сохранить</string>
+    <string name="online_sync">Синхронизировать сценарии</string>
+    <string name="online_syncing">Синхронизация сценариев…</string>
+    <string name="online_synced">Синхронизировано сценариев: %1$d; доступны офлайн</string>
+    <string name="online_cached_hint">Синхронизируйте, чтобы получить новые сценарии. Сохранённые доступны офлайн.</string>
+    <string name="online_error_url">Введите корректный HTTP(S)-адрес без фрагмента, логина и пароля.</string>
+    <string name="online_error_network">Не удалось подключиться к серверу сценариев. Проверьте адрес и сеть.</string>
+    <string name="online_error_timeout">Сервер не ответил вовремя. Повторите попытку.</string>
+    <string name="online_error_http">Сервер сценариев вернул HTTP %1$d.</string>
+    <string name="online_error_format">Ответ не является корректным каталогом JSON в UTF-8.</string>
+    <string name="online_error_version">Неподдерживаемая версия каталога. Поле version должно быть равно 1.</string>
+    <string name="online_error_size">Каталог превышает ограничение 8 МБ.</string>
+    <string name="online_error_count">В каталоге может быть не более 500 сценариев.</string>
+    <string name="online_error_entry">Некорректные поля, повторяющийся id или текст длиннее 100 000 символов.</string>
+    <string name="online_error_storage">Часть сценариев не сохранена. Проверьте свободное место и повторите синхронизацию.</string>
+    <string name="format_online">онлайн</string>
+</resources>

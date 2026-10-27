@@ -74,7 +74,7 @@ class OverlayController(private val context: Context, private val windowType: In
     private lateinit var pauseBtn: ImageView
     private lateinit var modeBtn: ImageView
 
-    /** "Aa" opens it under the buttons: text size, lines, background and speed, adjusted right over the camera. */
+    /** The settings icon opens text size, lines, background and speed over the camera. */
     private lateinit var tuneRow: View
     private val tuneValues = ArrayList<() -> Unit>()
 
@@ -130,8 +130,8 @@ class OverlayController(private val context: Context, private val windowType: In
             visibility = View.GONE
         }
         val textBox = FrameLayout(context).apply {
-            addView(prompter, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
-            addView(countdown, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+            addView(prompter, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT).apply { topMargin = dp(28) })
+            addView(countdown, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT).apply { topMargin = dp(28) })
         }
 
         statusDot = View(context).apply { background = GradientDrawable().apply { shape = GradientDrawable.OVAL } }
@@ -139,7 +139,7 @@ class OverlayController(private val context: Context, private val windowType: In
             setTextColor(Color.argb(200, 255, 255, 255))
             textSize = 11f
             maxLines = 1
-            // Shares the row with eight buttons: on narrow phones only ~40dp are left for it.
+            // The status sits above the text in the upper-right corner.
             ellipsize = TextUtils.TruncateAt.END
             setPadding(dp(6), 0, dp(4), 0)
         }
@@ -159,16 +159,20 @@ class OverlayController(private val context: Context, private val windowType: In
             })
             addView(level, LinearLayout.LayoutParams(dp(56), dp(3)).apply { topMargin = dp(4) })
         }
+        textBox.addView(status, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.END,
+        ).apply { topMargin = dp(3); marginEnd = dp(12) })
         controls = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(14), 0, dp(6), 0)
-            addView(status, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(icon(R.drawable.ic_replay, R.string.common_cd_restart) { app.engine.restart() },
+                LinearLayout.LayoutParams(0, dp(40), 1f))
             addView(icon(R.drawable.ic_up, R.string.common_cd_line_back) { app.engine.stepLine(-1) })
             addView(pauseBtn)
             addView(icon(R.drawable.ic_down, R.string.common_cd_line_forward) { app.engine.stepLine(1) })
             addView(modeBtn)
-            addView(textButton("Aa", R.string.overlay_cd_tune) { setTuneOpen(tuneRow.visibility != View.VISIBLE) })
+            addView(icon(R.drawable.ic_settings, R.string.overlay_cd_tune) { setTuneOpen(tuneRow.visibility != View.VISIBLE) })
             addView(icon(R.drawable.ic_lock, R.string.overlay_cd_lock) { setLocked(true) })
             addView(icon(R.drawable.ic_close, R.string.overlay_cd_close) { OverlayHost.stopSession(context) })
         }
@@ -201,6 +205,7 @@ class OverlayController(private val context: Context, private val windowType: In
             addView(grabber, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(18)))
         }
         val root = RotatedFrame(context).apply {
+            keepScreenOn = true
             addView(panel, android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT))
         }
 
@@ -211,7 +216,8 @@ class OverlayController(private val context: Context, private val windowType: In
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
@@ -254,7 +260,7 @@ class OverlayController(private val context: Context, private val windowType: In
         orientationListener = null
         runCatching { displays.unregisterDisplayListener(displayListener) }
         hideBubble()
-        frame?.let { runCatching { wm.removeView(it) } }
+        frame?.let { it.keepScreenOn = false; runCatching { wm.removeView(it) } }
         frame = null
     }
 
@@ -666,7 +672,7 @@ class OverlayController(private val context: Context, private val windowType: In
 
     private fun prompterHeight(): Int {
         val probe = PrompterView(context).apply { setTextSizeSp(fontSp.toFloat()) }
-        return probe.lineHeightPx * app.settings.overlayLines + dp(8)
+        return probe.lineHeightPx * app.settings.overlayLines + dp(36)
     }
 
     private fun ripple() = context.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackgroundBorderless)).let {
@@ -685,17 +691,6 @@ class OverlayController(private val context: Context, private val windowType: In
         setOnClickListener { onClick() }
     }
 
-    private fun textButton(label: String, @StringRes description: Int, onClick: () -> Unit) = TextView(context).apply {
-        text = label
-        contentDescription = context.getString(description)
-        setTextColor(Color.WHITE)
-        textSize = 14f
-        typeface = Typeface.DEFAULT_BOLD
-        gravity = Gravity.CENTER
-        background = ripple()
-        layoutParams = LinearLayout.LayoutParams(dp(36), dp(40))
-        setOnClickListener { onClick() }
-    }
 }
 
 /** Thin level meter; red when Android is feeding us silence. */

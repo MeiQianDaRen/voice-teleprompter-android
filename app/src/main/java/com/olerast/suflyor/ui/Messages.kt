@@ -18,12 +18,14 @@ import com.olerast.suflyor.doc.ScriptDocument
 fun formatLabel(format: String): String = when (format) {
     ScriptDocument.FORMAT_TEXT -> stringResource(R.string.format_typed)
     ScriptDocument.FORMAT_SAMPLE -> stringResource(R.string.format_sample)
+    "ONLINE" -> stringResource(R.string.format_online)
     else -> format
 }
 
 fun formatLabel(context: Context, format: String): String = when (format) {
     ScriptDocument.FORMAT_TEXT -> context.getString(R.string.format_typed)
     ScriptDocument.FORMAT_SAMPLE -> context.getString(R.string.format_sample)
+    "ONLINE" -> context.getString(R.string.format_online)
     else -> format
 }
 

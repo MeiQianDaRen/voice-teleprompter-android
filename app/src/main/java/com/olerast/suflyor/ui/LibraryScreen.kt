@@ -102,12 +102,30 @@ fun LibraryScreen(
                                     onRestore()
                                 },
                             )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.online_sync)) },
+                                leadingIcon = { Ic(R.drawable.ic_replay, null, tint = Palette.TextSecondary, size = 20.dp) },
+                                enabled = app.onlineLibrary.url.isNotEmpty() && !app.onlineLibrary.syncing,
+                                onClick = {
+                                    showMenu = false
+                                    app.onlineLibrary.sync()
+                                },
+                            )
                         }
                     }
                 }
             }
             if (!readiness.overlayVoice) {
                 item { ReadinessBanner(readiness, onFixReadiness) }
+            }
+            if (app.onlineLibrary.url.isNotEmpty()) {
+                item {
+                    Text(
+                        onlineLibraryStatus(app.onlineLibrary),
+                        color = if (app.onlineLibrary.error != null) Palette.Danger else Palette.TextMuted,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+                    )
+                }
             }
             item {
                 Row(

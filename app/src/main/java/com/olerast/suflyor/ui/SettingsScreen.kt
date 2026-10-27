@@ -447,6 +447,7 @@ private fun ScriptsPage(onBackup: () -> Unit, onRestore: () -> Unit) {
     Hint(stringResource(R.string.settings_scripts_page_hint))
     LinkRow(stringResource(R.string.settings_backup_title), stringResource(R.string.settings_backup_hint), onBackup)
     LinkRow(stringResource(R.string.settings_restore_title), stringResource(R.string.settings_restore_hint), onRestore)
+    OnlineLibrarySettings()
 }
 
 @Composable
@@ -503,7 +504,7 @@ private fun AboutPage(onJournal: () -> Unit) {
         }
     }
     LinkRow(stringResource(R.string.journal_title), stringResource(R.string.settings_log_hint), onJournal)
-    // Links open in the browser: the app itself has no internet permission.
+    // Project links open in the browser; online script catalogs are fetched separately.
     LinkRow(stringResource(R.string.settings_link_site), SITE_URL) { openUrl(context, SITE_URL) }
     LinkRow(stringResource(R.string.settings_link_code), REPO_URL) { openUrl(context, REPO_URL) }
     LinkRow(stringResource(R.string.settings_link_issue), stringResource(R.string.settings_link_issue_hint)) {

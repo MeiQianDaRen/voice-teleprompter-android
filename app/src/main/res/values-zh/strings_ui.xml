@@ -11,7 +11,7 @@
     <string name="library_add_write">手动输入</string>
     <string name="library_add_write_hint">自行输入或粘贴文本</string>
     <string name="library_setup_title">设置悬浮提词录制</string>
-    <string name="library_setup_progress">已完成 %1$d / %2$d 项：需要麦克风权限和 Suflyor 服务</string>
+    <string name="library_setup_progress">已完成 %1$d / %2$d 项：需要麦克风权限和 提词器 服务</string>
     <string name="editor_title_new">新建稿件</string>
     <string name="editor_title_edit">编辑稿件</string>
     <string name="editor_action_done">完成</string>
@@ -26,7 +26,7 @@
     <string name="rehearsal_status_fallback">未听到你的声音，正在自动滚动</string>
     <string name="rehearsal_status_listening">正在聆听</string>
     <string name="journal_title">日志</string>
-    <string name="journal_clip_label">Suflyor 日志</string>
+    <string name="journal_clip_label">提词器 日志</string>
     <string name="journal_toast_copied">日志已复制</string>
     <string name="journal_cd_copy">复制</string>
     <string name="journal_share_title">发送日志</string>
@@ -40,13 +40,13 @@
     <string name="settings_section_readiness">悬浮提词录制准备</string>
     <string name="settings_mic_title">麦克风</string>
     <string name="settings_mic_hint">建议选择“仅在使用该应用时允许”</string>
-    <string name="settings_a11y_title">Suflyor 无障碍服务</string>
+    <string name="settings_a11y_title">提词器 无障碍服务</string>
     <string name="settings_a11y_not_running">已开启但未运行，请关闭后重新开启</string>
     <string name="settings_a11y_hint">未开启时，其他应用录制视频会导致 Android 将麦克风静音</string>
     <string name="settings_a11y_restricted">如果开关呈灰色：设置 → 应用 → %1$s → ⋮ → “允许受限设置”。</string>
     <string name="settings_app_info">应用信息</string>
     <string name="settings_notifications_title">通知</string>
-    <string name="settings_notifications_hint">Suflyor 聆听时在通知栏显示图标，并提供停止按钮</string>
+    <string name="settings_notifications_hint">提词器 聆听时在通知栏显示图标，并提供停止按钮</string>
     <string name="settings_section_voice">语音跟随</string>
     <string name="settings_speech_lang_auto_hint">根据稿件中的文字自动选择，当前为：%1$s</string>
     <string name="settings_speech_lang_name_ru">俄语</string>
@@ -68,9 +68,9 @@
     <string name="settings_max_words_value">最多 %1$d 个</string>
     <string name="settings_font_title">字号</string>
     <string name="settings_section_tile">快捷设置磁贴</string>
-    <string name="settings_tile_hint">下拉通知栏，点击“Suflyor 提词器”，即可在当前应用上方显示稿件悬浮窗。再次点击可停止。</string>
+    <string name="settings_tile_hint">下拉通知栏，点击“提词器”，即可在当前应用上方显示稿件悬浮窗。再次点击可停止。</string>
     <string name="settings_tile_add">添加到快捷设置</string>
-    <string name="settings_tile_manual">完全展开通知栏 → 编辑 → 将“Suflyor 提词器”磁贴拖到上方。</string>
+    <string name="settings_tile_manual">完全展开通知栏 → 编辑 → 将“提词器”磁贴拖到上方。</string>
     <string name="settings_tile_added">已添加到快捷设置</string>
     <string name="settings_tile_already_added">快捷设置中已存在该磁贴</string>
     <string name="settings_section_keys">遥控器与按键</string>
@@ -89,7 +89,7 @@
     <string name="settings_opacity_title">背景不透明度</string>
     <string name="settings_opacity_hint">调低后可透过悬浮窗看到自己</string>
     <string name="settings_diag_title">在悬浮窗中显示诊断信息</string>
-    <string name="settings_diag_hint">显示 Suflyor 听到的内容及其他正在录音的应用</string>
+    <string name="settings_diag_hint">显示 提词器 听到的内容及其他正在录音的应用</string>
     <string name="settings_section_autoscroll">非语音跟随滚动</string>
     <string name="settings_wpm_title">速度</string>
     <string name="settings_wpm_hint">每分钟字词数（中文按字计算），用于自动滚动和时长估算</string>
@@ -108,7 +108,7 @@
     <string name="settings_language_title">应用语言</string>
     <string name="settings_language_value">简体中文</string>
     <string name="settings_log_hint">查看麦克风和语音识别的运行情况</string>
-    <string name="settings_about_version">Suflyor %1$s · 语音识别：sherpa-onnx；模型：alphacep（俄语）、icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0</string>
+    <string name="settings_about_version">提词器 %1$s · 语音识别：sherpa-onnx；模型：alphacep（俄语）、icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0</string>
     <string name="rehearsal_status_error">发生错误，详情见下方</string>
     <string name="rehearsal_status_sound">说话时滚动 · %1$d 字词/分钟</string>
     <string name="library_save_failed">无法保存稿件：%1$s</string>
@@ -149,10 +149,10 @@
     <string name="settings_sum_text_paragraphs">保留原文分段</string>
     <string name="settings_sum_keys_on">开启</string>
     <string name="settings_sum_keys_off">关闭</string>
-    <string name="settings_sum_scripts">备份全部稿件或从备份恢复</string>
+    <string name="settings_sum_scripts">备份、恢复与在线稿件</string>
     <string name="settings_sum_advanced">麦克风来源、采样率和诊断信息</string>
     <string name="settings_sum_about">版本 %1$s · 日志 · 链接</string>
-    <string name="settings_overlay_page_hint">也可点击悬浮窗中的 Aa 按钮，在相机画面上方直接调整。</string>
+    <string name="settings_overlay_page_hint">也可点击悬浮窗中的设置按钮，在相机画面上方直接调整。</string>
     <string name="settings_fullscreen_page_hint">用于排练或放在提词器反射玻璃下方，也可在排练界面的“显示”中调整。</string>
     <string name="settings_mirror_pick_hint">请选择能让反射玻璃中的文字方向正确的模式。</string>
     <string name="settings_speech_lang_default_title">默认语音识别语言</string>

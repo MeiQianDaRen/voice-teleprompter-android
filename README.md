@@ -10,7 +10,7 @@
   <a href="https://github.com/olerast67/voice-teleprompter-android/actions/workflows/ci.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/olerast67/voice-teleprompter-android/ci.yml?branch=main&style=flat-square&label=build"></a>
   <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square"></a>
   <img alt="Android 10+" src="https://img.shields.io/badge/Android-10%2B-3DDC84?style=flat-square&logo=android&logoColor=white">
-  <a href="PRIVACY.md"><img alt="No internet permission" src="https://img.shields.io/badge/network-none-9F7AEA?style=flat-square"></a>
+  <a href="PRIVACY.md"><img alt="Offline speech recognition" src="https://img.shields.io/badge/speech-offline-9F7AEA?style=flat-square"></a>
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@
 
 ---
 
-**Suflyor** (Russian *суфлёр*, "prompter") is a free, open-source **teleprompter app for Android that follows your voice**. It floats over Instagram, TikTok or the camera app and scrolls the script as you speak, so you never chase the text: a voice-activated teleprompter for Reels, Shorts and TikToks. It works fully offline, and the app has no internet permission at all.
+**Suflyor** (Russian *суфлёр*, "prompter") is a free, open-source **teleprompter app for Android that follows your voice**. It floats over Instagram, TikTok or the camera app and scrolls the script as you speak, so you never chase the text: a voice-activated teleprompter for Reels, Shorts and TikToks. Speech recognition works fully offline; an optional online script catalog uses a URL you configure.
 
 It is made for creators who hold the phone, read a couple of lines to the lens, look back at the text and carry on. If you stumble and start a sentence again, the text goes back with you. If you skip a paragraph, it catches up.
 
@@ -43,7 +43,7 @@ It is made for creators who hold the phone, read a couple of lines to the lens, 
 ## Features
 
 **Follows your voice**
-- On-device streaming speech recognition for **English and Russian** ([sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)). No cloud, no account, no delay from the network.
+- On-device streaming speech recognition for **Chinese, English and Russian** ([sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)). No cloud, no account, no delay from the network.
 - Understands how people read English: contractions (don't, it's), numbers written as digits but said as words, abbreviations (Mr., Dr.), acronyms (AI, CEO) and "um"s.
 - Searches the whole script, not only the next few words. Rare words count more than common ones, so it doesn't jump on every "and".
 - Re-reading a line brings the text back to it after about two words. A skipped block is found after three or four.
@@ -87,7 +87,7 @@ The tracker aligns the last few recognized words against the entire script. It k
 
 ## Privacy
 
-**Everything stays on your phone.** The app does not have the `INTERNET` permission, so Android won't let it connect anywhere, and you can check this yourself.
+**Speech recognition stays on your phone.** Optional online scripts are fetched only from a URL you configure; audio and local scripts are never uploaded. See [the online catalog format](docs/online-library-format.md).
 
 - Audio is used only while a prompter session is running. It is never recorded, stored or sent.
 - The accessibility service is active only during a session. It **cannot read screen content**. It keeps the microphone working while other apps record, shows the floating window, and handles volume and remote-control keys (on by default with a preset set of keys; you can turn this off or reassign the keys in Settings).
@@ -180,7 +180,7 @@ Tried it on another phone? Open an [issue](https://github.com/olerast67/voice-te
 
 ## Roadmap
 
-- **Language packs:** Spanish, German, Italian, Polish, Vietnamese and other languages that have compact streaming models. They will be files you open with the app, so it still needs no internet permission and the APK doesn't grow.
+- **Language packs:** Spanish, German, Italian, Polish, Vietnamese and other languages that have compact streaming models. They will be files you open with the app, so the APK does not need to grow.
 
 Ideas and votes are welcome in [Issues](https://github.com/olerast67/voice-teleprompter-android/issues).
 
@@ -203,13 +203,13 @@ Yes. Suflyor floats over any app, and its text starts right under the front came
 <details>
 <summary><b>Does it work offline? Is my voice sent anywhere?</b></summary>
 
-It works fully offline. The app has no internet permission, so it can't send anything anywhere; audio is never recorded or stored. See [PRIVACY.md](PRIVACY.md).
+Speech recognition works offline; audio is never recorded or uploaded. Optional online catalog synchronization needs a connection, while cached scripts remain available offline. See [PRIVACY.md](PRIVACY.md).
 </details>
 
 <details>
 <summary><b>Which languages does it understand?</b></summary>
 
-English and Russian speech, picked automatically from the script or set in Settings. The interface is in English and Russian. More languages are planned as downloadable packs.
+Chinese, English and Russian speech, picked automatically from the script or set in Settings. The interface supports Simplified Chinese, English and Russian. More languages are planned as downloadable packs.
 </details>
 
 <details>

@@ -9,8 +9,8 @@
     <string name="import_error_no_text">文件中未找到文本</string>
     <string name="import_error_not_text">这不是文本文件</string>
     <string name="import_error_pasted_too_long">文本过长，无法作为稿件导入</string>
-    <string name="import_error_text_too_long_count">文本过长：共 %1$d 千个字符，Suflyor 最多支持 %2$d 千个字符。</string>
-    <string name="import_error_text_too_long_max">文本过长：Suflyor 最多支持 %1$d 千个字符。</string>
+    <string name="import_error_text_too_long_count">文本过长：共 %1$d 千个字符，提词器 最多支持 %2$d 千个字符。</string>
+    <string name="import_error_text_too_long_max">文本过长：提词器 最多支持 %1$d 千个字符。</string>
     <string name="import_error_not_rtf">这不是 RTF 文件</string>
     <string name="import_error_zip_too_many_files">压缩包中的文件过多</string>
     <string name="import_error_zip_too_large">压缩包解压后的数据过大</string>
@@ -37,12 +37,12 @@
     <string name="main_no_words">文本中没有可用于提词的内容</string>
     <string name="script_cd_edit">编辑</string>
     <string name="script_stats">≈ %1$s · %2$s · %3$s</string>
-    <string name="script_setup_mic">请允许使用麦克风，让 Suflyor 听到你的声音</string>
-    <string name="script_setup_a11y">请在无障碍设置中开启 Suflyor 服务，否则录制视频时无法听到你的声音</string>
+    <string name="script_setup_mic">请允许使用麦克风，让 提词器 听到你的声音</string>
+    <string name="script_setup_a11y">请在无障碍设置中开启 提词器 服务，否则录制视频时无法听到你的声音</string>
     <string name="script_action_overlay">悬浮提词</string>
     <string name="script_action_rehearse">排练</string>
     <string name="script_delete_title">删除稿件？</string>
     <string name="script_delete_message">将从稿件库中删除“%1$s”，手机上的原始文件会保留。</string>
     <string name="sample_title">示例</string>
-    <string name="sample_script"># 示例稿件\n\n你好！今天我来演示这款提词器如何跟随声音自动滚动文字，让你不必追着文字读。\n\n**先读几行**，看看镜头，再看回文字。如果读错后重新读一句，文字会跳回这句话的开头。\n\n[停顿，微笑] 如果你暂时不说话，文字也会停下来等你。\n\n现在试着在相机、Instagram 或 TikTok 画面上方读这段话，录制时提词器也能继续听到你的声音。</string>
+    <string name="sample_script"># 示例稿件\n\n你好！今天我来演示这款提词器如何跟随声音自动滚动文字，让你不必追着文字读。\n\n**先读几行**，看看镜头，再看回文字。如果读错后重新读一句，文字会跳回这句话的开头。\n\n[停顿，微笑] 如果你暂时不说话，文字也会停下来等你。\n\n现在试着在相机、抖音 或 小红书 画面上方读这段话，录制时提词器也能继续听到你的声音。</string>
 </resources>

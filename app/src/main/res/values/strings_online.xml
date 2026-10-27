@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="online_link_title">Link settings</string>
+    <string name="online_link_hint">Configure an online script catalog address</string>
+    <string name="online_link_address">HTTP(S) catalog URL</string>
+    <string name="online_link_format">The address must return the script JSON catalog directly. Leave it empty to disconnect; cached scripts are kept.</string>
+    <string name="online_link_save">Save</string>
+    <string name="online_sync">Sync online scripts</string>
+    <string name="online_syncing">Syncing online scripts…</string>
+    <string name="online_synced">Synced %1$d scripts; available offline</string>
+    <string name="online_cached_hint">Sync to fetch the latest scripts. Cached scripts work offline.</string>
+    <string name="online_error_url">Enter a valid HTTP(S) URL without a fragment or username/password.</string>
+    <string name="online_error_network">Could not reach the script server. Check the address and connection.</string>
+    <string name="online_error_timeout">The script server timed out. Try again.</string>
+    <string name="online_error_http">The script server returned HTTP %1$d.</string>
+    <string name="online_error_format">The response is not a valid UTF-8 script JSON catalog.</string>
+    <string name="online_error_version">Unsupported catalog version. The version field must be 1.</string>
+    <string name="online_error_size">The catalog exceeds the 8 MB limit.</string>
+    <string name="online_error_count">A catalog can contain at most 500 scripts.</string>
+    <string name="online_error_entry">Invalid script fields, repeated id, or content over 100,000 characters.</string>
+    <string name="online_error_storage">Some scripts could not be saved. Check free storage and sync again.</string>
+    <string name="format_online">online</string>
+</resources>

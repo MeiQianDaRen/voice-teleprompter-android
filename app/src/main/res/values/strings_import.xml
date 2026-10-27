@@ -43,7 +43,7 @@
     <string name="import_clipboard_empty">There\'s no text in the clipboard</string>
 
     <string name="main_mic_blocked">The microphone is blocked — turn it on in the app\'s permissions</string>
-    <!-- %1$s: the app that was to open after the window, e.g. Instagram or Camera. -->
+    <!-- %1$s: the app that was to open after the window, e.g. 抖音 or Camera. -->
     <string name="main_open_app_failed">Couldn\'t open %1$s</string>
     <string name="main_no_words">There are no words in the text</string>
 
@@ -63,5 +63,5 @@
         **bold**, [note] (shown, not read). One line with \n: the resource compiler would join wrapped lines.
     -->
     <string name="sample_title">Sample</string>
-    <string name="sample_script"># Sample script\n\nHi! Today I\'ll show you how this teleprompter follows your voice and scrolls the text by itself, so you never have to chase it.\n\n**Read a couple of lines**, look into the camera, then glance back at the text. If you slip and start a sentence over, the text jumps back to where that sentence begins.\n\n[Pause, smile] And if you go quiet, the text simply waits for you.\n\nNow try reading this paragraph over the camera, Instagram or TikTok — the prompter keeps listening to you even while you record.</string>
+    <string name="sample_script"># Sample script\n\nHi! Today I\'ll show you how this teleprompter follows your voice and scrolls the text by itself, so you never have to chase it.\n\n**Read a couple of lines**, look into the camera, then glance back at the text. If you slip and start a sentence over, the text jumps back to where that sentence begins.\n\n[Pause, smile] And if you go quiet, the text simply waits for you.\n\nNow try reading this paragraph over the camera, 抖音 or 小红书 — the prompter keeps listening to you even while you record.</string>
 </resources>

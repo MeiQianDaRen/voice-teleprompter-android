@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.media.MediaRecorder
 import com.olerast.suflyor.data.ScriptRepository
+import com.olerast.suflyor.data.OnlineLibrary
 import com.olerast.suflyor.diag.CrashLog
 import com.olerast.suflyor.diag.DiagLog
 import com.olerast.suflyor.doc.PdfTextExtractor
@@ -20,6 +21,8 @@ class App : Application() {
         private set
     lateinit var scripts: ScriptRepository
         private set
+    lateinit var onlineLibrary: OnlineLibrary
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -28,6 +31,7 @@ class App : Application() {
         settings = Settings(this)
         engine = SessionEngine(this)
         scripts = ScriptRepository(this, settings)
+        onlineLibrary = OnlineLibrary(settings, scripts)
         offerPdfImport()
         DiagLog.i("App started, Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT}), ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
     }
@@ -67,6 +71,10 @@ class App : Application() {
 
 class Settings(context: Context) {
     private val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+    var onlineLibraryUrl: String
+        get() = prefs.getString("onlineLibraryUrl", "") ?: ""
+        set(v) = prefs.edit().putString("onlineLibraryUrl", v).apply()
 
     var audioSource: Int
         get() = prefs.getInt("audioSource", MediaRecorder.AudioSource.VOICE_RECOGNITION)
@@ -123,7 +131,7 @@ class Settings(context: Context) {
 
     /** Which app "Поверх камеры" opens: name of [com.olerast.suflyor.overlay.CameraTarget]. */
     var overlayTarget: String
-        get() = prefs.getString("overlayTarget", "INSTAGRAM") ?: "INSTAGRAM"
+        get() = prefs.getString("overlayTarget", "CAMERA") ?: "CAMERA"
         set(v) = prefs.edit().putString("overlayTarget", v).apply()
 
     /** Hardware keys (volume, Bluetooth remote, ring, keyboard) control the prompter during a session. */

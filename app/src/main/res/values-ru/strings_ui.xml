@@ -172,10 +172,10 @@
     <string name="settings_sum_text_paragraphs">Абзацы как в тексте</string>
     <string name="settings_sum_keys_on">Включены</string>
     <string name="settings_sum_keys_off">Выключены</string>
-    <string name="settings_sum_scripts">Сохранить все в архив или восстановить</string>
+    <string name="settings_sum_scripts">Резервная копия, восстановление и онлайн-сценарии</string>
     <string name="settings_sum_advanced">Источник и частота микрофона, строка диагностики</string>
     <string name="settings_sum_about">Версия %1$s · журнал · ссылки</string>
-    <string name="settings_overlay_page_hint">То же самое можно менять прямо над камерой кнопкой «Aa» в окне.</string>
+    <string name="settings_overlay_page_hint">То же самое можно менять прямо над камерой кнопкой настроек в окне.</string>
     <string name="settings_fullscreen_page_hint">Экран репетиции: для тренировки или для телефона под стеклом телесуфлёра. То же самое есть под кнопкой «Вид» на экране репетиции.</string>
     <string name="settings_mirror_pick_hint">Выбери вариант, при котором текст в стекле читается правильно.</string>
     <string name="settings_speech_lang_default_title">Язык речи по умолчанию</string>

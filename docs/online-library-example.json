@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "scripts": [
+    {
+      "id": "intro-001",
+      "title": "开场稿",
+      "content": "# 开场\n\n大家好，欢迎来到今天的分享。\n[停顿，微笑] 接下来介绍提词器。",
+      "speechLang": "zh"
+    }
+  ]
+}

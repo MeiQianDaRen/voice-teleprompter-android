@@ -1,6 +1,7 @@
 package com.olerast.suflyor.overlay
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityButtonController
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -164,8 +165,21 @@ object OverlayHost {
  * It never reads window content.
  */
 class PrompterAccessibilityService : AccessibilityService() {
+    private val buttonCallback = object : AccessibilityButtonController.AccessibilityButtonCallback() {
+        override fun onClicked(controller: AccessibilityButtonController) {
+            if (OverlayHost.active) {
+                OverlayHost.stopSession(this@PrompterAccessibilityService)
+            } else {
+                // A visible activity requests the microphone if needed, then starts the floating prompter.
+                startActivity(Intent(this@PrompterAccessibilityService, QuickStartActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        }
+    }
+
     override fun onServiceConnected() {
         instance = this
+        accessibilityButtonController.registerAccessibilityButtonCallback(buttonCallback)
         DiagLog.i("Accessibility service connected")
         onSessionChanged(OverlayHost.active)
         OverlayHost.onHostChanged(this)
@@ -206,6 +220,7 @@ class PrompterAccessibilityService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     override fun onUnbind(intent: Intent?): Boolean {
+        accessibilityButtonController.unregisterAccessibilityButtonCallback(buttonCallback)
         instance = null
         DiagLog.i("Accessibility service disconnected")
         OverlayHost.onHostChanged(applicationContext)

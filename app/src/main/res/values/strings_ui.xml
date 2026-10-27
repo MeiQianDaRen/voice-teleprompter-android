@@ -179,10 +179,10 @@
     <string name="settings_sum_text_paragraphs">Paragraphs as in the text</string>
     <string name="settings_sum_keys_on">On</string>
     <string name="settings_sum_keys_off">Off</string>
-    <string name="settings_sum_scripts">Save all to an archive or restore</string>
+    <string name="settings_sum_scripts">Back up, restore and sync online scripts</string>
     <string name="settings_sum_advanced">Microphone source and rate, diagnostics line</string>
     <string name="settings_sum_about">Version %1$s · log · links</string>
-    <string name="settings_overlay_page_hint">The same can be changed right over the camera with the Aa button in the window.</string>
+    <string name="settings_overlay_page_hint">The same can be changed right over the camera with the settings button in the window.</string>
     <string name="settings_fullscreen_page_hint">The rehearsal screen: for practice, or for the phone under teleprompter glass. The same is under View on the rehearsal screen.</string>
     <string name="settings_mirror_pick_hint">Pick the one in which the text reads the right way in the glass.</string>
     <string name="settings_speech_lang_default_title">Default speech language</string>
