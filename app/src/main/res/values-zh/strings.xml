@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Suflyor 提词器</string>
+    <string name="a11y_label">Suflyor：悬浮窗与语音</string>
+    <string name="a11y_description">让 Suflyor 在其他应用录制视频时仍能听到你的声音，并在相机画面上方显示提词。仅在 Suflyor 提词期间运行：读取前台应用名称（用于日志），并接收你在设置中指定的音量键、蓝牙遥控器和键盘按键。不读取屏幕内容。所有数据均留在手机上，应用无法访问互联网。</string>
+</resources>
