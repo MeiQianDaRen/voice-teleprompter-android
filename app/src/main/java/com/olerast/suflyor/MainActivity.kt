@@ -35,6 +35,7 @@ import com.olerast.suflyor.overlay.KeyBindings
 import com.olerast.suflyor.overlay.OverlayHost
 import com.olerast.suflyor.overlay.PrompterAccessibilityService
 import com.olerast.suflyor.session.SessionEngine
+import com.olerast.suflyor.ui.ScanScreen
 import com.olerast.suflyor.ui.EditorScreen
 import com.olerast.suflyor.ui.JournalScreen
 import com.olerast.suflyor.ui.KeyLearning
@@ -59,6 +60,7 @@ class MainActivity : ComponentActivity() {
 
     private sealed interface Screen {
         data object Library : Screen
+        data object Scan : Screen
         data class Script(val id: String) : Screen
         data class Editor(val id: String?) : Screen
         data object Rehearsal : Screen
@@ -131,6 +133,7 @@ class MainActivity : ComponentActivity() {
 
     private fun encodeScreen(s: Screen): String = when (s) {
         Screen.Library -> "library"
+        Screen.Scan -> "scan"
         is Screen.Script -> "script:${s.id}"
         is Screen.Editor -> "editor:${s.id.orEmpty()}"
         Screen.Rehearsal -> "rehearsal"
@@ -140,6 +143,7 @@ class MainActivity : ComponentActivity() {
 
     private fun decodeScreen(s: String): Screen? = when {
         s == "library" -> Screen.Library
+        s == "scan" -> Screen.Scan
         s.startsWith("script:") -> Screen.Script(s.removePrefix("script:"))
         s.startsWith("editor:") -> Screen.Editor(s.removePrefix("editor:").ifEmpty { null })
         s == "rehearsal" -> Screen.Rehearsal
@@ -262,6 +266,7 @@ class MainActivity : ComponentActivity() {
                     onPickFile = { pickFile.launch(MIME_TYPES) },
                     onPaste = ::importClipboard,
                     onWrite = { push(Screen.Editor(null)) },
+                    onScan = { push(Screen.Scan) },
                     onBackup = { saveArchive.launch(archiveName()) },
                     onRestore = ::pickArchive,
                 )
@@ -292,6 +297,7 @@ class MainActivity : ComponentActivity() {
                         onSave = { title, text -> saveEditor(screen.id, doc, title, text) },
                     )
                 }
+                Screen.Scan -> ScanScreen(onBack = ::pop, onSave = ::saveScan)
                 Screen.Rehearsal -> RehearsalScreen(onBack = ::pop)
                 is Screen.Settings -> SettingsScreen(
                     page = screen.page,
@@ -374,6 +380,23 @@ class MainActivity : ComponentActivity() {
             app.scripts.update(id, doc)
             pop()
         }
+    }
+
+    private fun saveScan(title: String, text: String): Boolean {
+        val doc = try {
+            DocumentImporter.checkSize(com.olerast.suflyor.doc.PlainTextImporter.parse(text, title))
+        } catch (e: ImportException) {
+            toast(e.error.text(this))
+            return false
+        }
+        if (doc.isEmpty) {
+            toast(getString(R.string.main_no_words))
+            return false
+        }
+        // OCR is literal text: # headings, [brackets] and ** are not editor markup.
+        val id = app.scripts.add(doc) ?: return false
+        openScript(id)
+        return true
     }
 
     private fun handleIncoming(intent: Intent?) {

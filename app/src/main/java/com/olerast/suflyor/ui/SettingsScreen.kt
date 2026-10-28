@@ -532,6 +532,7 @@ private fun AboutPage(onJournal: () -> Unit) {
     LinkRow(stringResource(R.string.settings_link_donate), stringResource(R.string.settings_link_donate_hint)) {
         openUrl(context, "$REPO_URL/blob/main/DONATE.md")
     }
+    Hint(stringResource(R.string.scan_about))
     Hint(stringResource(R.string.settings_about_license))
     Hint(stringResource(R.string.settings_about_version, BuildConfig.VERSION_NAME))
 }
@@ -541,8 +542,8 @@ private fun AboutPage(onJournal: () -> Unit) {
 /** [com.olerast.suflyor.Settings.speechLang] value that picks the language from the script's alphabet. */
 private const val AUTO = "auto"
 
-private const val REPO_URL = "https://github.com/olerast67/voice-teleprompter-android"
-private const val SITE_URL = "https://olerast67.github.io/voice-teleprompter-android/"
+private const val REPO_URL = "https://github.com/MeiQianDaRen/voice-teleprompter-android"
+private const val SITE_URL = "$REPO_URL#readme"
 
 /** Timed and sound scrolling speed, shared by Settings, the script screen, the floating window and the prompter. */
 const val MIN_WPM = 60

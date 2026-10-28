@@ -1,5 +1,7 @@
 # Privacy
 
+- **Document scanning.** Camera/gallery images are decoded and recognized locally by bundled Tesseract models, including on first use without a network. Images and OCR results are never uploaded. The system camera receives access to a single temporary photo through FileProvider; the system document picker grants access only to the selected image. Successful recognition or leaving the scanner deletes the temporary photo; review drafts remain private until saved or discarded. No broad photo-library permission is requested.
+
 **Speech recognition stays on your phone. Network access is optional and used only for an online script catalog you configure.**
 
 - **Network.** Starting the app with a configured catalog URL, saving that URL or choosing Sync sends an HTTP GET request to that address (and its redirects). The server receives the normal connection metadata, such as your IP address. No microphone audio, recognized phrases or local scripts are uploaded. HTTPS is recommended; HTTP is also supported for local servers. Cached scripts work offline, and clearing the URL disables synchronization.
@@ -22,6 +24,8 @@ Questions: open an issue on GitHub.
 
 # Конфиденциальность
 
+Сканирование выполняется локально встроенным Tesseract, без сети с первого запуска. Снимки и распознанный текст не отправляются. Камера и системный выбор изображений дают доступ только к нужному файлу. Временный снимок удаляется после распознавания или выхода, черновик хранится в закрытой папке до сохранения или отмены.
+
 **Распознавание речи работает на телефоне. Сеть используется только для указанного вами каталога сценариев.**
 
 - **Сеть.** При запуске приложения с настроенным каталогом, сохранении ссылки или ручной синхронизации приложение отправляет GET-запрос по указанному адресу и перенаправлениям. Сервер получает обычные сетевые данные, включая IP-адрес. Звук, распознанная речь и локальные сценарии не отправляются. Рекомендуется HTTPS; для локального сервера поддерживается HTTP. Сохранённые сценарии доступны офлайн; пустая ссылка отключает синхронизацию.
@@ -41,6 +45,8 @@ Questions: open an issue on GitHub.
 ---
 
 # 隐私说明
+
+扫描文稿使用 APK 内置的 Tesseract 引擎及简繁中文、英文模型，首次使用也支持断网识别。图片和 OCR 识别结果仅在本机处理，不上传。拍照调用系统相机并只授权当前临时照片；相册使用系统文件选择器，只读取选中的图片，不申请整个相册权限。识别成功或退出扫描页后删除临时照片，校对草稿保存在应用私有目录，保存或取消时删除；异常终止遗留的临时文件会在后续扫描时清理。
 
 语音识别在手机本地完成，麦克风音频和识别结果不会上传。在线稿件功能在已配置链接的应用启动时、保存链接或点击更新时向你配置的地址发起 GET 请求；服务器可以看到 IP 地址等正常连接信息。推荐 HTTPS，也支持局域网 HTTP。链接保存在应用私有设置中，清空链接后停止同步，已缓存稿件保留。
 

@@ -29,8 +29,8 @@ android {
         applicationId = "com.olerast.suflyor"
         minSdk = 29
         targetSdk = 36
-        versionCode = 6
-        versionName = "0.6"
+        versionCode = 7
+        versionName = "0.7"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -76,7 +76,7 @@ android {
 
     androidResources {
         // The speech model is read straight from assets; keep it uncompressed so loading is fast.
-        noCompress += listOf("onnx")
+        noCompress += listOf("onnx", "traineddata")
         // Only the app's own languages: library strings (Compose, Material) otherwise show up in a third language.
         localeFilters += listOf("en", "ru", "zh")
     }
@@ -111,6 +111,8 @@ kotlin {
 dependencies {
     // sherpa-onnx v1.13.8 (Apache-2.0), downloaded by fetchSpeechAssets.
     implementation(files("libs/sherpa-onnx-1.13.8.aar"))
+    // Open-source offline OCR; downloaded and checksum-verified by fetchSpeechAssets.
+    implementation(files("libs/tesseract4android-4.9.0.aar"))
 
     // 2026.06.01 = Compose 1.11 / Material3 1.4: the last line that builds with AGP 9.0 and compileSdk 36.
     implementation(platform("androidx.compose:compose-bom:2026.06.01"))
@@ -133,7 +135,16 @@ private val enModelBase =
 private val zhModelBase =
     "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23/resolve/204ad334e2e683fd295359930cc16fc0432a23ac"
 
+private val ocrModelBase =
+    "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/87416418657359cb625c412a48b6e1d6d41c29bd"
+
 private val speechAssets = listOf(
+    Triple("libs/tesseract4android-4.9.0.aar",
+        "https://jitpack.io/cz/adaptech/tesseract4android/tesseract4android/4.9.0/tesseract4android-4.9.0.aar",
+        "bce5d6413a1a5ae3d7240033fbbc851ba3217d0a08d9769400e17a077f42cb2a"),
+    Triple("src/main/assets/ocr/chi_sim.traineddata", "$ocrModelBase/chi_sim.traineddata", "a5fcb6f0db1e1d6d8522f39db4e848f05984669172e584e8d76b6b3141e1f730"),
+    Triple("src/main/assets/ocr/chi_tra.traineddata", "$ocrModelBase/chi_tra.traineddata", "529c5b5797d64b126065cd55f2bb4c7fd7b15790798091b1ff259941a829330b"),
+    Triple("src/main/assets/ocr/eng.traineddata", "$ocrModelBase/eng.traineddata", "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"),
     Triple(
         "libs/sherpa-onnx-1.13.8.aar",
         "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-1.13.8.aar",
@@ -190,7 +201,7 @@ private fun download(url: String, to: File) {
 
 val fetchSpeechAssets by tasks.registering {
     group = "build setup"
-    description = "Downloads the speech recognition library and English and Chinese models (not stored in git)."
+    description = "Downloads offline speech/OCR engines and bundled Chinese/English models, verified by SHA-256."
     val dir = layout.projectDirectory.asFile
     doLast {
         // Remove obsolete downloaded assets from existing checkouts before packaging.

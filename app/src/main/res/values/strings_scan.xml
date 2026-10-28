@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scan_title">Scan document</string>
+    <string name="scan_library_hint">Camera or gallery, with offline Chinese OCR</string>
+    <string name="scan_hint">Recognize simplified Chinese, traditional Chinese and English offline, including first use. Keep the page upright and clear. Review the text and title before saving to your library.</string>
+    <string name="scan_camera">Take a photo</string>
+    <string name="scan_lang_simplified">Simplified</string>
+    <string name="scan_lang_traditional">Traditional</string>
+    <string name="scan_lang_english">English</string>
+    <string name="scan_gallery">Choose from gallery</string>
+    <string name="scan_preview">Document image to recognize</string>
+    <string name="scan_rotate">Rotate 90° clockwise</string>
+    <string name="scan_recognize">Recognize text</string>
+    <string name="scan_working">Recognizing offline, please wait…</string>
+    <string name="scan_no_text">No text found. Keep the page upright and take a clearer photo.</string>
+    <string name="scan_image_failed">Cannot read this image. Please choose a clear document image again.</string>
+    <string name="scan_camera_failed">Cannot open the camera. Install a camera app or choose an image from your gallery.</string>
+    <string name="scan_recognition_failed">Recognition failed. Try a clearer image and check that the phone has free storage.</string>
+    <string name="scan_draft_failed">The scan draft is no longer available. Please scan again.</string>
+    <string name="scan_review_hint">Review the recognized text and title, then tap Done to save. Scanned text is saved literally.</string>
+    <string name="scan_about">欧了提词器 is a Suflyor fork with a Chinese interface, offline Chinese/English voice following, online scripts, adjustable overlays and Tesseract offline OCR for simplified/traditional Chinese and English. Images and recognized text stay on this device.</string>
+</resources>

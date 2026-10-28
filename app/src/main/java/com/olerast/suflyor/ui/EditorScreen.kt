@@ -49,6 +49,7 @@ fun EditorScreen(
     initialText: String,
     /** The script's own speech language, so the count follows the same word rules as the saved script. */
     speechLang: String? = null,
+    plainText: Boolean = false,
     onCancel: () -> Unit,
     onSave: (title: String, text: String) -> Unit,
 ) {
@@ -61,7 +62,7 @@ fun EditorScreen(
     var words by remember { mutableIntStateOf(-1) }
     LaunchedEffect(text) {
         delay(300)
-        words = withContext(Dispatchers.Default) { countSpokenWords(text, speechLang) }
+        words = withContext(Dispatchers.Default) { countSpokenWords(text, speechLang, plainText) }
     }
     val wpm = App.instance.settings.autoScrollWpm
 
@@ -125,7 +126,7 @@ fun EditorScreen(
             )
         }
         Text(
-            stringResource(R.string.editor_syntax_help),
+            stringResource(if (plainText) R.string.scan_review_hint else R.string.editor_syntax_help),
             style = MaterialTheme.typography.bodyMedium,
             color = Palette.TextMuted,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
@@ -134,9 +135,10 @@ fun EditorScreen(
 }
 
 /** Words that will be read aloud, with the rules of the script's speech language (headings and [notes] don't count). */
-private fun countSpokenWords(text: String, speechLang: String?): Int {
+private fun countSpokenWords(text: String, speechLang: String?, plainText: Boolean): Int {
     if (text.isBlank()) return 0
-    val doc = MarkdownImporter.parse(text, "").copy(speechLang = speechLang)
+    val doc = (if (plainText) com.olerast.suflyor.doc.PlainTextImporter.parse(text, "")
+        else MarkdownImporter.parse(text, "")).copy(speechLang = speechLang)
     val lang = App.instance.settings.speechLangFor(doc)
     return ScriptLayout.build(doc, phraseMode = false, lang = lang).spokenTokens
 }

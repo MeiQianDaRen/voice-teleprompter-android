@@ -1,47 +1,50 @@
-# Third-party components
+# 第三方开源库说明
 
-Suflyor is licensed under the GNU GPL v3.0 (see [LICENSE](LICENSE)). It includes the components below under their own licenses. All of them are compatible with GPL-3.0.
+欧了提词器基于 [Suflyor](https://github.com/olerast67/voice-teleprompter-android) 修改，沿用 [GNU GPL v3.0](LICENSE)。下列组件保留各自版权与许可证。
 
-## Shipped inside the APK
+## APK 包含的组件
 
-| Component | Used for | License | Source |
+| 组件 | 用途 | 许可证 | 来源 |
 |---|---|---|---|
-| [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 1.13.8 (Android AAR) | Streaming speech recognition on the device | Apache-2.0 | [v1.13.8](https://github.com/k2-fsa/sherpa-onnx/tree/v1.13.8) |
-| [ONNX Runtime](https://github.com/microsoft/onnxruntime) (`libonnxruntime.so`, from the AAR) | Runs the neural network | MIT | https://github.com/microsoft/onnxruntime |
-| Streaming Zipformer for English by the [icefall](https://github.com/k2-fsa/icefall) project (LibriSpeech, 2023-05-17), exported by sherpa-onnx | English speech model | Apache-2.0 | [model](https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-26), [checkpoint](https://huggingface.co/Zengwei/icefall-asr-librispeech-streaming-zipformer-2023-05-17) |
-| LibriSpeech BPE-500 vocabulary (icefall) | Script-word hints for the English model | Apache-2.0 | [vocab](https://huggingface.co/csukuangfj/icefall-asr-librispeech-conformer-ctc-jit-bpe-500-2021-11-09) |
-| Streaming Zipformer 14M for Chinese (WenetSpeech, 2023-02-23), exported by sherpa-onnx | Chinese speech model and character vocabulary | Apache-2.0 | [pinned model](https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23/tree/204ad334e2e683fd295359930cc16fc0432a23ac), [usage](https://k2-fsa.github.io/sherpa/onnx/pretrained_models/online-transducer/zipformer-transducer-models.html#csukuangfj-sherpa-onnx-streaming-zipformer-zh-14m-2023-02-23-chinese) |
-| AndroidX: Jetpack Compose, Activity, Core | User interface | Apache-2.0 | https://developer.android.com/jetpack/androidx |
-| Kotlin standard library | Runtime | Apache-2.0 | https://github.com/JetBrains/kotlin |
-| kotlinx.coroutines | Runtime used by Compose | Apache-2.0 | https://github.com/Kotlin/kotlinx.coroutines |
-| Material Design icons (vector paths) | Icons | Apache-2.0 | https://github.com/google/material-design-icons |
+| sherpa-onnx 1.13.8 | 本地流式语音识别 | Apache-2.0 | [固定版本源码](https://github.com/k2-fsa/sherpa-onnx/tree/v1.13.8) |
+| ONNX Runtime（来自 sherpa AAR） | 运行语音神经网络 | MIT | [源码](https://github.com/microsoft/onnxruntime) |
+| icefall 英语 Streaming Zipformer，LibriSpeech 2023-05-17 | 英语语音模型 | Apache-2.0 | [模型](https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-26)、[训练检查点](https://huggingface.co/Zengwei/icefall-asr-librispeech-streaming-zipformer-2023-05-17) |
+| LibriSpeech BPE-500 词表（icefall） | 英语稿件词汇提示 | Apache-2.0 | [词表](https://huggingface.co/csukuangfj/icefall-asr-librispeech-conformer-ctc-jit-bpe-500-2021-11-09) |
+| 中文 Streaming Zipformer 14M，WenetSpeech 2023-02-23 | 中文语音识别和字符词表 | Apache-2.0 | [固定提交模型](https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23/tree/204ad334e2e683fd295359930cc16fc0432a23ac) |
+| Tesseract4Android 4.9.0（基于 tess-two / Tesseract Tools for Android） | Android OCR 接口和本地引擎 | Apache-2.0 | [固定版本源码](https://github.com/adaptech-cz/Tesseract4Android/tree/4.9.0) |
+| Tesseract OCR 5.5.1 | 离线文字识别，来自 OCR AAR | Apache-2.0 | [源码](https://github.com/tesseract-ocr/tesseract/tree/5.5.1) |
+| tessdata_fast：chi_sim、chi_tra、eng | 简体中文、繁体中文、英文 OCR 模型 | Apache-2.0 | [固定提交模型](https://github.com/tesseract-ocr/tessdata_fast/tree/87416418657359cb625c412a48b6e1d6d41c29bd) |
+| Leptonica 1.85.0 | OCR 图像处理，来自 OCR AAR | BSD-2-Clause | [源码](https://github.com/DanBloomberg/leptonica/tree/1.85.0) |
+| libjpeg 9f | OCR JPEG 支持，来自 OCR AAR | IJG | [官网与源码](https://www.ijg.org/) |
+| libpng 1.6.48 | OCR PNG 支持，来自 OCR AAR | libpng | [源码](https://github.com/pnggroup/libpng/tree/v1.6.48) |
+| AndroidX：Compose、Activity、Core | 界面、相机和文件选择器集成 | Apache-2.0 | [源码与文档](https://developer.android.com/jetpack/androidx) |
+| Kotlin 标准库 | 运行库 | Apache-2.0 | [源码](https://github.com/JetBrains/kotlin) |
+| kotlinx.coroutines | 异步识别和界面协程 | Apache-2.0 | [源码](https://github.com/Kotlin/kotlinx.coroutines) |
+| Material Design 图标 | 部分矢量图标 | Apache-2.0 | [源码](https://github.com/google/material-design-icons) |
 
-### Linked into `libsherpa-onnx-jni.so` by the sherpa-onnx build
+英语模型训练使用的 [LibriSpeech](https://www.openslr.org/12) 数据集作者为 V. Panayotov、G. Chen、D. Povey 和 S. Khudanpur，许可证 CC BY 4.0。
 
-The prebuilt sherpa-onnx library also contains code the app does not call (text-to-speech, speaker diarization). It comes from these projects:
+## 中文逐字跟读适配
 
-| Component | License | Source |
+中文语句锚点、字符窗口对齐和确认重读逻辑改编自 [Storm-Teleprompter-Plus 对齐引擎](https://github.com/html5syt/Storm-Teleprompter-Plus/blob/f345ae2f79d7222ce444664c9ca0e8b89f7e79de/lib/services/asr/alignment_engine.dart)，Copyright (c) 2026 Html5syt，MIT 许可。完整许可保存在 [licenses/Storm-Teleprompter-Plus-MIT.txt](licenses/Storm-Teleprompter-Plus-MIT.txt) 及 APK 的 assets/licenses/ 中。
+
+## sherpa-onnx 原生库内的其他代码
+
+预编译 libsherpa-onnx-jni.so 还包含应用未调用的语音合成、说话人分离等代码：
+
+| 组件 | 许可证 | 来源 |
 |---|---|---|
-| [espeak-ng](https://github.com/k2-fsa/espeak-ng) (fork used by sherpa-onnx for text-to-speech) | GPL-3.0-or-later | https://github.com/k2-fsa/espeak-ng |
-| [piper-phonemize](https://github.com/csukuangfj/piper-phonemize) | MIT | https://github.com/csukuangfj/piper-phonemize |
-| [OpenFst](https://www.openfst.org/) | Apache-2.0 | https://www.openfst.org/ |
-| [kaldifst](https://github.com/k2-fsa/kaldifst), [kaldi-decoder](https://github.com/k2-fsa/kaldi-decoder), [kaldi-native-fbank](https://github.com/csukuangfj/kaldi-native-fbank) | Apache-2.0 | https://github.com/k2-fsa |
-| [simple-sentencepiece](https://github.com/pkufool/simple-sentencepiece) | Apache-2.0 | https://github.com/pkufool/simple-sentencepiece |
-| [nlohmann/json](https://github.com/nlohmann/json) | MIT | https://github.com/nlohmann/json |
+| espeak-ng（sherpa 分支） | GPL-3.0-or-later | [源码](https://github.com/k2-fsa/espeak-ng) |
+| piper-phonemize | MIT | [源码](https://github.com/csukuangfj/piper-phonemize) |
+| OpenFst | Apache-2.0 | [官网](https://www.openfst.org/) |
+| kaldifst、kaldi-decoder、kaldi-native-fbank | Apache-2.0 | [k2-fsa](https://github.com/k2-fsa)、[kaldi-native-fbank](https://github.com/csukuangfj/kaldi-native-fbank) |
+| simple-sentencepiece | Apache-2.0 | [源码](https://github.com/pkufool/simple-sentencepiece) |
+| nlohmann/json | MIT | [源码](https://github.com/nlohmann/json) |
 
-The corresponding source for these binaries is the sherpa-onnx [v1.13.8 tag](https://github.com/k2-fsa/sherpa-onnx/tree/v1.13.8) together with the dependency versions its CMake files pin. If you need a copy of that source and cannot get it from there, open an issue and it will be provided.
+对应源码为 sherpa-onnx v1.13.8 及其 CMake 固定的依赖版本。如无法从以上来源取得对应源码，可在仓库提出请求。
 
-The English model was trained on [LibriSpeech](https://www.openslr.org/12) by V. Panayotov, G. Chen, D. Povey and S. Khudanpur (CC BY 4.0).
+## 打包与许可文本
 
-## Character alignment adaptation
+语音和 OCR AAR、模型不直接提交 Git；fetchSpeechAssets 在构建时下载固定版本或提交的文件，校验 SHA-256 后打包进 APK。运行时不下载识别模型，OCR 不依赖 Google Play 服务，也不发送图片和识别结果。
 
-Chinese utterance anchors, character-window alignment and confirmed retakes are adapted from
-[Storm-Teleprompter-Plus](https://github.com/html5syt/Storm-Teleprompter-Plus/blob/f345ae2f79d7222ce444664c9ca0e8b89f7e79de/lib/services/asr/alignment_engine.dart),
-Copyright (c) 2026 Html5syt, MIT License. The full license is preserved in
-[licenses/Storm-Teleprompter-Plus-MIT.txt](licenses/Storm-Teleprompter-Plus-MIT.txt).
-
-## Not stored in this repository
-
-The speech library and model are not committed. The `fetchSpeechAssets` Gradle task downloads them from the sources above, from pinned revisions, and checks every file against a pinned SHA-256 (see `app/build.gradle.kts`).
-
-License texts: [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) · [MIT](https://opensource.org/license/mit) · [GPL-3.0](LICENSE)
+OCR 的 Apache-2.0 许可及原生依赖版权声明随 APK 放在 assets/licenses/ 中。许可文本：[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) · [MIT](https://opensource.org/license/mit) · [GPL-3.0](LICENSE)。

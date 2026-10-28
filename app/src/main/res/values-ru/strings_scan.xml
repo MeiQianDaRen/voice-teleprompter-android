@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scan_title">Сканировать текст</string>
+    <string name="scan_library_hint">Камера или галерея, китайский OCR без сети</string>
+    <string name="scan_hint">Китайский (упрощённый и традиционный) и английский распознаются без сети с первого запуска. Снимите страницу чётко и ровно. Проверьте текст и заголовок перед сохранением.</string>
+    <string name="scan_camera">Сфотографировать</string>
+    <string name="scan_lang_simplified">简体中文</string>
+    <string name="scan_lang_traditional">繁體中文</string>
+    <string name="scan_lang_english">English</string>
+    <string name="scan_gallery">Выбрать из галереи</string>
+    <string name="scan_preview">Изображение документа</string>
+    <string name="scan_rotate">Повернуть на 90° вправо</string>
+    <string name="scan_recognize">Распознать текст</string>
+    <string name="scan_working">Распознавание без сети, подождите…</string>
+    <string name="scan_no_text">Текст не найден. Снимите страницу чётче и ровнее.</string>
+    <string name="scan_image_failed">Не удалось прочитать изображение. Выберите его ещё раз.</string>
+    <string name="scan_camera_failed">Не удалось открыть камеру. Установите приложение камеры или выберите изображение из галереи.</string>
+    <string name="scan_recognition_failed">Не удалось распознать текст. Попробуйте более чёткое изображение и проверьте свободное место.</string>
+    <string name="scan_draft_failed">Черновик сканирования недоступен. Отсканируйте документ снова.</string>
+    <string name="scan_review_hint">Проверьте текст и заголовок и нажмите «Готово». Текст скана сохраняется буквально.</string>
+    <string name="scan_about">欧了提词器 — версия Suflyor с китайским интерфейсом, офлайн-распознаванием китайской и английской речи, онлайн-сценариями, настройкой окна и OCR Tesseract для китайского и английского. Изображения и текст обрабатываются только на телефоне.</string>
+</resources>

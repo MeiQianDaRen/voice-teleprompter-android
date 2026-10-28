@@ -1,258 +1,65 @@
-<p align="center">
-  <img src="docs/images/banner.png" alt="Suflyor — voice-following teleprompter app for Android" width="100%">
-</p>
+# 欧了提词器
 
-<h1 align="center">Suflyor — voice-following teleprompter for Android</h1>
+基于 [Suflyor](https://github.com/olerast67/voice-teleprompter-android) 修改的 Android 中文提词器，支持中英离线语音跟读、悬浮提词、在线稿件同步，以及拍照和相册图片离线 OCR 扫描。
 
-<p align="center">
-  <a href="https://github.com/olerast67/voice-teleprompter-android/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/olerast67/voice-teleprompter-android?style=flat-square&color=FFB020&label=release"></a>
-  <a href="https://github.com/olerast67/voice-teleprompter-android/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/olerast67/voice-teleprompter-android/total?style=flat-square&color=46D778"></a>
-  <a href="https://github.com/olerast67/voice-teleprompter-android/actions/workflows/ci.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/olerast67/voice-teleprompter-android/ci.yml?branch=main&style=flat-square&label=build"></a>
-  <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square"></a>
-  <img alt="Android 10+" src="https://img.shields.io/badge/Android-10%2B-3DDC84?style=flat-square&logo=android&logoColor=white">
-  <a href="PRIVACY.md"><img alt="Offline speech recognition" src="https://img.shields.io/badge/speech-offline-9F7AEA?style=flat-square"></a>
-</p>
+当前版本：**0.7**（versionCode 7）。需要 Android 10 及以上、ARM64 手机，应用和 APK 名称均为 **欧了提词器**。
 
-<p align="center">
-  <a href="https://github.com/olerast67/voice-teleprompter-android/releases/latest"><img alt="Get the APK on GitHub" src="https://img.shields.io/badge/Get%20the%20APK-GitHub%20Releases-FFB020?style=for-the-badge&logo=github&logoColor=black" height="42"></a>
-  &nbsp;
-  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/olerast67/voice-teleprompter-android"><img alt="Get it on Obtainium" src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="42"></a>
-</p>
+## 中文版修改
 
-<p align="center"><b>English</b> · <a href="README.ru.md">Русский</a> · <a href="https://olerast67.github.io/voice-teleprompter-android/">Website</a></p>
+- 中文界面和示例；语音识别只提供中文和英文。
+- 使用 [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 与内置 Zipformer 模型离线识别。中文按字符匹配朗读进度，定位当前字，支持停顿、跳读和重读。
+- 中文逐字对齐参考 [Storm-Teleprompter-Plus](https://github.com/html5syt/Storm-Teleprompter-Plus) 的 MIT 实现并保留许可，详见 [中文跟读说明](docs/chinese-asr.md)。
+- 在线稿件在启动时自动更新，也可点击「更新」手动刷新；缓存稿件可离线使用。地址在稿件库「⋮ → 在线链接设置」配置，输出格式见 [在线稿件 JSON 格式](docs/online-library-format.md)。
+- 新建稿件增加「扫描文稿」：支持拍照、相册选图、旋转预览、离线识别、校对后保存。
+- OCR 使用 [Tesseract4Android](https://github.com/adaptech-cz/Tesseract4Android) 4.9.0 / Tesseract 5.5.1，简体中文、繁体中文和英文模型随 APK 打包；首次使用无需联网下载模型，无需 Google Play 服务。
+- 支持「仅悬浮窗」（默认）、相机、剪映、抖音和快手。
+- 悬浮按钮在开始悬浮提词后显示；点击显示或隐藏提词窗，长按退出。设置中可关闭该按钮，退出应用会清理悬浮控件。
+- 悬浮设置中的「调整大小」显示加大且向内缩进的调节控件，分别调宽、调高；横屏也支持拖动、调整宽高和位置。
+- 支持左对齐、居中和右对齐。提词期间保持屏幕常亮，结束后恢复系统行为。
 
----
+## 扫描文稿
 
-**Suflyor** (Russian *суфлёр*, "prompter") is a free, open-source **teleprompter app for Android that follows your voice**. It floats over Instagram, TikTok or the camera app and scrolls the script as you speak, so you never chase the text: a voice-activated teleprompter for Reels, Shorts and TikToks. Speech recognition works fully offline; an optional online script catalog uses a URL you configure.
+1. 打开「稿件库 → ＋ → 扫描文稿」。
+2. 选择「拍照扫描」或「从相册选择」，让页面文字清晰、光照均匀且尽量摆正。
+3. 选择识别语言（默认简体中文），必要时点击「向右旋转 90°」，然后点击「识别文字」。
+4. 校对识别结果、修改标题，点击「完成」保存到稿件库。
 
-It is made for creators who hold the phone, read a couple of lines to the lens, look back at the text and carry on. If you stumble and start a sentence again, the text goes back with you. If you skip a paragraph, it catches up.
+图片和识别内容均在本地处理，不会上传。拍照通过系统相机应用完成，相册通过系统文件选择器打开，不申请整个相册的读取权限。OCR 主要面向清晰的印刷文稿；模糊、反光、手写或复杂排版可能产生错字，请校对后使用。
 
-> [!NOTE]
-> **Works in Chinese and English.** The interface follows your phone's language, and Suflyor picks the speech language from your script's letters (or set it in Settings). More languages are on the [roadmap](#roadmap).
+## 其他功能
 
-## Screenshots
+- 全屏提词、镜像显示、语音跟读、定时滚动和按声音滚动。
+- 音量键、蓝牙遥控器和键盘控制，按键可配置。
+- 导入 TXT、Markdown、DOCX、ODT、RTF、HTML；PDF 文本提取依赖系统版本，扫描 PDF 暂不支持。
+- 稿件编辑、复制、分享，以及稿件库 ZIP 备份和恢复。
+- 无障碍服务用于跨应用语音提词、悬浮窗和按键控制，不能读取屏幕内容。
 
-<p align="center">
-  <img src="docs/images/screens.png" alt="Library, script, editor and settings screens" width="100%">
-</p>
+## 获取 APK
 
-| Library | Script | Editor | Settings |
-|:---:|:---:|:---:|:---:|
-| All your scripts, imported from almost any format | Preview, reading time and one tap to start over the camera | Plain text with `**emphasis**`, `# headings` and `[notes]` | Text size, speed, remotes, sound source |
+进入本仓库 [Build APK 工作流](https://github.com/MeiQianDaRen/voice-teleprompter-android/actions/workflows/build-apk.yml)，打开最新成功运行，在 Artifacts 中下载「欧了提词器-APK-*」，解压安装「欧了提词器.apk」。压缩包同时提供 SHA256SUMS.txt。
 
-## Features
+工作流产物是调试签名 APK，应用 ID 为 com.olerast.suflyor.debug，可与正式版共存。覆盖安装需要签名一致；若提示签名冲突，先备份稿件，再处理旧安装。正式发布使用 [release 工作流](.github/workflows/release.yml) 和维护者配置的签名密钥。
 
-**Follows your voice**
-- On-device streaming speech recognition for **Chinese and English** ([sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)). No cloud, no account, no delay from the network.
-- Understands how people read English: contractions (don't, it's), numbers written as digits but said as words, abbreviations (Mr., Dr.), acronyms (AI, CEO) and "um"s.
-- Searches the whole script, not only the next few words. Rare words count more than common ones, so it doesn't jump on every "and".
-- Re-reading a line brings the text back to it after about two words. A skipped block is found after three or four.
-- Pauses and off-script talk leave the text where it is.
-- Lines you have read dim away. `[Stage directions in brackets]` stay visible but are never expected to be spoken.
+首次语音提词需允许麦克风，跨应用提词需按应用指引配置无障碍或悬浮窗权限。Android 13 及以上从文件安装时，如无障碍开关受限，可在应用的系统设置中允许受限设置。
 
-**Floats over any camera app**
-- Keeps listening while Instagram, TikTok or the stock camera records video. The mic isn't taken away from the prompter, and your reel still gets the sound.
-- The text starts right under the front camera, so your eyes stay near the lens. The controls sit at the bottom.
-- **Lock mode:** touches pass through the window to the camera's own buttons.
-- **Landscape:** the window moves next to the lens and turns the text, even when the camera app keeps the screen in portrait.
-- **Quick Settings tile:** starts the prompter over whatever app is open.
-- **Aa in the window:** text size, lines, background and speed, changed right over the camera.
+## 构建与验证
 
-**Remotes and scrolling**
-- Volume keys, Bluetooth selfie remotes, rings, clickers and keyboards. Each key can be assigned in Settings.
-- Timed scrolling at a set speed, with a 3-2-1 countdown, when you'd rather not use your voice.
-- Scrolling by sound: the text moves at that speed while you talk and waits while you're quiet. It works for a script in any language.
-- Full-screen prompter inside the app, with text up to 80 sp, remote keys and a mirror mode for teleprompter glass.
+环境：JDK 17、Android SDK 36、Build Tools 36.0.0；使用 Gradle Wrapper：
 
-**Your scripts are yours**
-- Share a script's text, duplicate it to try another version, or save the whole library to a zip of Markdown files and restore it on another phone.
-- The editor counts words and the length of the take as you type.
-
-**Imports almost anything**
-- TXT (UTF-8, UTF-16, Windows-1251, KOI8-R), Markdown and Obsidian notes, DOCX, ODT, RTF, HTML and PDF (PDF needs Android 15, or Android 12–14 with recent Google Play system updates).
-- Open from other apps with *Share* or *Open with*, paste from the clipboard, or type in the editor.
-- Long paragraphs are split into short phrases you can read in one breath.
-
-## How it works
-
-```mermaid
-flowchart LR
-    Mic["Microphone"] --> ASR["sherpa-onnx<br/>streaming recognizer<br/>(on the phone)"]
-    ASR -->|"last recognized words"| Tracker["Script tracker<br/>fuzzy local alignment<br/>over the whole script"]
-    Tracker -->|"position"| View["Prompter window<br/>over the camera app"]
-    Script["Your script"] --> Tracker
+```sh
+./gradlew --no-daemon assembleDebug testDebugUnitTest lintDebug
 ```
 
-The tracker aligns the last few recognized words against the entire script. It keeps only matches that end on one of the last two words you said (the newest counts more), and it weighs every word by how rare it is in your script. Small steps forward need a single good match. Going back to a nearby line needs about two words from its start. A far jump needs at least three words and a clear lead over every other place in the script; unless four or more rare words match, it also waits for the next update to agree.
+Windows 使用 gradlew.bat。APK 位于 app/build/outputs/apk/debug/app-debug.apk。首次构建需要联网获取依赖和模型；运行时语音和扫描识别可完全离线。下载资产固定版本或提交并校验 SHA-256，配置位于 app/build.gradle.kts。
 
-## Privacy
+Build APK 会检查中英语音模型、三种 OCR 模型及 ARM64 OCR 引擎均已打包。CI 执行构建、单元测试和 lint，已有问题由现存 lint baseline 管理。
 
-**Speech recognition stays on your phone.** Optional online scripts are fetched only from a URL you configure; audio and local scripts are never uploaded. See [the online catalog format](docs/online-library-format.md).
+每次交付修改须递增 versionCode、升级 versionName 并更新 [CHANGELOG.md](CHANGELOG.md)，规则见 [AGENTS.md](AGENTS.md)。
 
-- Audio is used only while a prompter session is running. It is never recorded, stored or sent.
-- The accessibility service is active only during a session. It **cannot read screen content**. It keeps the microphone working while other apps record, shows the floating window, and handles volume and remote-control keys (on by default with a preset set of keys; you can turn this off or reassign the keys in Settings).
-- No analytics, no ads, no accounts, no trackers.
+## 隐私、来源与许可
 
-The details are in [PRIVACY.md](PRIVACY.md).
+语音与 OCR 不上传音频、图片或识别文本。在线稿件只向用户配置的地址发起请求。无广告、无账号、无分析跟踪，详见 [隐私说明](PRIVACY.md)。
 
-## Install
+原项目 Suflyor 由 [olerast67](https://github.com/olerast67) 开发；本仓库提供中文适配及上述修改。感谢 sherpa-onnx、icefall、ONNX Runtime、Storm-Teleprompter-Plus、Tesseract、Leptonica 和 AndroidX 等项目，详见 [第三方开源库说明](THIRD_PARTY_NOTICES.md)。
 
-**Requirements:** Android 10 or newer on a 64-bit ARM phone (almost every phone since 2017), about 130 MB of space: both speech models are inside the app. Tested on a Samsung Galaxy S24 FE with One UI 6.1.1 (Android 14), see [tested phones](#tested-phones).
-
-1. Download `Suflyor-<version>.apk` from [Releases](https://github.com/olerast67/voice-teleprompter-android/releases/latest) and open it. Allow your browser or file manager to install apps when asked.
-2. Open Suflyor and allow the **microphone**.
-3. Turn on the accessibility service **“Suflyor: floating window and voice”** (on a Russian phone: «Суфлёр: окно поверх и голос»). The app takes you to the right screen.
-   - On Android 13 and newer, apps installed from a file can't use accessibility at first, and the switch is greyed out. Go to **Settings → Apps → Suflyor → ⋮ → Allow restricted settings**, then turn the service on again.
-4. On a script, choose Instagram, TikTok or Camera under the **Over the camera** button, tap the button and start reading.
-
-**Language:** the app follows your phone's language; on Android 13 and newer you can pick English or Russian just for Suflyor in **Settings → About → App language**. The speech language is separate: Auto picks it for each script from its letters; pick it for one script with the **Speech** button on the script screen, or change the default in **Settings → Voice following**.
-
-**Updates:** new versions install over the old one. With [Obtainium](https://github.com/ImranR98/Obtainium) you get them automatically from this repository.
-
-### If Android says the developer isn't verified
-
-Google is rolling out [developer verification](https://developer.android.com/developer-verification). In 2026 it doesn't affect installs from GitHub or Obtainium. From 2027, phones with Google services install apps from developers who are not yet verified only after a one-time setting (the "advanced flow"):
-
-1. Turn on **Developer options**: Settings → About phone → tap **Build number** seven times (on Samsung: About phone → Software information → Build number).
-2. In **Developer options**, turn on **Allow apps from unverified developers** and confirm with your screen lock. Android also asks you to confirm that nobody is guiding you through this: it is a protection against scams.
-3. Restart the phone and **wait 24 hours**. This safety delay happens once.
-4. Open the setting again, confirm, and choose **indefinitely** (or 7 days).
-5. Install the APK and tap **Install anyway**.
-
-Also works: installing from a computer with `adb install Suflyor-<version>.apk`, with no waiting. Phones without Google services (LineageOS without GApps, Huawei) are not affected.
-
-## Verify your download
-
-Release APKs are built by [GitHub Actions](.github/workflows/release.yml) from the tagged source. Each release carries a `SHA256SUMS.txt` file and a signed build-provenance attestation. All releases are signed with the same key; the SHA-256 fingerprint of its certificate is:
-
-```
-77:F3:94:32:F5:05:FB:B7:8B:85:E7:37:CD:00:21:0A:44:C0:7A:13:2C:AC:FF:81:FE:9D:9D:79:CD:E9:A9:06
-```
-
-```bash
-# The certificate must match the SHA-256 above:
-apksigner verify --print-certs Suflyor-*.apk
-# Proves the APK was built by this repository's workflow:
-gh attestation verify Suflyor-*.apk --owner olerast67
-```
-
-[AppVerifier](https://github.com/soupslurpr/AppVerifier) can check the certificate on the phone.
-
-## Build from source
-
-You need JDK 17 and the Android SDK (platform 36).
-
-```bash
-git clone https://github.com/olerast67/voice-teleprompter-android.git
-cd suflyor
-./gradlew assembleDebug testDebugUnitTest
-```
-
-- **Downloads on first build.** The speech library (sherpa-onnx 1.13.8, ~50 MB), the Chinese model (~31 MB) and the English model (~73 MB) are not stored in git. The `fetchSpeechAssets` task downloads them from pinned revisions and checks every file against a pinned SHA-256.
-- **Release builds** (`./gradlew assembleRelease`) are signed only when a key is configured, through `keystore.properties` or the `SUFLYOR_*` environment variables. Without a key they come out unsigned. See [RELEASING.md](RELEASING.md).
-- **On Windows,** `.\build.ps1` and `.\install.ps1` read `sdk.dir` and `jdk.dir` from `local.properties`.
-
-<details>
-<summary>Project layout</summary>
-
-| Path | What's there |
-|---|---|
-| `app/src/main/java/.../ui` | Jetpack Compose screens: library, script, rehearsal, editor, settings, journal |
-| `.../overlay` | Floating window, accessibility service, prompter view, Quick Settings tile |
-| `.../track/ScriptTracker.kt` | Voice-following: word alignment against the script |
-| `.../speech` | Microphone capture and sherpa-onnx recognizer |
-| `.../session` | Session engine and foreground service |
-| `.../doc` | Importers: TXT, Markdown, DOCX, ODT, RTF, HTML, PDF |
-| `.../script` | Word normalization and phrase layout |
-| `app/src/test` | Unit tests for the tracker (with a random stress test) and importers |
-
-</details>
-
-## Tested phones
-
-Whether the voice keeps being heard while a camera app records depends on the phone's firmware. What has been checked so far:
-
-| Phone | Android | Instagram | Samsung Camera | TikTok |
-|---|---|---|---|---|
-| Samsung Galaxy S24 FE, One UI 6.1.1 | 14 | works | works | not checked |
-
-Tried it on another phone? Open an [issue](https://github.com/olerast67/voice-teleprompter-android/issues) with the model, the Android version, which apps you recorded in and whether the text followed you. "Everything works" is a useful report too.
-
-## Roadmap
-
-- **Language packs:** Spanish, German, Italian, Polish, Vietnamese and other languages that have compact streaming models. They will be files you open with the app, so the APK does not need to grow.
-
-Ideas and votes are welcome in [Issues](https://github.com/olerast67/voice-teleprompter-android/issues).
-
-Found a bug? Open an [issue](https://github.com/olerast67/voice-teleprompter-android/issues) or use the form on olerast.com: [Report a bug](https://olerast.com/security?project=teleprompter). The form is in Russian and needs no GitHub account.
-
-## FAQ
-
-<details>
-<summary><b>Is there a teleprompter app for Android that follows your voice?</b></summary>
-
-Yes: Suflyor listens through the microphone and scrolls to the words you are saying. It is free and open source, and the speech recognition runs on the phone.
-</details>
-
-<details>
-<summary><b>Can I use a teleprompter while recording in Instagram, TikTok or the camera app?</b></summary>
-
-Yes. Suflyor floats over any app, and its text starts right under the front camera. Android normally takes the microphone away from other apps while a camera app records; Suflyor's accessibility service is what lets it keep listening (the reel still gets its sound).
-</details>
-
-<details>
-<summary><b>Does it work offline? Is my voice sent anywhere?</b></summary>
-
-Speech recognition works offline; audio is never recorded or uploaded. Optional online catalog synchronization needs a connection, while cached scripts remain available offline. See [PRIVACY.md](PRIVACY.md).
-</details>
-
-<details>
-<summary><b>Which languages does it understand?</b></summary>
-
-Chinese and English speech, picked automatically from the script or set in Settings. The interface supports Simplified Chinese, English and Russian. More languages are planned as downloadable packs.
-</details>
-
-<details>
-<summary><b>Does it work with a Bluetooth remote?</b></summary>
-
-Yes: volume keys, Bluetooth selfie remotes, rings, presentation clickers and keyboards can pause, go back or forward a line. Keys can be reassigned. Timed scrolling with a 3-2-1 countdown is there too.
-</details>
-
-<details>
-<summary><b>Is it free? Is there a Pro version?</b></summary>
-
-Free, with no ads, no accounts and no paid features. The code is GPL-3.0. If it helps you, you can [support it](DONATE.md).
-</details>
-
-<details>
-<summary><b>Which phones are supported? Is there an iPhone version?</b></summary>
-
-Android 10 or newer on a 64-bit ARM phone (almost every phone since 2017). There is no iOS version: iOS doesn't let an app float a window over other apps the way Suflyor needs.
-</details>
-
-## Support the project
-
-Suflyor is free and always will be: no ads, no paywalls, no "pro" version. If it saves you retakes, you can support its development. Every donation goes into more languages and more devices to test on.
-
-<a href="https://boosty.to/olerast/donate"><img alt="Donate on Boosty" src="https://img.shields.io/badge/Donate-Boosty-F15F2C?style=for-the-badge" height="36"></a>
-&nbsp;
-<a href="DONATE.md"><img alt="USDT TRC20 and more" src="https://img.shields.io/badge/USDT%20TRC20%20%C2%B7%20more-DONATE.md-26A17B?style=for-the-badge" height="36"></a>
-
-Starring the repository and telling other creators about it helps too.
-
-## Contributing
-
-Bug reports from different phones are the most valuable help. Attach the in-app log: **Settings → About → Log → Share**. See [CONTRIBUTING.md](CONTRIBUTING.md) for building, code style and adding a language. Report security problems privately, as described in [SECURITY.md](SECURITY.md).
-
-## Credits
-
-- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) by the k2-fsa team: streaming speech recognition (Apache-2.0).
-- The [icefall](https://github.com/k2-fsa/icefall) streaming Zipformer trained on LibriSpeech: the English model (Apache-2.0).
-- [ONNX Runtime](https://github.com/microsoft/onnxruntime) (MIT), Jetpack Compose (Apache-2.0).
-- The full list is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-**How this was made:** the author designed the app, directed it and tested it on a real phone. Much of the code was written with an AI coding assistant (Claude by Anthropic). The voice tracker (in both languages) and the importers are covered by unit tests in `app/src/test`.
-
-## License
-
-[GNU General Public License v3.0](LICENSE). You may use, study, share and modify Suflyor. Modified versions you distribute must stay open source under the same license.
+本项目沿用 [GNU GPL v3.0](LICENSE)。分发修改版本时需遵守原许可证并提供对应源码。上游历史更新保留在更新日志中。

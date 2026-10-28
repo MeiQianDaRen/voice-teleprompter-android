@@ -1,4 +1,14 @@
-# Changelog
+# 更新日志
+
+## 0.7 — 2026-10-28
+
+- 稿件库新建入口增加「扫描文稿」：拍照或相册选图，旋转预览，离线 OCR 识别并校对后保存。
+- 内置 Tesseract 5.5.1 引擎和简体中文、繁体中文、英文模型，首次使用也无需下载模型，图片和识别文本不上传。
+- 完整中文项目介绍与第三方开源库说明，补充中文适配、逐字跟读、在线稿件库和悬浮窗操作说明；应用内关于页加入中文版功能说明。
+- 记录此前中文版本的功能：中英离线语音、中文逐字定位、在线稿件启动和手动更新、应用名称「欧了提词器」、悬浮按钮显示隐藏及长按退出、横屏宽高位置调节、三种文本对齐和提词时屏幕常亮。
+- versionCode 升至 7，versionName 升至 0.7；AGENTS.md 规定后续每次交付修改同步升级版本并记录中文更新日志。
+
+以下保留上游历史记录。
 
 All notable changes to Suflyor. Versions follow `versionName` in `app/build.gradle.kts`; each release's notes are taken from its section here.
 

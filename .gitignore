@@ -12,6 +12,7 @@ local.properties
 
 # Downloaded by the fetchSpeechAssets task (see app/build.gradle.kts) and checked by SHA-256
 app/libs/*.aar
+app/src/main/assets/ocr/*.traineddata
 app/src/main/assets/asr-ru/*.onnx
 app/src/main/assets/asr-ru/tokens.txt
 app/src/main/assets/asr-ru/bpe.vocab

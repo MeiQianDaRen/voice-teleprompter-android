@@ -54,6 +54,7 @@ fun LibraryScreen(
     onPickFile: () -> Unit,
     onPaste: () -> Unit,
     onWrite: () -> Unit,
+    onScan: () -> Unit,
     onBackup: () -> Unit,
     onRestore: () -> Unit,
 ) {
@@ -191,6 +192,14 @@ fun LibraryScreen(
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
                 )
+                SheetAction(
+                    R.drawable.ic_scan,
+                    stringResource(R.string.scan_title),
+                    stringResource(R.string.scan_library_hint),
+                ) {
+                    showAdd = false
+                    onScan()
+                }
                 SheetAction(
                     R.drawable.ic_file,
                     stringResource(R.string.library_add_file),
