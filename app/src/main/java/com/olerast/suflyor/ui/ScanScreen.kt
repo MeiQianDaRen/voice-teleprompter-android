@@ -64,10 +64,12 @@ import java.io.File
 fun ScanScreen(onBack: () -> Unit, onSave: (String, String) -> Boolean) {
     val context = LocalContext.current
     val appContext = context.applicationContext
+    val defaultTitle = stringResource(R.string.scan_title)
     var cameraPath by rememberSaveable { mutableStateOf<String?>(null) }
     var imageUri by rememberSaveable { mutableStateOf<String?>(null) }
     var rotation by rememberSaveable { mutableIntStateOf(0) }
     var retry by remember { mutableIntStateOf(0) }
+    var generation by remember { mutableIntStateOf(0) }
     var recognized by rememberSaveable { mutableStateOf(false) }
     var title by rememberSaveable { mutableStateOf("") }
     var text by rememberSaveable { mutableStateOf("") }
@@ -87,6 +89,7 @@ fun ScanScreen(onBack: () -> Unit, onSave: (String, String) -> Boolean) {
         releaseImage()
         imageUri = null
         recognized = false
+        recognizing = false
         text = ""
         preview = null
     }
@@ -118,15 +121,17 @@ fun ScanScreen(onBack: () -> Unit, onSave: (String, String) -> Boolean) {
         }
     }
     LaunchedEffect(imageUri, rotation, retry) {
+        val ticket = ++generation
         val uri = imageUri ?: return@LaunchedEffect
         error = 0
         progress = 0f
+        if (!recognized) { recognizing = true; preview = null }
         try {
             preview = withContext(Dispatchers.IO) { OfflineOcr.decode(appContext, Uri.parse(uri), rotation) }
             if (!recognized) {
                 recognizing = true
                 val result = OfflineOcr.recognize(appContext, Uri.parse(uri), rotation, language) { done, total ->
-                    progress = if (total == 0) 0f else done.toFloat() / total
+                    if (generation == ticket) progress = if (total == 0) 0f else done.toFloat() / total
                 }
                 text = result
                 recognized = true
@@ -134,7 +139,7 @@ fun ScanScreen(onBack: () -> Unit, onSave: (String, String) -> Boolean) {
             }
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { error = R.string.scan_recognition_failed }
-        finally { recognizing = false }
+        finally { if (generation == ticket) recognizing = false }
     }
 
     if (imageUri == null) {
@@ -179,7 +184,7 @@ fun ScanScreen(onBack: () -> Unit, onSave: (String, String) -> Boolean) {
                 Text(stringResource(error), color = Palette.Danger)
                 TextButton(onClick = { recognized = false; retry++ }) { Text(stringResource(R.string.scan_retry)) }
             }
-            if (recognized && text.isNotBlank()) {
+            if (recognized && error == 0) {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Palette.Surface).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(stringResource(R.string.scan_result), color = Palette.Text, style = MaterialTheme.typography.titleMedium)
                     Text(stringResource(R.string.scan_review_hint), color = Palette.TextSecondary, style = MaterialTheme.typography.bodyMedium)
@@ -193,7 +198,7 @@ fun ScanScreen(onBack: () -> Unit, onSave: (String, String) -> Boolean) {
             }
             Spacer(Modifier.height(8.dp))
         }
-        Button(onClick = { if (onSave(title.ifBlank { context.getString(R.string.scan_title) }, text)) releaseImage() },
+        Button(onClick = { if (onSave(title.ifBlank { defaultTitle }, text)) releaseImage() },
             enabled = recognized && text.isNotBlank() && !recognizing,
             colors = ButtonDefaults.buttonColors(containerColor = Palette.Accent, contentColor = Palette.OnAccent),
             modifier = Modifier.fillMaxWidth().padding(20.dp).heightIn(min = 52.dp), shape = RoundedCornerShape(16.dp)) {
