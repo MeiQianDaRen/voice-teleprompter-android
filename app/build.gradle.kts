@@ -4,6 +4,9 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.util.Properties
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 plugins {
     id("com.android.application")
@@ -110,7 +113,7 @@ kotlin {
 
 dependencies {
     // Keep speech's embedded runtime isolated from OCR's matching Java JNI + shared C runtime.
-    implementation(files("libs/sherpa-onnx-static-link-onnxruntime-1.13.8.aar"))
+    implementation(files("libs/sherpa-onnx-arm64-1.13.8.aar"))
     implementation(files("libs/onnxruntime-android-1.24.3.aar"))
     implementation("org.opencv:opencv:4.12.0")
     implementation("androidx.camera:camera-camera2:1.5.3")
@@ -262,6 +265,21 @@ val fetchSpeechAssets by tasks.registering {
                 throw GradleException("Checksum mismatch for $path: expected $sha, got $got")
             }
             Files.move(part.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
+        // The official static AAR still contains shared-runtime builds for unused x86 ABIs.
+        // AGP merges those before abiFilters, so keep only the verified ARM64 static JNI build.
+        val source = File(dir, "libs/sherpa-onnx-static-link-onnxruntime-1.13.8.aar")
+        val arm64 = File(dir, "libs/sherpa-onnx-arm64-1.13.8.aar")
+        ZipInputStream(source.inputStream()).use { input ->
+            ZipOutputStream(arm64.outputStream()).use { output ->
+                while (true) {
+                    val entry = input.nextEntry ?: break
+                    if (entry.name.startsWith("jni/") && !entry.name.startsWith("jni/arm64-v8a/")) continue
+                    output.putNextEntry(ZipEntry(entry.name).apply { time = 0 })
+                    input.copyTo(output)
+                    output.closeEntry()
+                }
+            }
         }
         // Extract full UTF-8 dictionaries directly from the verified ONNX metadata.
         // JNI's modified UTF-8 conversion loses supplementary characters in the PP-OCRv5 dictionary.
