@@ -51,7 +51,8 @@ jobs:
         with:
           path: |
             app/libs/*.aar
-            app/src/main/assets/ocr/*.traineddata
+            app/src/main/assets/rapidocr/*.onnx
+            app/src/main/assets/rapidocr/keys-*.txt
             app/src/main/assets/asr-en/*.onnx
             app/src/main/assets/asr-en/tokens.txt
             app/src/main/assets/asr-en/bpe.vocab
@@ -74,10 +75,13 @@ jobs:
           with ZipFile('dist/欧了提词器.apk') as apk:
               languages = {name.split('/')[1] for name in apk.namelist() if name.startswith('assets/asr-')}
               assert languages == {'asr-zh', 'asr-en'}, languages
-              for language in ('chi_sim', 'chi_tra', 'eng'):
-                  model = apk.getinfo(f'assets/ocr/{language}.traineddata')
-                  assert model.file_size > 1_000_000, language
-              assert 'lib/arm64-v8a/libtesseract.so' in apk.namelist()
+              for model in ('det.onnx', 'cls.onnx', 'rec-zh.onnx', 'rec-en.onnx'):
+                  assert apk.getinfo(f'assets/rapidocr/{model}').file_size > 100_000, model
+              for language in ('zh', 'en'):
+                  assert apk.read(f'assets/rapidocr/keys-{language}.txt').decode('utf-8').strip()
+              assert 'lib/arm64-v8a/libonnxruntime4j_jni.so' in apk.namelist()
+              assert 'lib/arm64-v8a/libopencv_java4.so' in apk.namelist()
+              assert not any('tesseract' in name or name.startswith('assets/ocr/') for name in apk.namelist())
           PY
           (cd dist && sha256sum 欧了提词器.apk > SHA256SUMS.txt)
 

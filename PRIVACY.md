@@ -1,6 +1,6 @@
 # Privacy
 
-- **Document scanning.** Camera/gallery images are decoded and recognized locally by bundled Tesseract models, including on first use without a network. Images and OCR results are never uploaded. The system camera receives access to a single temporary photo through FileProvider; the system document picker grants access only to the selected image. Successful recognition or leaving the scanner deletes the temporary photo; review drafts remain private until saved or discarded. No broad photo-library permission is requested.
+- **Document scanning.** The built-in CameraX camera requests camera permission only for scanning. Denying it still allows selecting one image using the system document picker; no broad gallery access is requested. Bundled RapidOCR/PaddleOCR models process images locally, even on first use without a network. Images and OCR results are never uploaded. Temporary camera photos are deleted on save, retake or exit; interrupted temporary files are cleaned up on later scans.
 
 **Speech recognition stays on your phone. Network access is optional and used only for an online script catalog you configure.**
 
@@ -24,7 +24,7 @@ Questions: open an issue on GitHub.
 
 # Конфиденциальность
 
-Сканирование выполняется локально встроенным Tesseract, без сети с первого запуска. Снимки и распознанный текст не отправляются. Камера и системный выбор изображений дают доступ только к нужному файлу. Временный снимок удаляется после распознавания или выхода, черновик хранится в закрытой папке до сохранения или отмены.
+Сканирование RapidOCR работает локально, без сети с первого запуска. Встроенная камера CameraX запрашивает доступ к камере; при отказе можно выбрать изображение через системный выбор файлов. Изображения и текст не отправляются. Временные фото удаляются после сохранения, пересъёмки или выхода.
 
 **Распознавание речи работает на телефоне. Сеть используется только для указанного вами каталога сценариев.**
 
@@ -46,7 +46,7 @@ Questions: open an issue on GitHub.
 
 # 隐私说明
 
-扫描文稿使用 APK 内置的 Tesseract 引擎及简繁中文、英文模型，首次使用也支持断网识别。图片和 OCR 识别结果仅在本机处理，不上传。拍照调用系统相机并只授权当前临时照片；相册使用系统文件选择器，只读取选中的图片，不申请整个相册权限。识别成功或退出扫描页后删除临时照片，校对草稿保存在应用私有目录，保存或取消时删除；异常终止遗留的临时文件会在后续扫描时清理。
+扫描文稿使用 APK 内置的 RapidOCR/PaddleOCR 模型、ONNX Runtime 和 OpenCV，首次使用也支持断网识别，不上传图片和识别结果。内置 CameraX 相机仅在扫描拍照时申请相机权限；拒绝权限仍可选图。相册使用系统文件选择器，只读取选中的图片，不申请整个相册权限。校对后保存、重拍或退出会删除临时照片；异常终止遗留的临时文件会在后续扫描时清理。ONNX Runtime 遥测已关闭。
 
 语音识别在手机本地完成，麦克风音频和识别结果不会上传。在线稿件功能在已配置链接的应用启动时、保存链接或点击更新时向你配置的地址发起 GET 请求；服务器可以看到 IP 地址等正常连接信息。推荐 HTTPS，也支持局域网 HTTP。链接保存在应用私有设置中，清空链接后停止同步，已缓存稿件保留。
 

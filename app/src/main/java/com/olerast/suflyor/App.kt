@@ -94,6 +94,10 @@ class App : Application() {
 class Settings(context: Context) {
     private val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
+    var scanLanguage: String
+        get() = if (prefs.getString("scanLanguage", "zh") == "en") "en" else "zh"
+        set(value) = prefs.edit().putString("scanLanguage", if (value == "en") "en" else "zh").apply()
+
     var onlineLibraryUrl: String
         get() = prefs.getString("onlineLibraryUrl", "") ?: ""
         set(v) = prefs.edit().putString("onlineLibraryUrl", v).apply()
@@ -224,3 +228,4 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("autoRotate", true)
         set(v) = prefs.edit().putBoolean("autoRotate", v).apply()
 }
+

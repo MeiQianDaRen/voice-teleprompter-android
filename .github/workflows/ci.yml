@@ -41,7 +41,8 @@ jobs:
         with:
           path: |
             app/libs/*.aar
-            app/src/main/assets/ocr/*.traineddata
+            app/src/main/assets/rapidocr/*.onnx
+            app/src/main/assets/rapidocr/keys-*.txt
             app/src/main/assets/asr-en/*.onnx
             app/src/main/assets/asr-en/tokens.txt
             app/src/main/assets/asr-en/bpe.vocab

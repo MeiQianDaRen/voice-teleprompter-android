@@ -4,6 +4,9 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.util.Properties
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 plugins {
     id("com.android.application")
@@ -29,8 +32,8 @@ android {
         applicationId = "com.olerast.suflyor"
         minSdk = 29
         targetSdk = 36
-        versionCode = 8
-        versionName = "1.0"
+        versionCode = 9
+        versionName = "1.1"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -76,7 +79,7 @@ android {
 
     androidResources {
         // The speech model is read straight from assets; keep it uncompressed so loading is fast.
-        noCompress += listOf("onnx", "traineddata")
+        noCompress += listOf("onnx")
         // Only the app's own languages: library strings (Compose, Material) otherwise show up in a third language.
         localeFilters += listOf("en", "ru", "zh")
     }
@@ -111,8 +114,13 @@ kotlin {
 dependencies {
     // sherpa-onnx v1.13.8 (Apache-2.0), downloaded by fetchSpeechAssets.
     implementation(files("libs/sherpa-onnx-1.13.8.aar"))
-    // Open-source offline OCR; downloaded and checksum-verified by fetchSpeechAssets.
-    implementation(files("libs/tesseract4android-4.9.0.aar"))
+    // RapidOCR Java JNI shares the C runtime already bundled by sherpa-onnx (no duplicate libonnxruntime.so).
+    implementation(files("libs/onnxruntime4j-1.24.3.aar"))
+    implementation("org.opencv:opencv:4.12.0")
+    implementation("androidx.camera:camera-camera2:1.5.3")
+    implementation("androidx.camera:camera-lifecycle:1.5.3")
+    implementation("androidx.camera:camera-view:1.5.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
 
     // 2026.06.01 = Compose 1.11 / Material3 1.4: the last line that builds with AGP 9.0 and compileSdk 36.
     implementation(platform("androidx.compose:compose-bom:2026.06.01"))
@@ -136,15 +144,16 @@ private val zhModelBase =
     "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23/resolve/204ad334e2e683fd295359930cc16fc0432a23ac"
 
 private val ocrModelBase =
-    "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/87416418657359cb625c412a48b6e1d6d41c29bd"
+    "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.10.0/onnx"
 
 private val speechAssets = listOf(
-    Triple("libs/tesseract4android-4.9.0.aar",
-        "https://jitpack.io/cz/adaptech/tesseract4android/tesseract4android/4.9.0/tesseract4android-4.9.0.aar",
-        "bce5d6413a1a5ae3d7240033fbbc851ba3217d0a08d9769400e17a077f42cb2a"),
-    Triple("src/main/assets/ocr/chi_sim.traineddata", "$ocrModelBase/chi_sim.traineddata", "a5fcb6f0db1e1d6d8522f39db4e848f05984669172e584e8d76b6b3141e1f730"),
-    Triple("src/main/assets/ocr/chi_tra.traineddata", "$ocrModelBase/chi_tra.traineddata", "529c5b5797d64b126065cd55f2bb4c7fd7b15790798091b1ff259941a829330b"),
-    Triple("src/main/assets/ocr/eng.traineddata", "$ocrModelBase/eng.traineddata", "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"),
+    Triple("libs/onnxruntime-android-1.24.3-source.aar",
+        "https://repo.maven.apache.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/1.24.3/onnxruntime-android-1.24.3.aar",
+        "67397e4a970e75617f765d2015ceaf911917e1d822276cfb5792744e8085cbce"),
+    Triple("src/main/assets/rapidocr/det.onnx", "$ocrModelBase/PP-OCRv4/det/ch_PP-OCRv4_det_mobile.onnx", "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9"),
+    Triple("src/main/assets/rapidocr/cls.onnx", "$ocrModelBase/PP-OCRv4/cls/ch_ppocr_mobile_v2.0_cls_mobile.onnx", "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c"),
+    Triple("src/main/assets/rapidocr/rec-zh.onnx", "$ocrModelBase/PP-OCRv5/rec/ch_PP-OCRv5_rec_mobile.onnx", "5825fc7ebf84ae7a412be049820b4d86d77620f204a041697b0494669b1742c5"),
+    Triple("src/main/assets/rapidocr/rec-en.onnx", "$ocrModelBase/PP-OCRv4/rec/en_PP-OCRv4_rec_mobile.onnx", "e8770c967605983d1570cdf5352041dfb68fa0c21664f49f47b155abd3e0e318"),
     Triple(
         "libs/sherpa-onnx-1.13.8.aar",
         "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-1.13.8.aar",
@@ -199,6 +208,39 @@ private fun download(url: String, to: File) {
     throw GradleException("Could not download $url", lastError)
 }
 
+// Read a length-delimited protobuf field without a build-time Python/ONNX dependency.
+private fun protobufField(bytes: ByteArray, wanted: Int): List<ByteArray> {
+    var position = 0
+    fun varint(): Long {
+        var value = 0L
+        for (shift in 0..63 step 7) {
+            require(position < bytes.size)
+            val b = bytes[position++].toInt() and 255
+            value = value or ((b and 127).toLong() shl shift)
+            if (b and 128 == 0) return value
+        }
+        error("Invalid ONNX protobuf")
+    }
+    val found = mutableListOf<ByteArray>()
+    while (position < bytes.size) {
+        val tag = varint().toInt()
+        when (tag and 7) {
+            0 -> varint()
+            1 -> position += 8
+            2 -> {
+                val length = varint().toInt()
+                require(length >= 0 && length <= bytes.size - position)
+                if (tag ushr 3 == wanted) found += bytes.copyOfRange(position, position + length)
+                position += length
+            }
+            5 -> position += 4
+            else -> error("Unsupported ONNX protobuf wire type")
+        }
+        require(position <= bytes.size)
+    }
+    return found
+}
+
 val fetchSpeechAssets by tasks.registering {
     group = "build setup"
     description = "Downloads offline speech/OCR engines and bundled Chinese/English models, verified by SHA-256."
@@ -206,6 +248,8 @@ val fetchSpeechAssets by tasks.registering {
     doLast {
         // Remove obsolete downloaded assets from existing checkouts before packaging.
         delete(File(dir, "src/main/assets/asr-ru"))
+        delete(File(dir, "src/main/assets/ocr"))
+        delete(File(dir, "libs/tesseract4android-4.9.0.aar"))
         for ((path, url, sha) in speechAssets) {
             val target = File(dir, path)
             if (target.exists() && sha256(target) == sha) continue
@@ -219,6 +263,30 @@ val fetchSpeechAssets by tasks.registering {
                 throw GradleException("Checksum mismatch for $path: expected $sha, got $got")
             }
             Files.move(part.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
+        // Keep Java classes/JNI from the verified ORT AAR; sherpa supplies its newer, backwards-compatible C API.
+        val source = File(dir, "libs/onnxruntime-android-1.24.3-source.aar")
+        val bridge = File(dir, "libs/onnxruntime4j-1.24.3.aar")
+        ZipInputStream(source.inputStream()).use { input ->
+            ZipOutputStream(bridge.outputStream()).use { output ->
+                while (true) {
+                    val entry = input.nextEntry ?: break
+                    if (entry.name.endsWith("/libonnxruntime.so")) continue
+                    output.putNextEntry(ZipEntry(entry.name).apply { time = 0 })
+                    input.copyTo(output)
+                    output.closeEntry()
+                }
+            }
+        }
+        // Extract full UTF-8 dictionaries directly from the verified ONNX metadata.
+        // JNI's modified UTF-8 conversion loses supplementary characters in the PP-OCRv5 dictionary.
+        for (language in listOf("zh", "en")) {
+            val model = File(dir, "src/main/assets/rapidocr/rec-$language.onnx")
+            val dictionary = protobufField(model.readBytes(), 14).firstNotNullOfOrNull { entry ->
+                val key = protobufField(entry, 1).firstOrNull()?.toString(Charsets.UTF_8)
+                if (key == "character") protobufField(entry, 2).firstOrNull()?.toString(Charsets.UTF_8) else null
+            } ?: throw GradleException("Missing OCR dictionary for $language")
+            File(dir, "src/main/assets/rapidocr/keys-$language.txt").writeText(dictionary, Charsets.UTF_8)
         }
     }
 }

@@ -109,8 +109,8 @@
     <string name="settings_language_value">简体中文</string>
     <string name="settings_log_hint">查看麦克风和语音识别的运行情况</string>
     <string name="settings_about_names">软件名称：\n中文名称：欧了提词器\n英文名称：Suflyor</string>
-    <string name="settings_about_chinese_version">中文版本：%1$s</string>
-    <string name="settings_about_version">版本号：%1$s · 语音识别：sherpa-onnx；模型：icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0</string>
+    <string name="settings_about_chinese_version">中文版本</string>
+    <string name="settings_about_version">版本号：%1$s</string>
     <string name="rehearsal_status_error">发生错误，详情见下方</string>
     <string name="rehearsal_status_sound">说话时滚动 · %1$d 字词/分钟</string>
     <string name="library_save_failed">无法保存稿件：%1$s</string>

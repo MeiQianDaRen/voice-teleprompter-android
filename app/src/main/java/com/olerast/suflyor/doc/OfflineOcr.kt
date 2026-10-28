@@ -7,20 +7,22 @@ import android.graphics.Color
 import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.net.Uri
-import com.googlecode.tesseract.android.TessBaseAPI
+import org.opencv.android.OpenCVLoader
+import org.opencv.android.Utils
+import org.opencv.core.Mat
+import org.opencv.imgproc.Imgproc
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/** No network APIs: the engine and all three language models ship in the APK. */
+/** No network APIs: RapidOCR detection, orientation and recognition models ship in the APK. */
 object OfflineOcr {
     private val lock = Mutex()
-    private val languages = listOf("chi_sim", "chi_tra", "eng")
+    private val models = listOf("det.onnx", "cls.onnx", "rec-zh.onnx", "rec-en.onnx")
 
     fun decode(context: Context, uri: Uri, rotation: Int): Bitmap {
         require(uri.scheme == "content")
@@ -45,42 +47,44 @@ object OfflineOcr {
         }
     }
 
-    suspend fun recognize(context: Context, uri: Uri, rotation: Int, language: String): String = lock.withLock {
-        require(language in languages)
+    suspend fun recognize(context: Context, uri: Uri, rotation: Int, language: String,
+        onProgress: (Int, Int) -> Unit = { _, _ -> }): String = lock.withLock {
         withContext(Dispatchers.IO) {
             val job = currentCoroutineContext()
             job.ensureActive()
-            val data = File(context.noBackupFilesDir, "ocr-4.9.0")
-            val models = File(data, "tessdata").apply { mkdirs() }
-            for (language in languages) {
+            check(OpenCVLoader.initLocal()) { "Cannot load OpenCV" }
+            File(context.noBackupFilesDir, "ocr-4.9.0").takeIf { it.exists() }?.deleteRecursively()
+            val data = File(context.noBackupFilesDir, "rapidocr-v3.10.0").apply { mkdirs() }
+            for (name in models) {
                 job.ensureActive()
-                val target = File(models, "$language.traineddata")
-                context.assets.open("ocr/$language.traineddata").use { input ->
-                    // Replace interrupted copies atomically; asset length also detects a partial older copy.
+                val target = File(data, name)
+                context.assets.open("rapidocr/$name").use { input ->
                     if (!target.exists() || target.length() != input.available().toLong()) {
-                        val part = File(models, "$language.part")
+                        val part = File(data, "$name.part")
                         part.outputStream().use { input.copyTo(it) }
                         check(part.renameTo(target)) { "Cannot install OCR model" }
                     }
                 }
             }
             val bitmap = decode(context, uri, rotation)
-            var engine: TessBaseAPI? = null
+            val rgba = Mat()
+            val bgr = Mat()
             try {
-                job.ensureActive()
-                val tess = TessBaseAPI { if (!job.isActive) engine?.stop() }
-                engine = tess
-                val selected = if (language == "eng") "eng" else "$language+eng"
-                check(tess.init(data.absolutePath + "/", selected, TessBaseAPI.OEM_LSTM_ONLY))
-                tess.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO)
-                tess.setImage(bitmap)
-                val text = ScanText.clean(tess.getUTF8Text().orEmpty())
-                job.ensureActive()
-                require(text.length <= DocumentImporter.MAX_CHARS) { "OCR text too long" }
-                text
-            } finally {
-                engine?.recycle()
+                Utils.bitmapToMat(bitmap, rgba)
+                Imgproc.cvtColor(rgba, bgr, Imgproc.COLOR_RGBA2BGR)
+                rgba.release()
                 bitmap.recycle()
+                val keys = context.assets.open("rapidocr/keys-${if (language == "en") "en" else "zh"}.txt").bufferedReader(Charsets.UTF_8).use { it.readText() }
+                RapidOcrEngine({ File(data, it).absolutePath }, language, keys).use { engine ->
+                    val text = engine.recognize(bgr, { job.ensureActive() }, onProgress)
+                    job.ensureActive()
+                    require(text.length <= DocumentImporter.MAX_CHARS) { "OCR text too long" }
+                    text.trim()
+                }
+            } finally {
+                rgba.release()
+                bgr.release()
+                if (!bitmap.isRecycled) bitmap.recycle()
             }
         }
     }

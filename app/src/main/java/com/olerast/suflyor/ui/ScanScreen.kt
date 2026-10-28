@@ -3,6 +3,7 @@ package com.olerast.suflyor.ui
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,21 +13,29 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,13 +43,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import com.olerast.suflyor.App
 import com.olerast.suflyor.R
+import com.olerast.suflyor.doc.DocumentImporter
 import com.olerast.suflyor.doc.OfflineOcr
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -53,161 +66,138 @@ fun ScanScreen(onBack: () -> Unit, onSave: (String, String) -> Boolean) {
     val appContext = context.applicationContext
     var cameraPath by rememberSaveable { mutableStateOf<String?>(null) }
     var imageUri by rememberSaveable { mutableStateOf<String?>(null) }
-    var draftPath by rememberSaveable { mutableStateOf<String?>(null) }
     var rotation by rememberSaveable { mutableIntStateOf(0) }
-    var language by rememberSaveable { mutableStateOf("chi_sim") }
-    var recognizing by rememberSaveable { mutableStateOf(false) }
+    var retry by remember { mutableIntStateOf(0) }
+    var recognized by rememberSaveable { mutableStateOf(false) }
+    var title by rememberSaveable { mutableStateOf("") }
+    var text by rememberSaveable { mutableStateOf("") }
+    var recognizing by remember { mutableStateOf(false) }
+    var progress by remember { mutableFloatStateOf(0f) }
     var error by remember { mutableIntStateOf(0) }
     var preview by remember { mutableStateOf<Bitmap?>(null) }
+    val language = App.instance.settings.scanLanguage
     val photos = remember { File(context.cacheDir, "scan-photos").apply { mkdirs() } }
-    val drafts = remember { File(context.noBackupFilesDir, "scan-drafts").apply { mkdirs() } }
-    fun cameraFile(): File? = cameraPath?.let { path ->
-        File(path).takeIf { it.parentFile?.canonicalFile == photos.canonicalFile }
-    }
-    fun draftFile(): File? = draftPath?.let { path ->
-        File(path).takeIf { it.parentFile?.canonicalFile == drafts.canonicalFile }
-    }
     fun releaseImage() {
-        imageUri?.let { uri ->
-            runCatching { context.contentResolver.releasePersistableUriPermission(Uri.parse(uri), Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-        }
-        cameraFile()?.delete()
+        imageUri?.let { uri -> runCatching { context.contentResolver.releasePersistableUriPermission(Uri.parse(uri), Intent.FLAG_GRANT_READ_URI_PERMISSION) } }
+        cameraPath?.let { File(it).takeIf { f -> f.parentFile?.canonicalFile == photos.canonicalFile }?.delete() }
         cameraPath = null
     }
-    fun close() {
+    fun close() { releaseImage(); onBack() }
+    fun retake() {
         releaseImage()
-        draftFile()?.delete()
-        onBack()
+        imageUri = null
+        recognized = false
+        text = ""
+        preview = null
     }
-    BackHandler { close() }
-
-    LaunchedEffect(Unit) {
-        val activePhoto = cameraPath
-        val activeDraft = draftPath
-        withContext(Dispatchers.IO) {
-            val cutoff = System.currentTimeMillis() - 24 * 60 * 60 * 1000L
-            for (folder in listOf(photos, drafts)) {
-                folder.listFiles()?.filter {
-                    it.isFile && it.lastModified() < cutoff && it.absolutePath != activePhoto && it.absolutePath != activeDraft
-                }?.forEach { it.delete() }
-            }
-        }
-    }
-
-    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
-        if (saved) {
-            cameraFile()?.let { imageUri = FileProvider.getUriForFile(context, "${context.packageName}.scan", it).toString() }
-            rotation = 0
-        } else {
-            cameraFile()?.delete()
-            cameraPath = null
-        }
-    }
+    BackHandler { if (imageUri != null) retake() else close() }
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             releaseImage()
             runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
             imageUri = uri.toString()
             rotation = 0
+            recognized = false
+            text = ""
+            retry++
         }
     }
-
-    LaunchedEffect(imageUri, rotation) {
-        preview = null
-        error = 0
+    fun pickImage() {
+        runCatching { gallery.launch(arrayOf("image/*")) }.onFailure {
+            Toast.makeText(context, R.string.scan_image_failed, Toast.LENGTH_LONG).show()
+        }
+    }
+    LaunchedEffect(Unit) {
+        App.instance.engine.releaseIdleRecognizer("document scan")
+        val active = cameraPath
+        withContext(Dispatchers.IO) {
+            val cutoff = System.currentTimeMillis() - 24 * 60 * 60 * 1000L
+            for (folder in listOf(photos, File(context.noBackupFilesDir, "scan-drafts"))) {
+                folder.listFiles()?.filter { it.isFile && it.lastModified() < cutoff && it.absolutePath != active }?.forEach { it.delete() }
+            }
+        }
+    }
+    LaunchedEffect(imageUri, rotation, retry) {
         val uri = imageUri ?: return@LaunchedEffect
-        if (draftPath != null) return@LaunchedEffect
+        error = 0
+        progress = 0f
         try {
             preview = withContext(Dispatchers.IO) { OfflineOcr.decode(appContext, Uri.parse(uri), rotation) }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            error = R.string.scan_image_failed
-        }
-    }
-    LaunchedEffect(recognizing) {
-        if (!recognizing) return@LaunchedEffect
-        val uri = imageUri
-        if (uri == null) { recognizing = false; return@LaunchedEffect }
-        try {
-            val text = OfflineOcr.recognize(appContext, Uri.parse(uri), rotation, language)
-            if (text.isBlank()) {
-                error = R.string.scan_no_text
-            } else {
-                // Keep large OCR output out of the Activity's saved-state Bundle.
-                draftPath = withContext(Dispatchers.IO) {
-                    File.createTempFile("scan-", ".txt", drafts).apply { writeText(text) }.absolutePath
+            if (!recognized) {
+                recognizing = true
+                val result = OfflineOcr.recognize(appContext, Uri.parse(uri), rotation, language) { done, total ->
+                    progress = if (total == 0) 0f else done.toFloat() / total
                 }
-                releaseImage()
-                preview = null
+                text = result
+                recognized = true
+                if (text.isBlank()) error = R.string.scan_no_text
             }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            error = R.string.scan_recognition_failed
-        } finally {
-            recognizing = false
-        }
+        } catch (e: CancellationException) { throw e }
+        catch (_: Exception) { error = R.string.scan_recognition_failed }
+        finally { recognizing = false }
     }
 
-    if (draftPath != null) {
-        val text = remember(draftPath) { runCatching { draftFile()?.readText() }.getOrNull() }
-        if (text != null) {
-            EditorScreen(
-                isNew = true,
-                initialTitle = stringResource(R.string.scan_title),
-                initialText = text,
-                plainText = true,
-                onCancel = ::close,
-                onSave = { title, body ->
-                    if (onSave(title, body)) draftFile()?.delete()
-                },
-            )
-            return
-        }
-        LaunchedEffect(draftPath) { draftPath = null; error = R.string.scan_draft_failed }
+    if (imageUri == null) {
+        ScanCamera(
+            onBack = ::close,
+            onGallery = ::pickImage,
+            newPhoto = { File.createTempFile("scan-", ".jpg", photos).also { cameraPath = it.absolutePath } },
+            onPhoto = { file ->
+                imageUri = FileProvider.getUriForFile(context, "${context.packageName}.scan", file).toString()
+                rotation = 0
+                recognized = false
+                retry++
+            },
+        )
+        return
     }
 
-    Column(Modifier.fillMaxSize().background(Palette.Bg).statusBarsPadding().navigationBarsPadding()) {
-        TopBar(stringResource(R.string.scan_title), onBack = ::close)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.scan_hint), color = Palette.TextSecondary, style = MaterialTheme.typography.bodyLarge)
-            if (preview != null) {
-                Image(preview!!.asImageBitmap(), stringResource(R.string.scan_preview),
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 380.dp).padding(vertical = 8.dp), contentScale = ContentScale.Fit)
+    Column(Modifier.fillMaxSize().background(Palette.Bg).statusBarsPadding().navigationBarsPadding().imePadding()) {
+        TopBar(stringResource(R.string.scan_review_title), onBack = ::retake)
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.scan_review_steps), style = MaterialTheme.typography.labelMedium, color = Palette.TextSecondary)
+                Text(stringResource(if (language == "en") R.string.scan_lang_english else R.string.scan_lang_chinese),
+                    color = Palette.Accent, modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(Palette.AccentSoft).padding(horizontal = 12.dp, vertical = 6.dp))
             }
-            if (error != 0) Text(stringResource(error), color = Palette.Danger)
+            Box(Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(20.dp)).background(Palette.SurfaceHigh), contentAlignment = Alignment.Center) {
+                preview?.let { Image(it.asImageBitmap(), stringResource(R.string.scan_preview), Modifier.fillMaxSize().padding(8.dp), contentScale = ContentScale.Fit) }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                TextButton(onClick = ::retake) { Text(stringResource(R.string.scan_retake)) }
+                TextButton(onClick = ::pickImage, enabled = !recognizing) { Text(stringResource(R.string.scan_change_image)) }
+                TextButton(onClick = { rotation = (rotation + 90) % 360; recognized = false; text = "" }, enabled = !recognizing) { Text(stringResource(R.string.scan_rotate)) }
+            }
             if (recognizing) {
-                Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Palette.Accent) }
-                Text(stringResource(R.string.scan_working), color = Palette.TextSecondary)
-            } else {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    for ((code, label) in listOf("chi_sim" to R.string.scan_lang_simplified,
-                        "chi_tra" to R.string.scan_lang_traditional, "eng" to R.string.scan_lang_english)) {
-                        TextButton(onClick = { language = code }, enabled = language != code) {
-                            Text(stringResource(label), color = if (language == code) Palette.Accent else Palette.TextSecondary)
-                        }
-                    }
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.Surface).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.scan_working), color = Palette.Accent, style = MaterialTheme.typography.titleMedium)
+                    if (progress > 0f) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth(), color = Palette.Accent)
+                    else LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Palette.Accent)
+                    Text(stringResource(R.string.scan_local_hint), color = Palette.TextSecondary, style = MaterialTheme.typography.bodyMedium)
                 }
-                TextButton(onClick = {
-                    releaseImage()
-                    imageUri = null
-                    error = 0
-                    val result = runCatching {
-                        val file = File.createTempFile("scan-", ".jpg", photos)
-                        cameraPath = file.absolutePath
-                        camera.launch(FileProvider.getUriForFile(context, "${context.packageName}.scan", file))
-                    }
-                    if (result.isFailure) { cameraFile()?.delete(); cameraPath = null; error = R.string.scan_camera_failed }
-                }) { Text(stringResource(R.string.scan_camera)) }
-                TextButton(onClick = {
-                    runCatching { gallery.launch(arrayOf("image/*")) }.onFailure { error = R.string.scan_image_failed }
-                }) { Text(stringResource(R.string.scan_gallery)) }
-                if (preview != null) {
-                    TextButton(onClick = { rotation = (rotation + 90) % 360 }) { Text(stringResource(R.string.scan_rotate)) }
-                    TextButton(onClick = { error = 0; recognizing = true }) { Text(stringResource(R.string.scan_recognize)) }
+            } else if (error != 0) {
+                Text(stringResource(error), color = Palette.Danger)
+                TextButton(onClick = { recognized = false; retry++ }) { Text(stringResource(R.string.scan_retry)) }
+            }
+            if (recognized && text.isNotBlank()) {
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Palette.Surface).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(stringResource(R.string.scan_result), color = Palette.Text, style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.scan_review_hint), color = Palette.TextSecondary, style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.scan_document_name), color = Palette.TextMuted, style = MaterialTheme.typography.labelMedium)
+                    BasicTextField(title, { title = it.take(200) }, Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        textStyle = MaterialTheme.typography.titleMedium.copy(color = Palette.Text), cursorBrush = SolidColor(Palette.Accent), singleLine = true,
+                        decorationBox = { inner -> Box { if (title.isBlank()) Text(stringResource(R.string.scan_title), color = Palette.TextMuted); inner() } })
+                    BasicTextField(text, { text = it.take(DocumentImporter.MAX_CHARS) }, Modifier.fillMaxWidth().heightIn(min = 160.dp),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = Palette.Text), cursorBrush = SolidColor(Palette.Accent))
                 }
             }
+            Spacer(Modifier.height(8.dp))
+        }
+        Button(onClick = { if (onSave(title.ifBlank { context.getString(R.string.scan_title) }, text)) releaseImage() },
+            enabled = recognized && text.isNotBlank() && !recognizing,
+            colors = ButtonDefaults.buttonColors(containerColor = Palette.Accent, contentColor = Palette.OnAccent),
+            modifier = Modifier.fillMaxWidth().padding(20.dp).heightIn(min = 52.dp), shape = RoundedCornerShape(16.dp)) {
+            Text(stringResource(R.string.scan_save), style = MaterialTheme.typography.labelLarge)
         }
     }
 }

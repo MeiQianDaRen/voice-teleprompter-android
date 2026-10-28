@@ -3,3 +3,7 @@
 
 # Enum names are saved to the script library and settings (paragraph kind, camera target, key actions).
 -keepclassmembers enum com.olerast.suflyor.** { *; }
+
+# Java and OpenCV native bindings used by offline RapidOCR.
+-keep class ai.onnxruntime.** { *; }
+-keep class org.opencv.** { *; }

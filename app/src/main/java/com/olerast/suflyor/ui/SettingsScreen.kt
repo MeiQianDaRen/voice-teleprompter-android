@@ -73,6 +73,7 @@ enum class SettingsPage(val key: String, @StringRes val title: Int, @DrawableRes
     TEXT("text", R.string.settings_section_text, R.drawable.ic_text),
     KEYS("keys", R.string.settings_section_keys, R.drawable.ic_remote),
     SCRIPTS("scripts", R.string.settings_section_scripts, R.drawable.ic_file),
+    SCAN("scan", R.string.scan_title, R.drawable.ic_scan),
     ADVANCED("advanced", R.string.settings_section_advanced, R.drawable.ic_settings),
     ABOUT("about", R.string.settings_section_about, R.drawable.ic_info),
     ;
@@ -106,6 +107,7 @@ fun SettingsScreen(
                 SettingsPage.TEXT -> TextPage()
                 SettingsPage.KEYS -> KeysPage()
                 SettingsPage.SCRIPTS -> ScriptsPage(onBackup, onRestore)
+                SettingsPage.SCAN -> ScanSettingsPage()
                 SettingsPage.ADVANCED -> AdvancedPage()
                 SettingsPage.ABOUT -> AboutPage(onJournal)
             }
@@ -147,6 +149,7 @@ private fun SettingsHome(readiness: Readiness, onOpen: (SettingsPage) -> Unit) {
                 }
                 SettingsPage.KEYS -> stringResource(if (s.keyControl) R.string.settings_sum_keys_on else R.string.settings_sum_keys_off)
                 SettingsPage.SCRIPTS -> stringResource(R.string.settings_sum_scripts)
+                SettingsPage.SCAN -> stringResource(R.string.scan_settings_hint)
                 SettingsPage.ADVANCED -> stringResource(R.string.settings_sum_advanced)
                 SettingsPage.ABOUT -> stringResource(R.string.settings_sum_about, BuildConfig.VERSION_NAME)
             }
@@ -470,7 +473,28 @@ private fun ScriptsPage(onBackup: () -> Unit, onRestore: () -> Unit) {
 }
 
 @Composable
+private fun ScanSettingsPage() {
+    val settings = App.instance.settings
+    var language by remember { mutableStateOf(settings.scanLanguage) }
+    SectionTitle(stringResource(R.string.scan_language_title))
+    Hint(stringResource(R.string.scan_settings_hint))
+    Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        for ((value, label) in listOf("zh" to R.string.scan_lang_chinese, "en" to R.string.scan_lang_english)) {
+            Pill(stringResource(label), language == value) { language = value; settings.scanLanguage = value }
+        }
+    }
+    Hint(stringResource(R.string.scan_settings_detail))
+}
+
+@Composable
 private fun AdvancedPage() {
+    val context = LocalContext.current
+    // Android 13+ has a per-app language screen; older versions have none, and the app follows the phone's language.
+    if (Build.VERSION.SDK_INT >= 33) {
+        LinkRow(stringResource(R.string.settings_language_title), stringResource(R.string.settings_language_value)) {
+            openAppLanguageSettings(context)
+        }
+    }
     val s = App.instance.settings
     var source by remember { mutableIntStateOf(s.audioSource) }
     var rate by remember { mutableIntStateOf(s.sampleRate) }
@@ -519,17 +543,15 @@ private fun AboutPage(onJournal: () -> Unit) {
     val version = BuildConfig.VERSION_NAME.removeSuffix("-debug")
     Hint(stringResource(R.string.settings_about_names))
     Hint(stringResource(R.string.settings_about_version, version))
-    Hint(stringResource(R.string.settings_about_chinese_version, version))
-    // Android 13+ has a per-app language screen; older versions have none, and the app follows the phone's language.
-    if (Build.VERSION.SDK_INT >= 33) {
-        LinkRow(stringResource(R.string.settings_language_title), stringResource(R.string.settings_language_value)) {
-            openAppLanguageSettings(context)
-        }
-    }
+    SectionTitle(stringResource(R.string.settings_about_chinese_version))
+    LinkRow(version, stringResource(R.string.scan_update_hint)) { openUrl(context, UPDATE_URL) }
     LinkRow(stringResource(R.string.journal_title), stringResource(R.string.settings_log_hint), onJournal)
     // Project links open in the browser; online script catalogs are fetched separately.
     LinkRow(stringResource(R.string.settings_link_site), SITE_URL) { openUrl(context, SITE_URL) }
     LinkRow(stringResource(R.string.settings_link_code), REPO_URL) { openUrl(context, REPO_URL) }
+    SectionTitle(stringResource(R.string.scan_models_title))
+    Hint(stringResource(R.string.scan_voice_models))
+    Hint(stringResource(R.string.scan_ocr_models))
     Hint(stringResource(R.string.scan_about))
     Hint(stringResource(R.string.settings_about_license))
 }
@@ -539,8 +561,9 @@ private fun AboutPage(onJournal: () -> Unit) {
 /** [com.olerast.suflyor.Settings.speechLang] value that picks the language from the script's alphabet. */
 private const val AUTO = "auto"
 
-private const val REPO_URL = "https://github.com/MeiQianDaRen/voice-teleprompter-android"
-private const val SITE_URL = "https://www.ooelel.com"
+private const val REPO_URL = "https://github.com/olerast67/voice-teleprompter-android"
+private const val SITE_URL = "https://www.oolele.com"
+private const val UPDATE_URL = "https://www.oolele.com/suflyor/update"
 
 /** Timed and sound scrolling speed, shared by Settings, the script screen, the floating window and the prompter. */
 const val MIN_WPM = 60

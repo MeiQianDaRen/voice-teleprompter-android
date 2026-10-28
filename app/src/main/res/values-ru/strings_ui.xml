@@ -132,8 +132,8 @@
     <string name="settings_language_value">Русский</string>
     <string name="settings_log_hint">Что происходило с микрофоном и распознаванием</string>
     <string name="settings_about_names">Название программы:\nКитайское название: 欧了提词器\nАнглийское название: Suflyor</string>
-    <string name="settings_about_chinese_version">Китайская версия: %1$s</string>
-    <string name="settings_about_version">Версия: %1$s · распознавание sherpa-onnx; модели: icefall LibriSpeech (английский), WenetSpeech (китайский), Apache-2.0</string>
+    <string name="settings_about_chinese_version">Китайская версия</string>
+    <string name="settings_about_version">Версия: %1$s</string>
     <string name="rehearsal_status_error">ошибка, текст ниже</string>
     <string name="rehearsal_status_sound">по звуку %1$d сл/мин</string>
     <string name="library_save_failed">Не удалось сохранить сценарий: %1$s</string>
