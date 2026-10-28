@@ -138,7 +138,9 @@
     <!-- The language this file is in: shows which translation the app uses now. -->
     <string name="settings_language_value">English</string>
     <string name="settings_log_hint">What happened with the microphone and recognition</string>
-    <string name="settings_about_version">Suflyor %1$s · speech recognition: sherpa-onnx; models: icefall LibriSpeech (English), WenetSpeech (Chinese), Apache-2.0</string>
+    <string name="settings_about_names">Software name:\nChinese name: 欧了提词器\nEnglish name: Suflyor</string>
+    <string name="settings_about_chinese_version">Chinese edition: %1$s</string>
+    <string name="settings_about_version">Version: %1$s · speech recognition: sherpa-onnx; models: icefall LibriSpeech (English), WenetSpeech (Chinese), Apache-2.0</string>
     <string name="rehearsal_status_error">error, see below</string>
     <string name="rehearsal_status_sound">while you talk · %1$d wpm</string>
     <string name="library_save_failed">Couldn\'t save the script: %1$s</string>
@@ -159,10 +161,6 @@
     <string name="settings_restore_hint">Adds the scripts from such a zip; the ones you have stay</string>
     <string name="settings_link_site">Website</string>
     <string name="settings_link_code">Source code</string>
-    <string name="settings_link_issue">Report a problem</string>
-    <string name="settings_link_issue_hint">On GitHub; attach the log from Settings, About, Log, Share</string>
-    <string name="settings_link_donate">Support the project</string>
-    <string name="settings_link_donate_hint">Boosty, crypto: donations pay for new languages and test phones</string>
     <string name="settings_about_license">Free software under GPL-3.0, provided without warranty.</string>
     <string name="editor_stats">%1$s · ≈%2$s at %3$d wpm</string>
     <string name="journal_crash_title">The last run ended with a crash</string>

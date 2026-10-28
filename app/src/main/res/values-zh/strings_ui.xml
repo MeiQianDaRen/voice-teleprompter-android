@@ -108,7 +108,9 @@
     <string name="settings_language_title">应用语言</string>
     <string name="settings_language_value">简体中文</string>
     <string name="settings_log_hint">查看麦克风和语音识别的运行情况</string>
-    <string name="settings_about_version">提词器 %1$s · 语音识别：sherpa-onnx；模型：icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0</string>
+    <string name="settings_about_names">软件名称：\n中文名称：欧了提词器\n英文名称：Suflyor</string>
+    <string name="settings_about_chinese_version">中文版本：%1$s</string>
+    <string name="settings_about_version">版本号：%1$s · 语音识别：sherpa-onnx；模型：icefall LibriSpeech（英语）、WenetSpeech（中文），Apache-2.0</string>
     <string name="rehearsal_status_error">发生错误，详情见下方</string>
     <string name="rehearsal_status_sound">说话时滚动 · %1$d 字词/分钟</string>
     <string name="library_save_failed">无法保存稿件：%1$s</string>
@@ -129,10 +131,6 @@
     <string name="settings_restore_hint">从备份 ZIP 压缩包中添加稿件，保留现有稿件</string>
     <string name="settings_link_site">网站</string>
     <string name="settings_link_code">源代码</string>
-    <string name="settings_link_issue">反馈问题</string>
-    <string name="settings_link_issue_hint">在 GitHub 上反馈，请附上“设置 → 关于 → 日志 → 分享”导出的日志</string>
-    <string name="settings_link_donate">支持项目</string>
-    <string name="settings_link_donate_hint">通过 Boosty 或加密货币捐赠，用于支持新增语言和购买测试手机</string>
     <string name="settings_about_license">基于 GPL-3.0 的自由软件，不提供任何担保。</string>
     <string name="editor_stats">%1$s · 按 %3$d 字词/分钟估算约 %2$s</string>
     <string name="journal_crash_title">上次运行发生了崩溃</string>

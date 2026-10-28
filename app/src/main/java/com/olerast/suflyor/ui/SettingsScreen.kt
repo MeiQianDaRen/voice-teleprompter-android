@@ -516,6 +516,10 @@ private fun AdvancedPage() {
 @Composable
 private fun AboutPage(onJournal: () -> Unit) {
     val context = LocalContext.current
+    val version = BuildConfig.VERSION_NAME.removeSuffix("-debug")
+    Hint(stringResource(R.string.settings_about_names))
+    Hint(stringResource(R.string.settings_about_version, version))
+    Hint(stringResource(R.string.settings_about_chinese_version, version))
     // Android 13+ has a per-app language screen; older versions have none, and the app follows the phone's language.
     if (Build.VERSION.SDK_INT >= 33) {
         LinkRow(stringResource(R.string.settings_language_title), stringResource(R.string.settings_language_value)) {
@@ -526,15 +530,8 @@ private fun AboutPage(onJournal: () -> Unit) {
     // Project links open in the browser; online script catalogs are fetched separately.
     LinkRow(stringResource(R.string.settings_link_site), SITE_URL) { openUrl(context, SITE_URL) }
     LinkRow(stringResource(R.string.settings_link_code), REPO_URL) { openUrl(context, REPO_URL) }
-    LinkRow(stringResource(R.string.settings_link_issue), stringResource(R.string.settings_link_issue_hint)) {
-        openUrl(context, "$REPO_URL/issues/new/choose")
-    }
-    LinkRow(stringResource(R.string.settings_link_donate), stringResource(R.string.settings_link_donate_hint)) {
-        openUrl(context, "$REPO_URL/blob/main/DONATE.md")
-    }
     Hint(stringResource(R.string.scan_about))
     Hint(stringResource(R.string.settings_about_license))
-    Hint(stringResource(R.string.settings_about_version, BuildConfig.VERSION_NAME))
 }
 
 // ---- pieces ------------------------------------------------------------------------------------------------------
@@ -543,7 +540,7 @@ private fun AboutPage(onJournal: () -> Unit) {
 private const val AUTO = "auto"
 
 private const val REPO_URL = "https://github.com/MeiQianDaRen/voice-teleprompter-android"
-private const val SITE_URL = "$REPO_URL#readme"
+private const val SITE_URL = "https://www.ooelel.com"
 
 /** Timed and sound scrolling speed, shared by Settings, the script screen, the floating window and the prompter. */
 const val MIN_WPM = 60

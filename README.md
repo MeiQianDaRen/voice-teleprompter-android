@@ -2,7 +2,7 @@
 
 基于 [Suflyor](https://github.com/olerast67/voice-teleprompter-android) 修改的 Android 中文提词器，支持中英离线语音跟读、悬浮提词、在线稿件同步，以及拍照和相册图片离线 OCR 扫描。
 
-当前版本：**0.7**（versionCode 7）。需要 Android 10 及以上、ARM64 手机，应用和 APK 名称均为 **欧了提词器**。
+当前版本：**1.0**（versionCode 8）。需要 Android 10 及以上、ARM64 手机，应用和 APK 名称均为 **欧了提词器**。
 
 ## 中文版修改
 
