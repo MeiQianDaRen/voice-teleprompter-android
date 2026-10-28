@@ -4,9 +4,6 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.util.Properties
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
-import java.util.zip.ZipOutputStream
 
 plugins {
     id("com.android.application")
@@ -32,8 +29,8 @@ android {
         applicationId = "com.olerast.suflyor"
         minSdk = 29
         targetSdk = 36
-        versionCode = 9
-        versionName = "1.1"
+        versionCode = 10
+        versionName = "1.2"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -86,7 +83,7 @@ android {
 
     packaging {
         jniLibs {
-            // The JNI library links only onnxruntime; sherpa-onnx's C and C++ API libraries are not used.
+            // Only the sherpa JNI API is used; its ONNX Runtime is statically linked and private.
             excludes += listOf("**/libsherpa-onnx-c-api.so", "**/libsherpa-onnx-cxx-api.so")
         }
     }
@@ -112,10 +109,9 @@ kotlin {
 }
 
 dependencies {
-    // sherpa-onnx v1.13.8 (Apache-2.0), downloaded by fetchSpeechAssets.
-    implementation(files("libs/sherpa-onnx-1.13.8.aar"))
-    // RapidOCR Java JNI shares the C runtime already bundled by sherpa-onnx (no duplicate libonnxruntime.so).
-    implementation(files("libs/onnxruntime4j-1.24.3.aar"))
+    // Keep speech's embedded runtime isolated from OCR's matching Java JNI + shared C runtime.
+    implementation(files("libs/sherpa-onnx-static-link-onnxruntime-1.13.8.aar"))
+    implementation(files("libs/onnxruntime-android-1.24.3.aar"))
     implementation("org.opencv:opencv:4.12.0")
     implementation("androidx.camera:camera-camera2:1.5.3")
     implementation("androidx.camera:camera-lifecycle:1.5.3")
@@ -147,7 +143,7 @@ private val ocrModelBase =
     "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.10.0/onnx"
 
 private val speechAssets = listOf(
-    Triple("libs/onnxruntime-android-1.24.3-source.aar",
+    Triple("libs/onnxruntime-android-1.24.3.aar",
         "https://repo.maven.apache.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/1.24.3/onnxruntime-android-1.24.3.aar",
         "67397e4a970e75617f765d2015ceaf911917e1d822276cfb5792744e8085cbce"),
     Triple("src/main/assets/rapidocr/det.onnx", "$ocrModelBase/PP-OCRv4/det/ch_PP-OCRv4_det_mobile.onnx", "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9"),
@@ -155,9 +151,9 @@ private val speechAssets = listOf(
     Triple("src/main/assets/rapidocr/rec-zh.onnx", "$ocrModelBase/PP-OCRv5/rec/ch_PP-OCRv5_rec_mobile.onnx", "5825fc7ebf84ae7a412be049820b4d86d77620f204a041697b0494669b1742c5"),
     Triple("src/main/assets/rapidocr/rec-en.onnx", "$ocrModelBase/PP-OCRv4/rec/en_PP-OCRv4_rec_mobile.onnx", "e8770c967605983d1570cdf5352041dfb68fa0c21664f49f47b155abd3e0e318"),
     Triple(
-        "libs/sherpa-onnx-1.13.8.aar",
-        "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-1.13.8.aar",
-        "633c24321e06b1fe79feafa03ea16cbc0f8a286641e2da3559bac91bdb13bd96",
+        "libs/sherpa-onnx-static-link-onnxruntime-1.13.8.aar",
+        "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-static-link-onnxruntime-1.13.8.aar",
+        "b22c3fc1b6a45666d28892bb2f7694beeb77a8362d7ebd77c1a5431ec9435471",
     ),
     // English: streaming Zipformer trained on LibriSpeech (icefall 2023-05-17, 320 ms chunks), int8 encoder and joiner.
     Triple("src/main/assets/asr-en/encoder.int8.onnx", "$enModelBase/encoder-epoch-99-avg-1-chunk-16-left-128.int8.onnx", "563fde436d16cf7607cf408cd6b30909819d03162652ef389c2450ced3f45ac1"),
@@ -250,6 +246,9 @@ val fetchSpeechAssets by tasks.registering {
         delete(File(dir, "src/main/assets/asr-ru"))
         delete(File(dir, "src/main/assets/ocr"))
         delete(File(dir, "libs/tesseract4android-4.9.0.aar"))
+        delete(File(dir, "libs/sherpa-onnx-1.13.8.aar"))
+        delete(File(dir, "libs/onnxruntime4j-1.24.3.aar"))
+        delete(File(dir, "libs/onnxruntime-android-1.24.3-source.aar"))
         for ((path, url, sha) in speechAssets) {
             val target = File(dir, path)
             if (target.exists() && sha256(target) == sha) continue
@@ -263,20 +262,6 @@ val fetchSpeechAssets by tasks.registering {
                 throw GradleException("Checksum mismatch for $path: expected $sha, got $got")
             }
             Files.move(part.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
-        }
-        // Keep Java classes/JNI from the verified ORT AAR; sherpa supplies its newer, backwards-compatible C API.
-        val source = File(dir, "libs/onnxruntime-android-1.24.3-source.aar")
-        val bridge = File(dir, "libs/onnxruntime4j-1.24.3.aar")
-        ZipInputStream(source.inputStream()).use { input ->
-            ZipOutputStream(bridge.outputStream()).use { output ->
-                while (true) {
-                    val entry = input.nextEntry ?: break
-                    if (entry.name.endsWith("/libonnxruntime.so")) continue
-                    output.putNextEntry(ZipEntry(entry.name).apply { time = 0 })
-                    input.copyTo(output)
-                    output.closeEntry()
-                }
-            }
         }
         // Extract full UTF-8 dictionaries directly from the verified ONNX metadata.
         // JNI's modified UTF-8 conversion loses supplementary characters in the PP-OCRv5 dictionary.

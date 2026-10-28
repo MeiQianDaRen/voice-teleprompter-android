@@ -1,5 +1,12 @@
 # 更新日志
 
+## 1.2 — 2026-10-28
+
+- 修复扫描图片时 ONNX Runtime 原生库加载失败（OrtGetApiBase）导致应用闪退；语音改用官方静态链接包，OCR 使用完整配套的 Java JNI 和 C 运行库。
+- 原生库加载异常改为显示识别失败提示并记录诊断日志，保留当前图片以便重试。
+- CI 与 APK 工作流新增最终安装包的 ARM64 原生符号和依赖检查，防止再次混用运行库。
+- versionName 升至 1.2，versionCode 递增至 10。
+
 ## 1.1 — 2026-10-28
 
 - 修正官网域名为 https://www.oolele.com；关于页「中文版本」改为独立标题，版本号可点击打开 https://www.oolele.com/suflyor/update。

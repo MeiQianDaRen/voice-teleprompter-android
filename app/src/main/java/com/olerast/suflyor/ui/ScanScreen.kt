@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.olerast.suflyor.App
 import com.olerast.suflyor.R
+import com.olerast.suflyor.diag.DiagLog
 import com.olerast.suflyor.doc.DocumentImporter
 import com.olerast.suflyor.doc.OfflineOcr
 import kotlinx.coroutines.CancellationException
@@ -138,6 +139,10 @@ fun ScanScreen(onBack: () -> Unit, onSave: (String, String) -> Boolean) {
                 if (text.isBlank()) error = R.string.scan_no_text
             }
         } catch (e: CancellationException) { throw e }
+        catch (e: LinkageError) {
+            DiagLog.e("OCR native library initialization failed", e)
+            error = R.string.scan_recognition_failed
+        }
         catch (_: Exception) { error = R.string.scan_recognition_failed }
         finally { if (generation == ticket) recognizing = false }
     }
