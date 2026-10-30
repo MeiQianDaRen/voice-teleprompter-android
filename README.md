@@ -2,7 +2,7 @@
 
 基于 [Suflyor](https://github.com/olerast67/voice-teleprompter-android) 修改的 Android 中文提词器，支持中英离线语音跟读、悬浮提词、在线稿件同步，以及拍照和相册图片离线 OCR 扫描。
 
-当前版本：**1.3**（versionCode 11）。需要 Android 10 及以上、ARM64 手机，应用和 APK 名称均为 **欧了提词器**。
+当前源码版本：**1.3.1**（versionCode 12）。需要 Android 10 及以上、ARM64 手机，应用和 APK 名称均为 **欧了提词器**。
 
 ## 中文版修改
 
@@ -62,7 +62,7 @@ Windows 使用 gradlew.bat。APK 位于 app/build/outputs/apk/debug/app-debug.ap
 
 Build APK 会检查中英语音模型、RapidOCR 检测、方向分类、中英识别模型、完整字典及 ARM64 推理引擎均已打包。CI 执行构建、单元测试和 lint，已有问题由现存 lint baseline 管理。
 
-按北京时间自然日归组升级：当天首次软件修改递增 versionCode、升级 versionName；当天后续修补共用同一个版本号，改动持续追加到 [CHANGELOG.md](CHANGELOG.md) 对应版本。每次变更版本号必须同步升级日志和本文当前版本，规则见 [AGENTS.md](AGENTS.md)。
+按北京时间自然日归组基础版本：当天首次软件升级递增基础版本（如 1.2 → 1.3），同日后续修补递增末位补丁号（1.3.1、1.3.2…）；每次版本变化同步递增 versionCode，在 [CHANGELOG.md](CHANGELOG.md) 单列中文升级记录并更新本文版本。仅更正版本记录不另加一个补丁号；用户要求不重建 APK 时跳过构建，规则见 [AGENTS.md](AGENTS.md)。
 
 ## 隐私、来源与许可
 
