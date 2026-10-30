@@ -207,7 +207,7 @@ private fun ReadinessPage(readiness: Readiness, onRequestPermissions: () -> Unit
             if (readiness.a11yEnabled && !readiness.a11yRunning) R.string.settings_a11y_not_running else R.string.settings_a11y_hint,
         ),
         action = stringResource(R.string.settings_action_open),
-        onAction = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+        onAction = { AccessibilitySettings.open(context) },
     )
     if (!readiness.a11yRunning) {
         Hint(stringResource(R.string.settings_a11y_restricted, systemLanguageAppName(context)))
@@ -216,7 +216,7 @@ private fun ReadinessPage(readiness: Readiness, onRequestPermissions: () -> Unit
             style = MaterialTheme.typography.labelMedium,
             color = Palette.Accent,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp).clickable {
-                context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
+                AccessibilitySettings.appInfo(context)
             },
         )
     }
@@ -226,6 +226,19 @@ private fun ReadinessPage(readiness: Readiness, onRequestPermissions: () -> Unit
         subtitle = stringResource(R.string.settings_notifications_hint),
         action = stringResource(R.string.settings_action_allow),
         onAction = onRequestPermissions,
+    )
+
+    SectionTitle(stringResource(R.string.a11y_background_title))
+    Hint(stringResource(R.string.a11y_background_hint))
+    Text(
+        stringResource(R.string.a11y_battery_settings),
+        color = Palette.Accent,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).clickable { AccessibilitySettings.battery(context) },
+    )
+    Text(
+        stringResource(R.string.settings_app_info),
+        color = Palette.Accent,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).clickable { AccessibilitySettings.appInfo(context) },
     )
 
     SectionTitle(stringResource(R.string.settings_section_tile))

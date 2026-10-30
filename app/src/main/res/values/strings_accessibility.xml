@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="a11y_attention">Accessibility service needs attention</string>
+    <string name="a11y_disconnected_help">The system switch is on, but Suflyor is not connected.\n\nTap Repair, turn the Suflyor accessibility switch off, wait two seconds and turn it on again. Return here to check the connection.\n\nIf this keeps happening, see the background settings in recording setup.</string>
+    <string name="a11y_off_help">The accessibility service is off. Voice prompting over another recording app may not work.\n\nTap Enable, find Suflyor, turn on its accessibility switch and return to the app.</string>
+    <string name="a11y_enable">Enable</string>
+    <string name="a11y_repair">Repair</string>
+    <string name="a11y_later">Later</string>
+    <string name="a11y_background_title">Reduce background restrictions</string>
+    <string name="a11y_background_hint">If the service often stops, allow background activity, choose unrestricted battery usage and check for an auto-start option in system settings. Names differ by device. These settings can reduce restrictions but cannot guarantee the service stays alive.</string>
+    <string name="a11y_battery_settings">Battery optimization settings</string>
+    <string name="a11y_settings_failed">Cannot open system settings. Open them manually on your phone.</string>
+    <string name="a11y_notification">Accessibility is disconnected. Voice prompting over other apps may fail. Tap to open the app and repair it.</string>
+</resources>

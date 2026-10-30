@@ -205,10 +205,12 @@ object OverlayHost {
  */
 class PrompterAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
-        instance = this
+        current = this
+        App.instance.settings.a11yWasConnected = true
         DiagLog.i("Accessibility service connected")
         onSessionChanged(OverlayHost.active)
         OverlayHost.onHostChanged(this)
+        SessionService.refreshNotification(this)
         stateListeners.forEach { it() }
     }
 
@@ -245,18 +247,33 @@ class PrompterAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() = Unit
 
-    override fun onUnbind(intent: Intent?): Boolean {
-        instance = null
+    private fun disconnect() {
+        // An old service can be destroyed after a replacement has already connected.
+        if (current !== this) return
+        current = null
         DiagLog.i("Accessibility service disconnected")
         OverlayHost.onHostChanged(applicationContext)
+        SessionService.refreshNotification(applicationContext)
         stateListeners.forEach { it() }
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        disconnect()
         return super.onUnbind(intent)
+    }
+
+    override fun onDestroy() {
+        disconnect()
+        super.onDestroy()
     }
 
     companion object {
         @Volatile
-        var instance: PrompterAccessibilityService? = null
-            private set
+        private var current: PrompterAccessibilityService? = null
+
+        /** A surviving Java object is not proof that the system connection is still alive. */
+        val instance: PrompterAccessibilityService?
+            get() = current?.takeIf { runCatching { it.serviceInfo != null }.getOrDefault(false) }
 
         /** Called on the main thread when the service connects or disconnects (the app's readiness changes). */
         val stateListeners = java.util.concurrent.CopyOnWriteArrayList<() -> Unit>()

@@ -94,6 +94,10 @@ class App : Application() {
 class Settings(context: Context) {
     private val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
+    var a11yWasConnected: Boolean
+        get() = prefs.getBoolean("a11yWasConnected", false)
+        set(value) { if (value != a11yWasConnected) prefs.edit().putBoolean("a11yWasConnected", value).apply() }
+
     var scanLanguage: String
         get() = if (prefs.getString("scanLanguage", "zh") == "en") "en" else "zh"
         set(value) = prefs.edit().putString("scanLanguage", if (value == "en") "en" else "zh").apply()

@@ -143,7 +143,9 @@ fun ScriptScreen(
                         Ic(R.drawable.ic_warning, null, tint = Palette.Accent, size = 20.dp)
                         Spacer(Modifier.width(12.dp))
                         Text(
-                            stringResource(if (!readiness.mic) R.string.script_setup_mic else R.string.script_setup_a11y),
+                            stringResource(if (!readiness.mic) R.string.script_setup_mic
+                                else if (readiness.a11yEnabled && !readiness.a11yRunning) R.string.settings_a11y_not_running
+                                else R.string.script_setup_a11y),
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f),
                         )

@@ -21,13 +21,16 @@ data class Readiness(
     val total: Int get() = 2
 
     companion object {
-        fun check(context: Context) = Readiness(
-            mic = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED,
-            notifications = Build.VERSION.SDK_INT < 33 ||
-                context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED,
-            a11yEnabled = PrompterAccessibilityService.isEnabledInSettings(context),
-            a11yRunning = PrompterAccessibilityService.instance != null,
-            drawOverlays = Settings.canDrawOverlays(context),
-        )
+        fun check(context: Context): Readiness {
+            val enabled = PrompterAccessibilityService.isEnabledInSettings(context)
+            return Readiness(
+                mic = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED,
+                notifications = Build.VERSION.SDK_INT < 33 ||
+                    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED,
+                a11yEnabled = enabled,
+                a11yRunning = enabled && PrompterAccessibilityService.instance != null,
+                drawOverlays = Settings.canDrawOverlays(context),
+            )
+        }
     }
 }

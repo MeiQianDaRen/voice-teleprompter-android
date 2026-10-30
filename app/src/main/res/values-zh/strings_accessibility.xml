@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="a11y_attention">无障碍服务需要恢复</string>
+    <string name="a11y_disconnected_help">系统开关仍然开启，但欧了提词器的无障碍服务没有连接。\n\n请点击“去修复”，先关闭本应用的无障碍开关，等待两秒后重新开启。返回应用后会自动检查。\n\n如果经常失效，可在录制准备中查看后台运行设置。</string>
+    <string name="a11y_off_help">无障碍服务已关闭，跨应用语音提词可能不可用。\n\n请点击“去开启”，找到欧了提词器并打开无障碍开关，之后返回应用。</string>
+    <string name="a11y_enable">去开启</string>
+    <string name="a11y_repair">去修复</string>
+    <string name="a11y_later">稍后</string>
+    <string name="a11y_background_title">减少服务被系统停止</string>
+    <string name="a11y_background_hint">若无障碍服务经常失效，可在系统设置中允许本应用后台运行，将电池使用设为“不限制”，并检查是否提供自启动选项。各品牌入口名称不同；这些设置可减少限制，但不能保证服务永久运行。</string>
+    <string name="a11y_battery_settings">电池优化设置</string>
+    <string name="a11y_settings_failed">无法打开系统设置，请手动前往手机设置。</string>
+    <string name="a11y_notification">无障碍服务未连接，跨应用语音可能失效。点击打开应用修复。</string>
+</resources>

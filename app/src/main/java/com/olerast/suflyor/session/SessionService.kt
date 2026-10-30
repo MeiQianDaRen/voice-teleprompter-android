@@ -1,5 +1,6 @@
 package com.olerast.suflyor.session
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,6 +8,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
@@ -15,6 +17,7 @@ import com.olerast.suflyor.App
 import com.olerast.suflyor.R
 import com.olerast.suflyor.diag.DiagLog
 import com.olerast.suflyor.overlay.OverlayHost
+import com.olerast.suflyor.overlay.PrompterAccessibilityService
 
 /**
  * Foreground service of type "microphone". Started while our activity is visible, it keeps microphone access
@@ -32,20 +35,7 @@ class SessionService : Service() {
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL, getString(R.string.notification_channel_session), NotificationManager.IMPORTANCE_LOW),
         )
-        val open = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        val stop = PendingIntent.getService(
-            this, 1, Intent(this, SessionService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE,
-        )
-        val notification = Notification.Builder(this, CHANNEL)
-            .setSmallIcon(R.drawable.ic_mic)
-            .setContentTitle(getString(R.string.notification_session_title))
-            .setContentText(getString(R.string.notification_session_text))
-            .setContentIntent(open)
-            .addAction(Notification.Action.Builder(null, getString(R.string.notification_action_stop), stop).build())
-            .setOngoing(true)
-            .build()
+        val notification = notification(this)
         try {
             if (Build.VERSION.SDK_INT >= 30) {
                 startForeground(ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
@@ -93,6 +83,34 @@ class SessionService : Service() {
         @Volatile
         var foreground = false
             private set
+
+        /** Keep the existing session notification useful when its accessibility host is lost. */
+        fun refreshNotification(context: Context) {
+            if (!foreground || !OverlayHost.active) return
+            if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+            runCatching {
+                context.getSystemService(NotificationManager::class.java).notify(ID, notification(context))
+            }.onFailure { DiagLog.e("Could not refresh session notification", it) }
+        }
+
+        private fun notification(context: Context): Notification {
+            val open = PendingIntent.getActivity(
+                context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            val stop = PendingIntent.getService(
+                context, 1, Intent(context, SessionService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE,
+            )
+            val needsRepair = App.instance.engine.state.scroll == SessionEngine.Scroll.VOICE &&
+                PrompterAccessibilityService.instance == null
+            return Notification.Builder(context, CHANNEL)
+                .setSmallIcon(R.drawable.ic_mic)
+                .setContentTitle(context.getString(if (needsRepair) R.string.a11y_attention else R.string.notification_session_title))
+                .setContentText(context.getString(if (needsRepair) R.string.a11y_notification else R.string.notification_session_text))
+                .setContentIntent(open)
+                .addAction(Notification.Action.Builder(null, context.getString(R.string.notification_action_stop), stop).build())
+                .setOngoing(true)
+                .build()
+        }
 
         /** Stops the service if it may be stopped now; otherwise its pending onStartCommand does it. */
         fun stop(context: Context) {

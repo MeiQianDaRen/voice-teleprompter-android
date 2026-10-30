@@ -7,6 +7,9 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.provider.OpenableColumns
 import android.provider.Settings
 import android.view.KeyEvent
@@ -17,6 +20,10 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -40,6 +47,9 @@ import com.olerast.suflyor.ui.EditorScreen
 import com.olerast.suflyor.ui.JournalScreen
 import com.olerast.suflyor.ui.KeyLearning
 import com.olerast.suflyor.ui.LibraryScreen
+import com.olerast.suflyor.ui.AccessibilityProblem
+import com.olerast.suflyor.ui.AccessibilityReminder
+import com.olerast.suflyor.ui.AccessibilitySettings
 import com.olerast.suflyor.ui.Readiness
 import com.olerast.suflyor.ui.RehearsalScreen
 import com.olerast.suflyor.ui.ScriptScreen
@@ -72,6 +82,28 @@ class MainActivity : ComponentActivity() {
     private val backStack = mutableStateListOf<Screen>(Screen.Library)
     private var readiness by mutableStateOf<Readiness?>(null)
     private var afterMicGranted: (() -> Unit)? = null
+    private var accessibilityProblem by mutableStateOf<AccessibilityProblem?>(null)
+    private val accessibilityReminder = AccessibilityReminder()
+    private val readinessHandler = Handler(Looper.getMainLooper())
+    private val readinessMonitor = object : Runnable {
+        override fun run() {
+            refreshReadiness()
+            readinessHandler.postDelayed(this, 1_500L)
+        }
+    }
+
+    private fun refreshReadiness() {
+        val next = Readiness.check(this)
+        readiness = next
+        if (next.a11yRunning) {
+            app.settings.a11yWasConnected = true
+            accessibilityProblem = null
+        }
+        accessibilityReminder.check(next.a11yEnabled, next.a11yRunning,
+            app.settings.a11yWasConnected, SystemClock.elapsedRealtime())?.let {
+            accessibilityProblem = it
+        }
+    }
 
     private val pickFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(::importUri) }
 
@@ -153,18 +185,22 @@ class MainActivity : ComponentActivity() {
         else -> null
     }
 
-    private val a11yListener: () -> Unit = { readiness = Readiness.check(this) }
+    private val a11yListener: () -> Unit = { refreshReadiness() }
 
     override fun onResume() {
         super.onResume()
         OverlayHost.refreshButton(this)
         readiness = Readiness.check(this)
         PrompterAccessibilityService.stateListeners += a11yListener
+        readinessHandler.removeCallbacks(readinessMonitor)
+        readinessHandler.post(readinessMonitor)
     }
 
     override fun onPause() {
         super.onPause()
         PrompterAccessibilityService.stateListeners -= a11yListener
+        readinessHandler.removeCallbacks(readinessMonitor)
+        accessibilityReminder.pause()
     }
 
     override fun onStop() {
@@ -253,6 +289,22 @@ class MainActivity : ComponentActivity() {
         val r = readiness ?: Readiness.check(this)
         val screen = backStack.last()
         BackHandler { if (backStack.size > 1) pop() else app.exit() }
+        accessibilityProblem?.takeIf { screen != Screen.Scan && screen != Screen.Rehearsal }?.let { problem ->
+            AlertDialog(
+                onDismissRequest = { accessibilityProblem = null },
+                title = { Text(stringResource(R.string.a11y_attention)) },
+                text = { Text(stringResource(if (problem == AccessibilityProblem.DISCONNECTED)
+                    R.string.a11y_disconnected_help else R.string.a11y_off_help)) },
+                confirmButton = {
+                    TextButton(onClick = { accessibilityProblem = null; AccessibilitySettings.open(this) }) {
+                        Text(stringResource(if (problem == AccessibilityProblem.DISCONNECTED) R.string.a11y_repair else R.string.a11y_enable))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { accessibilityProblem = null }) { Text(stringResource(R.string.a11y_later)) }
+                },
+            )
+        }
         key(screen) {
             when (screen) {
                 Screen.Library -> LibraryScreen(
@@ -349,6 +401,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startOverlay(target: CameraTarget) {
+        val ready = Readiness.check(this)
+        readiness = ready
+        if (ready.a11yEnabled && !ready.a11yRunning && app.engine.state.scroll == SessionEngine.Scroll.VOICE) {
+            accessibilityReminder.shown(AccessibilityProblem.DISCONNECTED)
+            accessibilityProblem = AccessibilityProblem.DISCONNECTED
+            return
+        }
         if (app.engine.state.mode == SessionEngine.Mode.IN_APP) app.engine.stop()
         val problem = OverlayHost.startSession(this)
         if (problem != null) {
