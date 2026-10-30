@@ -1,7 +1,8 @@
 # 仓库修改规则
 
 - 先阅读本文件；仅修改当前任务相关文件，保持最小改动。
-- 每次交付修改必须同步升级 `app/build.gradle.kts` 的 `versionCode` 和 `versionName`，并在 `CHANGELOG.md` 增加对应版本的中文记录。`versionCode` 严格递增；版本号以仓库当前值为准，不回退。
+- 升级按北京时间（Asia/Shanghai）自然日归组：当天首次软件修改升级 `app/build.gradle.kts` 的 `versionCode` 和 `versionName`，同一天的后续修补沿用当天同一个版本号（包括 versionCode），不重复升版。跨日没有软件修改时不自动升级版本。
+- 每次修改版本号必须同步更新 `CHANGELOG.md` 的中文升级记录和 `README.md` 的当前版本；同日修补追加到当天版本的日志章节，不新建重复版本，也不改写历史记录。真正升级时 `versionCode` 严格递增，版本号以仓库当前值为准，不回退。
 - 默认中文交流；直接修改代码，除非被问到，不逐行解释。完成后简要报告改动文件和验证结果。
 - 语音识别和 OCR 必须在本地完成，模型随 APK 打包；不得将音频、图片或识别内容上传。在线稿件只访问用户配置的地址。
 - 提交前运行相关测试、`testDebugUnitTest` 和 `lintDebug`，构建 APK；没有设备实测时明确说明，不声称已通过真机验证。

@@ -56,7 +56,7 @@ Windows 使用 gradlew.bat。APK 位于 app/build/outputs/apk/debug/app-debug.ap
 
 Build APK 会检查中英语音模型、RapidOCR 检测、方向分类、中英识别模型、完整字典及 ARM64 推理引擎均已打包。CI 执行构建、单元测试和 lint，已有问题由现存 lint baseline 管理。
 
-每次交付修改须递增 versionCode、升级 versionName 并更新 [CHANGELOG.md](CHANGELOG.md)，规则见 [AGENTS.md](AGENTS.md)。
+按北京时间自然日归组升级：当天首次软件修改递增 versionCode、升级 versionName；当天后续修补共用同一个版本号，改动持续追加到 [CHANGELOG.md](CHANGELOG.md) 对应版本。每次变更版本号必须同步升级日志和本文当前版本，规则见 [AGENTS.md](AGENTS.md)。
 
 ## 隐私、来源与许可
 
