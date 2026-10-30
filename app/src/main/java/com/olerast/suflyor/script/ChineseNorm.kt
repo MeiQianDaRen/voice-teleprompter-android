@@ -5,15 +5,22 @@ import java.util.Locale
 
 /** The Chinese Zipformer emits Han characters, with or without spaces: never split only on whitespace. */
 object ChineseNorm {
-    // One Han code point per token; keep other scripts and digit runs intact so unsupported text can be skipped.
-    val WORD = Regex("\\p{IsHan}|[\\p{L}\\p{N}&&[^\\p{IsHan}]]+(?:['’][\\p{L}&&[^\\p{IsHan}]]+)*")
+    // Keep measurements together; other Han characters retain one code point per displayed token.
+    val WORD = Regex(ChineseReadings.PATTERN + "|\\p{IsHan}|[\\p{L}\\p{N}&&[^\\p{IsHan}]]+(?:['’][\\p{L}&&[^\\p{IsHan}]]+)*")
     val FILLERS = setOf("嗯", "呃")
     private val FUNCTION = setOf("的", "地", "得", "了", "着", "过", "是", "在", "和", "与", "及", "也", "就", "都")
+    private val HAN_SPACES = Regex("(?<=\\p{IsHan})\\s+(?=\\p{IsHan})")
 
-    fun normalizeWord(raw: String): String =
-        Normalizer.normalize(raw, Normalizer.Form.NFKC).lowercase(Locale.ROOT).replace('〇', '零')
+    fun normalizeWord(raw: String): String {
+        val normalized = Normalizer.normalize(raw, Normalizer.Form.NFKC).lowercase(Locale.ROOT).replace('〇', '零')
+        return ChineseReadings.normalize(normalized) ?: normalized
+    }
 
-    fun words(text: String): List<String> = WORD.findAll(text).map { normalizeWord(it.value) }.toList()
+    fun words(text: String): List<String> = WORD.findAll(text.replace(HAN_SPACES, "")).flatMap { match ->
+        val norm = normalizeWord(match.value)
+        if (isHan(norm)) norm.codePoints().toArray().asSequence().map { String(Character.toChars(it)) }
+        else sequenceOf(norm)
+    }.toList()
 
     fun isHan(text: String): Boolean = text.isNotEmpty() &&
         text.codePoints().allMatch { Character.UnicodeScript.of(it) == Character.UnicodeScript.HAN }

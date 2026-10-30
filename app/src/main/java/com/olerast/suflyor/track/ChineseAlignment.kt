@@ -9,8 +9,9 @@ import com.olerast.suflyor.script.Token
  * utterance anchor; only final results commit it. Indices stay in the original spoken-token space.
  */
 internal class ChineseAlignment(tokens: List<Token>) {
-    private val indices = tokens.indices.filter { ChineseNorm.isHan(tokens[it].norm) && tokens[it].weight > 0f }.toIntArray()
-    private val script = indices.map { tokens[it].norm }
+    private val eligible = tokens.indices.filter { ChineseNorm.isHan(tokens[it].norm) && tokens[it].weight > 0f }
+    private val indices = eligible.flatMap { i -> List(tokens[i].norm.codePointCount(0, tokens[i].norm.length)) { i } }.toIntArray()
+    private val script = eligible.flatMap { ChineseNorm.words(tokens[it].norm) }
     private val total = tokens.size
     private var anchor = 0
     private var cursor = 0
@@ -19,8 +20,14 @@ internal class ChineseAlignment(tokens: List<Token>) {
     private data class Match(val start: Int, val end: Int, val count: Int, val consecutive: Int, val tail: Int)
 
     fun reset(position: Int) {
-        val found = indices.binarySearch(position)
-        cursor = if (found >= 0) found else -found - 1
+        // A written symbol can map to several spoken characters: seek to its first character.
+        var low = 0
+        var high = indices.size
+        while (low < high) {
+            val mid = (low + high) ushr 1
+            if (indices[mid] < position) low = mid + 1 else high = mid
+        }
+        cursor = low
         anchor = cursor
     }
 
@@ -37,6 +44,10 @@ internal class ChineseAlignment(tokens: List<Token>) {
         }
 
         var reason = "follow"
+        if (best == null) {
+            best = recover(heard)
+            if (best != null) reason = "follow (recovered phrase)"
+        }
         val backward = if (heard.size >= 8) findBackward(heard) else null
         // A complete repeated phrase may permit a retake, but an equally good upcoming phrase wins.
         if (backward != null && (best == null || best.count < heard.size)) {
@@ -94,6 +105,24 @@ internal class ChineseAlignment(tokens: List<Token>) {
             h++
         }
         return Match(start, end, matched, longest, heard.size - lastHeard - 1)
+    }
+
+    /** A wrong prefix must not block a fresh, unambiguous phrase at the end of the utterance. */
+    private fun recover(heard: List<String>): Match? {
+        if (heard.size < 8) return null
+        val limit = minOf(script.size, cursor + 65)
+        for (length in minOf(12, heard.size) downTo 6) {
+            val tail = heard.takeLast(length)
+            val starts = (cursor..(limit - length)).filter { start ->
+                tail.indices.all { script[start + it] == tail[it] }
+            }
+            if (starts.size == 1) {
+                val start = starts.single()
+                return Match(start, start + length, length, length, 0)
+            }
+            if (starts.size > 1) return null
+        }
+        return null
     }
 
     private fun findBackward(heard: List<String>): Int? {

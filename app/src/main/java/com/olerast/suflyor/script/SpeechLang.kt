@@ -49,7 +49,7 @@ enum class SpeechLang(val code: String) {
     fun isForeign(raw: String): Boolean = when (this) {
         RU -> raw.any { it in 'a'..'z' || it in 'A'..'Z' }
         EN -> raw.any { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.CYRILLIC }
-        ZH -> raw.any { it.isLetter() } && !ChineseNorm.isHan(raw)
+        ZH -> raw.any { it.isLetter() } && !ChineseNorm.isHan(raw) && !ChineseNorm.isHan(ChineseNorm.normalizeWord(raw))
     }
 
     /** How much a matched script word proves the position (before the tracker's frequency adjustment). */
