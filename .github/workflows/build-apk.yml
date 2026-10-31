@@ -1,6 +1,7 @@
 name: Build APK
 
 on:
+  # Use Actions → Build APK → Run workflow to rebuild the current source version.
   workflow_dispatch:
   push:
     branches: [main]
