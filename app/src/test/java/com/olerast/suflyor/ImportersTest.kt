@@ -325,9 +325,16 @@ class ImportersTest {
         )) {
             val doc = MarkdownImporter.parse(resourceString(dir, "sample_script"), resourceString(dir, "sample_title"))
             assertEquals(Paragraph.Kind.HEADING, doc.paragraphs[0].kind)
-            assertEquals(5, doc.paragraphs.size)
+            assertEquals(6, doc.paragraphs.size)
             assertEquals(listOf(bold), doc.paragraphs.flatMap { p -> p.emphasis.map { p.text.substring(it.first, it.last + 1) } })
             assertTrue(doc.paragraphs[3].text.startsWith("["))
+            val restartNote = doc.paragraphs.last().text
+            assertEquals(resourceString(dir, "sample_restart_note"), restartNote)
+            assertTrue(com.olerast.suflyor.script.ChineseVoiceCommands.restartPhrases.all { it in restartNote })
+            val model = ScriptLayout.build(doc, false, lang = lang)
+            val noteStart = model.displayText.lastIndexOf(restartNote)
+            assertTrue(noteStart >= 0)
+            assertTrue(model.tokens.filter { it.start >= noteStart }.none { it.spoken })
             assertEquals(lang, SpeechLang.detect(doc))
         }
         // Both translations remain readable; Russian text falls back to a supported recognizer.
