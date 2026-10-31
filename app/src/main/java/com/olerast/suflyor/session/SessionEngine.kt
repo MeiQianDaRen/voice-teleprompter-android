@@ -169,7 +169,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             epoch++
             model = m
             lang = m.lang
-            tracker = ScriptTracker(m.tokens, m.lang)
+            tracker = ScriptTracker(m.tokens, m.lang, app.settings.chineseRetakeChars)
             finalWords.clear()
             partialWords = emptyList()
             displayPos = 0
@@ -361,6 +361,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     }
 
     fun stop() {
+        synchronized(lock) { tracker.cancelRetake() }
         main.removeCallbacks(ticker)
         capture?.stop()
         capture = null
@@ -407,7 +408,12 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         swapRecognizer(old)
     }
 
+    fun onRetakeSettingChanged() {
+        synchronized(lock) { tracker.setRetakeChars(app.settings.chineseRetakeChars) }
+    }
+
     fun togglePause() {
+        synchronized(lock) { tracker.cancelRetake() }
         val paused = !state.paused
         update { copy(paused = paused) }
         DiagLog.i(if (paused) "Paused" else "Resumed")
@@ -415,6 +421,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     }
 
     fun setScroll(scroll: Scroll) {
+        synchronized(lock) { tracker.cancelRetake() }
         autoCarry = 0.0
         update { copy(scroll = scroll) }
         DiagLog.i(
@@ -523,7 +530,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             }
             val before = tracker.position
             if (!state.paused && state.scroll == Scroll.VOICE) {
-                moved = if (lang == SpeechLang.ZH) tracker.onTranscript(upd.text, upd.isFinal)
+                moved = if (lang == SpeechLang.ZH) tracker.onTranscript(upd.text, upd.isFinal, now)
                     else tracker.onHypothesis(finalWords.toList() + partialWords)
             }
             pos = tracker.position
@@ -589,6 +596,19 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
                 } else if (left != st.countdown) {
                     update { copy(countdown = left) }
                 }
+            }
+            // sherpa suppresses unchanged text; stability must also be confirmed without a new ASR callback.
+            synchronized(lock) {
+                val current = state
+                if (lang == SpeechLang.ZH && current.listening && !current.paused &&
+                    current.scroll == Scroll.VOICE && !current.autoFallback && !current.micFailed &&
+                    !current.loadingModel && countdownEndsAt == 0L
+                ) {
+                    tracker.confirmRetake(now)?.let { result ->
+                        displayPos = result.position
+                        update { copy(position = result.position, nextToken = result.nextToken) }
+                    }
+                } else tracker.cancelRetake()
             }
             val talking = now - lastVoiceAt < SOUND_HOLD_MS
             val timed = st.scroll == Scroll.AUTO || st.autoFallback || st.micFailed || (st.scroll == Scroll.SOUND && talking)

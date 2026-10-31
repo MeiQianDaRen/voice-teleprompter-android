@@ -139,6 +139,11 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("showDiagnostics2", false)
         set(v) = prefs.edit().putBoolean("showDiagnostics2", v).apply()
 
+    /** Number of trailing Chinese characters used to confirm a retake. */
+    var chineseRetakeChars: Int
+        get() = prefs.getInt("chineseRetakeChars", 5).coerceIn(4, 8)
+        set(v) = prefs.edit().putInt("chineseRetakeChars", v.coerceIn(4, 8)).apply()
+
     /** While the reader is speaking, show the position this many words ahead of what was recognized (hides ASR latency). */
     var leadWords: Int
         get() = prefs.getInt("leadWords", 1)

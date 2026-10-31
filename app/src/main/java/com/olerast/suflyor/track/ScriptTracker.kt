@@ -22,13 +22,13 @@ import kotlin.math.abs
  * [lang] must be the language the tokens were built for (ScriptModel.lang) and the hypothesis normalized with
  * (SpeechLang.words): it decides fillers, word similarity and forms, and how recognized words are prepared.
  */
-class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLang.RU) {
+class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLang.RU, retakeChars: Int = 5) {
     /** Indices (in the full token list) of words expected to be spoken. */
     private val spokenIdx: IntArray = tokens.indices.filter { tokens[it].spoken }.toIntArray()
     private val words: Array<String> = Array(spokenIdx.size) { tokens[spokenIdx[it]].norm }
     private val weights: FloatArray
     private val tokenCount = tokens.size
-    private val chineseAlignment = if (lang == SpeechLang.ZH) ChineseAlignment(spokenIdx.map { tokens[it] }) else null
+    private val chineseAlignment = if (lang == SpeechLang.ZH) ChineseAlignment(spokenIdx.map { tokens[it] }, retakeChars) else null
 
     /** Word starts a displayed line / sentence: readers restart and jump to such places. */
     private val anchors = BooleanArray(spokenIdx.size) { tokens[spokenIdx[it]].anchor }
@@ -130,10 +130,20 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
     }
 
     /** Raw sherpa-onnx utterance: Chinese partials replace each other; finals commit a stable character anchor. */
-    fun onTranscript(text: String, isFinal: Boolean): Update {
+    fun onTranscript(text: String, isFinal: Boolean, nowMs: Long = System.nanoTime() / 1_000_000L): Update {
         val alignment = chineseAlignment ?: return onHypothesis(lang.words(text))
         val before = position
-        val result = alignment.consume(text, isFinal)
+        val result = alignment.consume(text, isFinal, nowMs)
+        position = result.position
+        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason)
+    }
+
+    fun setRetakeChars(value: Int) { chineseAlignment?.setRetakeChars(value) }
+    fun cancelRetake() { chineseAlignment?.cancelRetake() }
+
+    fun confirmRetake(nowMs: Long = System.nanoTime() / 1_000_000L): Update? {
+        val result = chineseAlignment?.confirmRetake(nowMs) ?: return null
+        val before = position
         position = result.position
         return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason)
     }

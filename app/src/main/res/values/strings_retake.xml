@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_retake_chars_title">Retake match length</string>
+    <string name="settings_retake_chars_value">%1$d characters</string>
+    <string name="settings_retake_chars_hint" formatted="false">Chinese only: match the last 4–8 characters (default 5) within the preceding 100 characters. Allow at most one edit with at least 80% similarity. Confirm with two successive recognition matches or 450 ms of stability. One substitution in four characters is only 75% and does not qualify.</string>
+</resources>

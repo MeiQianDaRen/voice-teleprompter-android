@@ -61,7 +61,8 @@ class ChineseAlignmentTest {
         tracker.onTranscript(first, true)
         tracker.onTranscript(second, true)
         assertEquals(first.length + second.length, tracker.onTranscript("第一段", false).position)
-        assertEquals(first.length, tracker.onTranscript(first, true).position)
+        assertEquals(first.length + second.length, tracker.onTranscript(first, true, 1000).position)
+        assertEquals(first.length, tracker.confirmRetake(1450)!!.position)
     }
 
     @Test fun punctuationNotesAndSupplementaryHanMapToDisplayOffsets() {

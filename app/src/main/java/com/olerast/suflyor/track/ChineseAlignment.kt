@@ -2,13 +2,14 @@ package com.olerast.suflyor.track
 
 import com.olerast.suflyor.script.ChineseNorm
 import com.olerast.suflyor.script.Token
+import com.olerast.suflyor.script.ChineseVoiceCommands
 
 /**
  * Character alignment adapted from Storm-Teleprompter-Plus (MIT, Copyright 2026 Html5syt).
  * See licenses/Storm-Teleprompter-Plus-MIT.txt. Partials are recomputed from the committed
  * utterance anchor; only final results commit it. Indices stay in the original spoken-token space.
  */
-internal class ChineseAlignment(tokens: List<Token>) {
+internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseRetakePolicy.DEFAULT_CHARS) {
     private val eligible = tokens.indices.filter { ChineseNorm.isHan(tokens[it].norm) && tokens[it].weight > 0f }
     private val indices = eligible.flatMap { i -> List(tokens[i].norm.codePointCount(0, tokens[i].norm.length)) { i } }.toIntArray()
     private val script = eligible.flatMap { ChineseNorm.words(tokens[it].norm) }
@@ -16,12 +17,15 @@ internal class ChineseAlignment(tokens: List<Token>) {
     private var anchor = 0
     private var cursor = 0
     private var longestPartial: List<String> = emptyList()
-    private var lastPartial: List<String> = emptyList()
     private var ignoredPrefix: List<String> = emptyList()
-    private var pendingRetake: Match? = null
+    private var retakeChars = retakeChars.coerceIn(ChineseRetakePolicy.MIN_CHARS, ChineseRetakePolicy.MAX_CHARS)
+    private var pendingRetake: PendingRetake? = null
+    private var handledCommands = 0
+    private data class PendingRetake(val match: Match, val prefix: List<String>, val raw: List<String>,
+        val tail: List<String>, val isFinal: Boolean, val since: Long, val observations: Int)
 
     data class Result(val position: Int, val matches: Int, val reason: String)
-    private data class Match(val start: Int, val end: Int, val count: Int, val consecutive: Int, val tail: Int, val heardStart: Int = 0)
+    private data class Match(val start: Int, val end: Int, val count: Int, val consecutive: Int, val tail: Int, val heardStart: Int = 0, val edits: Int = 0)
 
     fun reset(position: Int) {
         // A written symbol can map to several spoken characters: seek to its first character.
@@ -34,13 +38,19 @@ internal class ChineseAlignment(tokens: List<Token>) {
         cursor = low
         anchor = cursor
         longestPartial = emptyList()
-        lastPartial = emptyList()
         ignoredPrefix = emptyList()
         pendingRetake = null
+        handledCommands = 0
     }
 
-    fun consume(text: String, isFinal: Boolean): Result {
-        val raw = ChineseNorm.words(text).filter { ChineseNorm.isHan(it) && it !in ChineseNorm.FILLERS }.takeLast(512)
+    fun consume(text: String, isFinal: Boolean, nowMs: Long): Result {
+        val utterance = ChineseNorm.words(text).filter { ChineseNorm.isHan(it) && it !in ChineseNorm.FILLERS }.takeLast(512)
+        val commands = ChineseVoiceCommands.restartEnds(utterance)
+        val restarted = commands.size > handledCommands
+        if (restarted) reset(0)
+        handledCommands = commands.size
+        // Keep stripping the command as its partial grows; the matching final must not restart twice.
+        val raw = utterance.drop(commands.lastOrNull() ?: 0)
         val retracting = !isFinal && raw.size < longestPartial.size && raw == longestPartial.take(raw.size)
         if (ignoredPrefix.isNotEmpty() && raw.take(ignoredPrefix.size) != ignoredPrefix) ignoredPrefix = emptyList()
         val heard = raw.drop(ignoredPrefix.size)
@@ -64,8 +74,8 @@ internal class ChineseAlignment(tokens: List<Token>) {
         // Compare the same trailing phrase in both directions, including the same tolerated errors.
         if (backward != null) {
             val tail = heard.drop(backward.heardStart)
-            val ahead = (cursor until minOf(script.size, cursor + 65)).asSequence().map { match(it, tail) }
-                .firstOrNull { it.count >= backward.count && retakeConfident(it, tail.size) }
+            val ahead = (cursor until minOf(script.size, cursor + 65)).asSequence().mapNotNull { retakeAt(it, tail, script.size) }
+                .firstOrNull { it.edits <= backward.edits && it.count >= backward.count }
             if (ahead != null && (best == null || ahead.count >= best.count)) {
                 best = ahead
                 reason = "follow (recovered phrase)"
@@ -73,34 +83,34 @@ internal class ChineseAlignment(tokens: List<Token>) {
         }
         // An equally strong current/full match or upcoming phrase wins over an older occurrence.
         val forwardWins = best != null && backward != null && best.count >= backward.count && best.end >= cursor
-        val pending = pendingRetake
-        val growing = raw.size > lastPartial.size && lastPartial.isNotEmpty() && raw.take(lastPartial.size) == lastPartial
-        val confirmed = backward != null && (isFinal ||
-            (backward.count >= 8 && backward.count == heard.size) ||
-            (growing && pending != null && kotlin.math.abs(backward.start - pending.start) <= 2 && backward.end > pending.end))
-        if (backward != null && !forwardWins && confirmed) {
-            ignoredPrefix = raw.take(raw.size - heard.size + backward.heardStart)
-            anchor = backward.start
-            cursor = backward.end
-            best = backward
-            pendingRetake = null
-            reason = "back (confirmed phrase)"
+        if (backward != null && !forwardWins) {
+            val pending = pendingRetake
+            val tail = heard.takeLast(retakeChars)
+            val growing = pending != null && raw.size > pending.raw.size && raw.take(pending.raw.size) == pending.raw
+            val sameRun = pending != null && (backward.end == pending.match.end ||
+                (growing && backward.end - pending.match.end in 1..ChineseRetakePolicy.MAX_CHARS))
+            val newObservation = pending == null || pending.raw != raw || pending.isFinal != isFinal
+            val stable = sameRun && pending.tail == tail && pending.match.end == backward.end
+            val since = if (stable) pending.since else nowMs
+            val observations = if (sameRun) pending.observations + if (newObservation) 1 else 0 else 1
+            pendingRetake = PendingRetake(backward, raw.take(raw.size - heard.size + backward.heardStart),
+                raw, tail, isFinal, since, observations)
+            if (observations >= 2 || nowMs - since >= ChineseRetakePolicy.STABLE_MS) {
+                applyRetake(pendingRetake!!)
+                best = backward
+                reason = "back (confirmed phrase)"
+            } else best = null
         } else {
-            pendingRetake = if (!forwardWins) backward else null
+            pendingRetake = null
             if (best != null) cursor = maxOf(cursor, best.end)
         }
         if (isFinal) {
             anchor = cursor
             longestPartial = emptyList()
-            lastPartial = emptyList()
             ignoredPrefix = emptyList()
-            pendingRetake = null
-        } else {
-            lastPartial = raw
-            if (raw.size > longestPartial.size) longestPartial = raw
-        }
+        } else if (raw.size > longestPartial.size) longestPartial = raw
         return Result(if (cursor >= indices.size) total else indices[cursor], best?.count ?: 0,
-            if (best == null) "no confident characters" else reason)
+            if (restarted) "restart (voice command)" else if (best == null) "no confident characters" else reason)
     }
 
     private fun confident(match: Match, length: Int): Boolean {
@@ -165,33 +175,55 @@ internal class ChineseAlignment(tokens: List<Token>) {
         return null
     }
 
-    /** A unique trailing phrase can prove a retake even when its utterance prefix was wrong. */
-    private fun findBackward(heard: List<String>): Match? {
-        if (heard.size < 6) return null
-        val from = (cursor - 240).coerceAtLeast(0)
-        val byEnd = mutableMapOf<Int, Match>()
-        for (length in minOf(24, heard.size) downTo 6) {
-            val tail = heard.takeLast(length)
-            for (start in (cursor - 1) downTo from) {
-                val candidate = match(start, tail)
-                val span = candidate.end - candidate.start
-                if (candidate.end > cursor || !retakeConfident(candidate, length)) continue
-                val previous = byEnd[candidate.end]
-                if (previous == null || candidate.count > previous.count ||
-                    (candidate.count == previous.count && span < previous.end - previous.start)) {
-                    byEnd[candidate.end] = candidate.copy(heardStart = heard.size - length)
-                }
-            }
+    private fun retakeAt(start: Int, tail: List<String>, limit: Int): Match? {
+        var best: Match? = null
+        for (length in (tail.size - 1)..(tail.size + 1)) {
+            val end = start + length
+            if (length <= 0 || end > limit) continue
+            val edits = ChineseRetakePolicy.editCount(tail, script, start, end) ?: continue
+            val matches = minOf(tail.size, length) - if (length == tail.size) edits else 0
+            val candidate = Match(start, end, matches, matches, 0, edits = edits)
+            if (best == null || candidate.edits < best.edits ||
+                (candidate.edits == best.edits && candidate.count > best.count)) best = candidate
         }
-        val best = byEnd.values.maxWithOrNull(compareBy<Match> { it.count }.thenBy { it.consecutive }
-            .thenBy { -(it.end - it.start) }) ?: return null
-        if (best.end == cursor) return null
-        // Repeated short phrases must not pick a previous paragraph merely because it was nearer.
-        if (byEnd.values.any { kotlin.math.abs(it.end - best.end) > 2 && it.count >= best.count - 1 }) return null
         return best
     }
 
-    private fun retakeConfident(match: Match, length: Int): Boolean = match.tail == 0 &&
-        match.count >= 6 && match.consecutive >= 3 && match.count.toFloat() / length >= 0.8f &&
-        match.count.toFloat() / (match.end - match.start).coerceAtLeast(1) >= 0.8f
+    /** Only the configured trailing window is evidence, with at most one edit and a unique location. */
+    private fun findBackward(heard: List<String>): Match? {
+        if (heard.size < retakeChars) return null
+        val tail = heard.takeLast(retakeChars)
+        val from = (cursor - ChineseRetakePolicy.DISTANCE).coerceAtLeast(0)
+        val candidates = ((cursor - 1) downTo from).mapNotNull { start ->
+            retakeAt(start, tail, cursor)?.copy(heardStart = heard.size - retakeChars)
+        }
+        val best = candidates.minWithOrNull(compareBy<Match> { it.edits }.thenByDescending { it.count }
+            .thenBy { kotlin.math.abs(it.end - it.start - retakeChars) }) ?: return null
+        if (best.end == cursor) return null
+        if (candidates.any { kotlin.math.abs(it.end - best.end) > 1 && it.edits == best.edits }) return null
+        return best
+    }
+
+    private fun applyRetake(pending: PendingRetake) {
+        cursor = pending.match.end
+        anchor = if (pending.isFinal) cursor else pending.match.start
+        ignoredPrefix = if (pending.isFinal) emptyList() else pending.prefix
+        pendingRetake = null
+    }
+
+    fun confirmRetake(nowMs: Long): Result? {
+        val pending = pendingRetake ?: return null
+        if (nowMs - pending.since < ChineseRetakePolicy.STABLE_MS) return null
+        applyRetake(pending)
+        return Result(if (cursor >= indices.size) total else indices[cursor], pending.match.count, "back (stable phrase)")
+    }
+
+    fun cancelRetake() { pendingRetake = null }
+
+    fun setRetakeChars(value: Int) {
+        val next = value.coerceIn(ChineseRetakePolicy.MIN_CHARS, ChineseRetakePolicy.MAX_CHARS)
+        if (retakeChars == next) return
+        retakeChars = next
+        cancelRetake()
+    }
 }

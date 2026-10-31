@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_retake_chars_title">Длина совпадения при возврате</string>
+    <string name="settings_retake_chars_value">%1$d символов</string>
+    <string name="settings_retake_chars_hint" formatted="false">Только китайский: последние 4–8 иероглифов (по умолчанию 5), поиск в предыдущих 100. Не более одной ошибки при сходстве от 80%. Подтверждение: два результата подряд или стабильность 450 мс. Одна замена из четырёх — 75%, возврат не выполняется.</string>
+</resources>

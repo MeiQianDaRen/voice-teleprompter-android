@@ -339,6 +339,7 @@ private fun VoicePage() {
     val s = app.settings
     var speechLang by remember { mutableStateOf(s.speechLang) }
     var lead by remember { mutableIntStateOf(s.leadWords) }
+    var retakeChars by remember { mutableIntStateOf(s.chineseRetakeChars) }
     var wordHighlight by remember { mutableStateOf(s.wordHighlight) }
     var hotwords by remember { mutableStateOf(s.useHotwords) }
     // Auto names the language it picked for the current script, so a wrong guess is visible here.
@@ -377,6 +378,21 @@ private fun VoicePage() {
         stringResource(R.string.settings_lead_hint),
         onMinus = { lead = (lead - 1).coerceAtLeast(0); s.leadWords = lead },
         onPlus = { lead = (lead + 1).coerceAtMost(4); s.leadWords = lead },
+    )
+    StepperRow(
+        stringResource(R.string.settings_retake_chars_title),
+        stringResource(R.string.settings_retake_chars_value, retakeChars),
+        stringResource(R.string.settings_retake_chars_hint),
+        onMinus = {
+            retakeChars = (retakeChars - 1).coerceAtLeast(4)
+            s.chineseRetakeChars = retakeChars
+            app.engine.onRetakeSettingChanged()
+        },
+        onPlus = {
+            retakeChars = (retakeChars + 1).coerceAtMost(8)
+            s.chineseRetakeChars = retakeChars
+            app.engine.onRetakeSettingChanged()
+        },
     )
     ToggleRow(stringResource(R.string.settings_highlight_title), stringResource(R.string.settings_highlight_hint), wordHighlight) {
         wordHighlight = it

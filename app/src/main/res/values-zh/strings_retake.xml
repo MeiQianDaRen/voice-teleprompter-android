@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_retake_chars_title">回退匹配字数</string>
+    <string name="settings_retake_chars_value">%1$d 字</string>
+    <string name="settings_retake_chars_hint" formatted="false">仅中文：取识别结尾的 4–8 字，默认 5 字；在当前进度前 100 字内匹配，最多差 1 字且相似度至少 80%。连续两次识别匹配，或稳定 450 毫秒后回退。4 字中替换错 1 字仅为 75%，不会通过。</string>
+</resources>

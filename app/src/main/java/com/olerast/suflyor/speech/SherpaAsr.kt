@@ -11,6 +11,7 @@ import com.k2fsa.sherpa.onnx.OnlineStream
 import com.k2fsa.sherpa.onnx.OnlineTransducerModelConfig
 import com.olerast.suflyor.App
 import com.olerast.suflyor.script.ChineseNorm
+import com.olerast.suflyor.script.ChineseVoiceCommands
 import com.olerast.suflyor.script.SpeechLang
 
 /**
@@ -151,7 +152,7 @@ internal fun hotwordList(lang: SpeechLang, words: List<String>): String {
         SpeechLang.EN -> words.asSequence()
             .map { it.uppercase() }
             .filter { w -> w.count { it in 'A'..'Z' } >= 4 && w.all { it in 'A'..'Z' || it == '\'' } }
-        SpeechLang.ZH -> words.asSequence()
+        SpeechLang.ZH -> (ChineseVoiceCommands.restartPhrases.asSequence() + words.asSequence())
             .map { ChineseNorm.normalizeWord(it) }
             .filter { it.codePointCount(0, it.length) in 2..8 && ChineseNorm.isHan(it) }
     }
