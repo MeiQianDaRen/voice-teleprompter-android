@@ -21,8 +21,6 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import com.olerast.suflyor.script.ScriptModel
-import kotlin.math.abs
-import kotlin.math.exp
 
 /**
  * Teleprompter text. Progress is shown by lines, not words: lines already read are dimmed, the current line stays
@@ -105,7 +103,11 @@ class PrompterView(context: Context) : View(context) {
     private var currentLine = 0
     private var posY = 0f
     private var targetY = 0f
-    private var lastFrame = 0L
+    private var scrollFrom = 0f
+    private var scrollStarted = 0L
+    private var scrollDuration = 0L
+    private var moveDelta = 0
+    private var wasManual = false
     private var manualUntil = 0L
 
     private fun dp(v: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, resources.displayMetrics)
@@ -139,6 +141,7 @@ class PrompterView(context: Context) : View(context) {
 
     fun setProgress(nextTokenIndex: Int, animate: Boolean = true) {
         if (nextTokenIndex == nextToken && layout != null) return
+        moveDelta = nextTokenIndex - nextToken
         nextToken = nextTokenIndex
         applyProgress(animate)
     }
@@ -149,6 +152,7 @@ class PrompterView(context: Context) : View(context) {
         text.removeSpan(spokenSpan)
         text.removeSpan(nextSpan)
         val atEnd = nextToken >= tokens.size
+        val previousLine = currentLine
         currentLine = if (atEnd) l.lineCount - 1 else l.getLineForOffset(tokens[nextToken].start)
         val chinese = model.lang == com.olerast.suflyor.script.SpeechLang.ZH
         val dimEnd = if (atEnd) text.length else if (chinese) tokens[nextToken].start else l.getLineStart(currentLine)
@@ -162,8 +166,20 @@ class PrompterView(context: Context) : View(context) {
             PrompterViewport.readOffset(readingLine, it, (height - paddingTop - paddingBottom).coerceAtLeast(0),
                 l::getLineTop, l::getLineBottom).toFloat()
         } ?: (linesAbove * lineHeightPx)
-        targetY = (l.getLineTop(readingLine) - above).coerceAtLeast(0f)
-        if (!animate) posY = targetY
+        val target = (l.getLineTop(readingLine) - above).coerceAtLeast(0f)
+        if (!animate) {
+            targetY = target
+            posY = target
+            scrollFrom = target
+            scrollDuration = 0L
+        } else if (target != targetY && ScrollMotion.shouldScroll(moveDelta, currentLine != previousLine)) {
+            val now = SystemClock.uptimeMillis()
+            if (now >= manualUntil && !wasManual) posY = ScrollMotion.position(scrollFrom, targetY, now - scrollStarted, scrollDuration)
+            scrollFrom = posY
+            targetY = target
+            scrollStarted = now
+            scrollDuration = ScrollMotion.duration(moveDelta)
+        }
         invalidate()
     }
 
@@ -190,12 +206,14 @@ class PrompterView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         val l = layout ?: return
         val now = SystemClock.uptimeMillis()
-        val dt = if (lastFrame == 0L) 16L else (now - lastFrame).coerceIn(1L, 100L)
-        lastFrame = now
         if (now >= manualUntil) {
-            val k = 1f - exp(-dt / SMOOTH_MS)
-            posY += (targetY - posY) * k
-            if (abs(targetY - posY) < 0.5f) posY = targetY
+            if (wasManual) {
+                scrollFrom = posY
+                scrollStarted = now
+                scrollDuration = ScrollMotion.duration(moveDelta)
+                wasManual = false
+            }
+            posY = ScrollMotion.position(scrollFrom, targetY, now - scrollStarted, scrollDuration)
         }
         canvas.save()
         if (mirrorX || mirrorY) canvas.scale(if (mirrorX) -1f else 1f, if (mirrorY) -1f else 1f, width / 2f, height / 2f)
@@ -210,7 +228,7 @@ class PrompterView(context: Context) : View(context) {
         }
         l.draw(canvas)
         canvas.restore()
-        if (posY != targetY || now < manualUntil) postInvalidateOnAnimation() else lastFrame = 0L
+        if (posY != targetY || now < manualUntil) postInvalidateOnAnimation()
     }
 
     private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
@@ -218,6 +236,7 @@ class PrompterView(context: Context) : View(context) {
 
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent, dx: Float, dy: Float): Boolean {
             val l = layout ?: return false
+            wasManual = true
             manualUntil = SystemClock.uptimeMillis() + MANUAL_HOLD_MS
             posY = (posY + dy).coerceIn(0f, l.height.toFloat())
             invalidate()
@@ -258,7 +277,6 @@ class PrompterView(context: Context) : View(context) {
 
     companion object {
         const val LINE_SPACING = 1.12f
-        const val SMOOTH_MS = 150f
         const val MANUAL_HOLD_MS = 3000L
         val ACCENT: Int = Color.rgb(255, 176, 32)
     }

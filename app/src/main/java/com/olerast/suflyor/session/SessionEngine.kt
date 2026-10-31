@@ -17,6 +17,7 @@ import com.olerast.suflyor.speech.AudioCapture
 import com.olerast.suflyor.speech.CaptureError
 import com.olerast.suflyor.speech.SherpaAsr
 import com.olerast.suflyor.track.ScriptTracker
+import com.olerast.suflyor.script.ChinesePhonetics
 import java.util.Locale
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -169,7 +170,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             epoch++
             model = m
             lang = m.lang
-            tracker = ScriptTracker(m.tokens, m.lang, app.settings.chineseRetakeChars)
+            tracker = ScriptTracker(m.tokens, m.lang, app.settings.chineseRetakeChars, ChinesePhonetics::key)
             finalWords.clear()
             partialWords = emptyList()
             displayPos = 0
@@ -530,7 +531,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             }
             val before = tracker.position
             if (!state.paused && state.scroll == Scroll.VOICE) {
-                moved = if (lang == SpeechLang.ZH) tracker.onTranscript(upd.text, upd.isFinal, now)
+                moved = if (lang == SpeechLang.ZH) tracker.onTranscript(upd.text, upd.isFinal, now, speechActive(now))
                     else tracker.onHypothesis(finalWords.toList() + partialWords)
             }
             pos = tracker.position
@@ -561,11 +562,11 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         }
     }
 
-    /** The microphone stopped for good (AudioCapture already tried to reopen it): keep the text moving on a timer. */
+    /** AudioCapture already tried to reopen the microphone; publish the failure and let the scroll mode decide. */
     override fun onCaptureError(source: AudioCapture, error: CaptureError) {
         // A capture from an earlier session may report late, after a new one has started.
         if (source !== capture) return
-        DiagLog.e("$error; the text moves on the timer")
+        DiagLog.e("$error; microphone unavailable")
         update { copy(error = SessionError.Capture(error), micFailed = true, levelDb = -120f) }
     }
 
@@ -580,6 +581,9 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         val ours = recs.firstOrNull { it.ours }
         update { copy(recordings = recs, silencedBySystem = ours?.silenced ?: silencedBySystem) }
     }
+
+    private fun speechActive(now: Long) = !state.digitalSilence && state.silencedBySystem != true &&
+        (lastVoiceAt == 0L || now - lastVoiceAt <= 1500L || state.levelDb > VOICE_MIN_DB)
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -604,14 +608,17 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
                     current.scroll == Scroll.VOICE && !current.autoFallback && !current.micFailed &&
                     !current.loadingModel && countdownEndsAt == 0L
                 ) {
-                    tracker.confirmRetake(now)?.let { result ->
+                    if (!speechActive(now)) tracker.silence()
+                    val confirmed = if (speechActive(now)) tracker.confirmRetake(now) ?: tracker.confirmFollow(now) else null
+                    confirmed?.let { result ->
                         displayPos = result.position
                         update { copy(position = result.position, nextToken = result.nextToken) }
                     }
                 } else tracker.cancelRetake()
             }
             val talking = now - lastVoiceAt < SOUND_HOLD_MS
-            val timed = st.scroll == Scroll.AUTO || st.autoFallback || st.micFailed || (st.scroll == Scroll.SOUND && talking)
+            val fallbackTimed = (st.autoFallback || st.micFailed) && !(lang == SpeechLang.ZH && st.scroll == Scroll.VOICE)
+            val timed = st.scroll == Scroll.AUTO || fallbackTimed || (st.scroll == Scroll.SOUND && talking)
             if (st.listening && !st.paused && countdownEndsAt == 0L && timed) {
                 autoCarry += app.settings.autoScrollWpm / 60.0 * dt
                 if (autoCarry >= 1.0) {

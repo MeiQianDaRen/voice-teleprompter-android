@@ -7,7 +7,7 @@ import java.util.Locale
 object ChineseNorm {
     // Keep measurements together; other Han characters retain one code point per displayed token.
     val WORD = Regex(ChineseReadings.PATTERN + "|\\p{IsHan}|[\\p{L}\\p{N}&&[^\\p{IsHan}]]+(?:['’][\\p{L}&&[^\\p{IsHan}]]+)*")
-    val FILLERS = setOf("嗯", "呃")
+    val FILLERS = setOf("嗯", "呃", "啊")
     private val FUNCTION = setOf("的", "地", "得", "了", "着", "过", "是", "在", "和", "与", "及", "也", "就", "都")
     private val HAN_SPACES = Regex("(?<=\\p{IsHan})\\s+(?=\\p{IsHan})")
 

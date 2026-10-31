@@ -167,7 +167,7 @@ object ScriptLayout {
                 ((en || zh) && text[i] in "“”‘’") || (zh && text[i] in "「」『』（）"))
         ) i--
         if (i < 0) return true
-        if (text[i] !in (if (zh) "\n.!?…:;]。！？；：，" else "\n.!?…:;]")) return false
+        if (text[i] !in (if (zh) "\n.!?…:;]。！？；：，、" else "\n.!?…:;]")) return false
         return !(en && text[i] == '.' && EnglishNorm.isAbbreviation(wordEndingAt(text, i)))
     }
 

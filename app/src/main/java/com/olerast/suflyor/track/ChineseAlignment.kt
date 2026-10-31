@@ -6,13 +6,25 @@ import com.olerast.suflyor.script.ChineseVoiceCommands
 
 /**
  * Character alignment adapted from Storm-Teleprompter-Plus (MIT, Copyright 2026 Html5syt).
- * See licenses/Storm-Teleprompter-Plus-MIT.txt. Partials are recomputed from the committed
- * utterance anchor; only final results commit it. Indices stay in the original spoken-token space.
+ * See licenses/Storm-Teleprompter-Plus-MIT.txt. Short utterances use a committed anchor; long partials
+ * align only newly added text in bounded local windows. Indices stay in the original spoken-token space.
  */
-internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseRetakePolicy.DEFAULT_CHARS) {
+internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseRetakePolicy.DEFAULT_CHARS, pronunciation: (String) -> String? = { null }) {
     private val eligible = tokens.indices.filter { ChineseNorm.isHan(tokens[it].norm) && tokens[it].weight > 0f }
     private val indices = eligible.flatMap { i -> List(tokens[i].norm.codePointCount(0, tokens[i].norm.length)) { i } }.toIntArray()
     private val script = eligible.flatMap { ChineseNorm.words(tokens[it].norm) }
+    private val local = ChineseLocalAlignment(script, indices.map { tokens[it].weight },
+        indices.indices.filter { i -> tokens[indices[i]].anchor && (i == 0 || indices[i] != indices[i - 1]) }.toSet(), pronunciation)
+    enum class Phase { FOLLOWING, LOW_CONFIDENCE, SILENT, RETAKE_PENDING, REANCHORING }
+    var phase = Phase.FOLLOWING
+        private set
+    private var lastLocalHeard: List<String> = emptyList()
+    private var lastLocalMatched = false
+    private var failures = 0
+    private var lostSince: Long? = null
+    private var holdUntil = 0L
+    private data class PendingFollow(val match: Match, val requiresSecond: Boolean, val isFinal: Boolean)
+    private var pendingFollow: PendingFollow? = null
     private val total = tokens.size
     private var anchor = 0
     private var cursor = 0
@@ -41,9 +53,16 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
         ignoredPrefix = emptyList()
         pendingRetake = null
         handledCommands = 0
+        lastLocalHeard = emptyList()
+        lastLocalMatched = false
+        failures = 0
+        lostSince = null
+        holdUntil = 0L
+        pendingFollow = null
+        phase = Phase.FOLLOWING
     }
 
-    fun consume(text: String, isFinal: Boolean, nowMs: Long): Result {
+    fun consume(text: String, isFinal: Boolean, nowMs: Long, speechActive: Boolean = true): Result {
         val utterance = ChineseNorm.words(text).filter { ChineseNorm.isHan(it) && it !in ChineseNorm.FILLERS }.takeLast(512)
         val commands = ChineseVoiceCommands.restartEnds(utterance)
         val restarted = commands.size > handledCommands
@@ -54,9 +73,15 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
         val retracting = !isFinal && raw.size < longestPartial.size && raw == longestPartial.take(raw.size)
         if (ignoredPrefix.isNotEmpty() && raw.take(ignoredPrefix.size) != ignoredPrefix) ignoredPrefix = emptyList()
         val heard = raw.drop(ignoredPrefix.size)
+        if (!speechActive && !restarted) {
+            silence()
+            return Result(if (cursor >= indices.size) total else indices[cursor], 0, "silent hold")
+        }
+        val changed = heard != lastLocalHeard
+        val previousHeard = lastLocalHeard
         var best: Match? = null
         // Search near the last committed position; short common fragments cannot relocate the cursor.
-        for (start in anchor until minOf(script.size, anchor + 65)) {
+        for (start in maxOf(anchor, cursor - 16) until (if (heard.size <= 16) minOf(script.size, cursor + 29) else anchor)) {
             val candidate = match(start, heard)
             if (!confident(candidate, heard.size)) continue
             if (best == null || candidate.count > best.count ||
@@ -65,16 +90,66 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
         }
 
         var reason = "follow"
-        if (best == null) {
+        var shortAnchor = false
+        if (best == null && !retracting && changed) {
+            val growing = previousHeard.isNotEmpty() && heard.size > previousHeard.size && heard.take(previousHeard.size) == previousHeard
+            val from = if (previousHeard.isEmpty()) 0 else if (growing) previousHeard.size else (heard.size - 8).coerceAtLeast(0)
+            var probe = cursor
+            var trusted = growing && lastLocalMatched
+            var validStart = trusted
+            var endpoint = minOf(from + 8, heard.size)
+            while (endpoint > 0) {
+                val hit = local.find(heard.subList((endpoint - 8).coerceAtLeast(0), endpoint), probe,
+                    continuity = trusted || endpoint <= 8 && from == 0)
+                if (from == 0 && endpoint <= 8 && hit != null && hit.start <= cursor) validStart = true
+                if (hit != null) {
+                    best = Match(hit.start, hit.end, hit.matches, hit.matches, 0)
+                    shortAnchor = hit.length == 3 || (hit.length < 6 && !validStart && hit.end - cursor > 3)
+                    probe = hit.end
+                    trusted = true
+                }
+                if (endpoint == heard.size) {
+                    if (hit == null && !validStart) best = null
+                    break
+                }
+                endpoint = minOf(endpoint + 8, heard.size)
+            }
+            if (best != null) reason = "follow (local anchor)"
+        }
+        if (best == null && changed && heard.size >= 4 && !retracting) {
+            failures++
+            if (lostSince == null) lostSince = nowMs
+            if (failures == 3) holdUntil = nowMs + 400L
+            phase = if (nowMs - lostSince!! >= 2000L) Phase.REANCHORING else Phase.LOW_CONFIDENCE
+        }
+        if (best == null && (heard.size <= 16 || phase == Phase.REANCHORING)) {
             best = recover(heard)
             if (best != null) reason = "follow (recovered phrase)"
         }
+        lastLocalMatched = best != null && best.end >= cursor
+        lastLocalHeard = if (isFinal) emptyList() else heard
+        val followCandidate = best
+        if (followCandidate != null && followCandidate.end > cursor) {
+            val previous = pendingFollow
+            val confirmedShort = previous?.requiresSecond == true && changed &&
+                followCandidate.end - previous.match.end in 0..3
+            if ((shortAnchor && !confirmedShort) || nowMs < holdUntil) {
+                pendingFollow = PendingFollow(followCandidate, shortAnchor && !confirmedShort, isFinal)
+                best = null
+                phase = Phase.LOW_CONFIDENCE
+            } else {
+                pendingFollow = null
+                failures = 0
+                lostSince = null
+                phase = Phase.FOLLOWING
+            }
+        } else if (changed) pendingFollow = null
         val completeFollow = best != null && best.count == heard.size && best.end >= cursor
         val backward = if (retracting || completeFollow) null else findBackward(heard)
         // Compare the same trailing phrase in both directions, including the same tolerated errors.
-        if (backward != null) {
+        if (backward != null && pendingFollow == null && nowMs >= holdUntil) {
             val tail = heard.drop(backward.heardStart)
-            val ahead = (cursor until minOf(script.size, cursor + 65)).asSequence().mapNotNull { retakeAt(it, tail, script.size) }
+            val ahead = (cursor until minOf(script.size, cursor + 29)).asSequence().mapNotNull { retakeAt(it, tail, script.size) }
                 .firstOrNull { it.edits <= backward.edits && it.count >= backward.count }
             if (ahead != null && (best == null || ahead.count >= best.count)) {
                 best = ahead
@@ -82,8 +157,12 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
             }
         }
         // An equally strong current/full match or upcoming phrase wins over an older occurrence.
-        val forwardWins = best != null && backward != null && best.count >= backward.count && best.end >= cursor
+        val forwardEvidence = best ?: pendingFollow?.match
+        val forwardWins = forwardEvidence != null && backward != null &&
+            forwardEvidence.count >= backward.count && forwardEvidence.end >= cursor
         if (backward != null && !forwardWins) {
+            pendingFollow = null
+            phase = Phase.RETAKE_PENDING
             val pending = pendingRetake
             val tail = heard.takeLast(retakeChars)
             val growing = pending != null && raw.size > pending.raw.size && raw.take(pending.raw.size) == pending.raw
@@ -206,6 +285,12 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
 
     private fun applyRetake(pending: PendingRetake) {
         cursor = pending.match.end
+        lastLocalHeard = emptyList()
+        pendingFollow = null
+        failures = 0
+        lostSince = null
+        holdUntil = 0L
+        phase = Phase.FOLLOWING
         anchor = if (pending.isFinal) cursor else pending.match.start
         ignoredPrefix = if (pending.isFinal) emptyList() else pending.prefix
         pendingRetake = null
@@ -218,7 +303,25 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
         return Result(if (cursor >= indices.size) total else indices[cursor], pending.match.count, "back (stable phrase)")
     }
 
-    fun cancelRetake() { pendingRetake = null }
+    fun confirmFollow(nowMs: Long): Result? {
+        val pending = pendingFollow ?: return null
+        if (pending.requiresSecond || nowMs < holdUntil) return null
+        pendingFollow = null
+        cursor = maxOf(cursor, pending.match.end)
+        if (pending.isFinal) anchor = cursor
+        failures = 0
+        lostSince = null
+        phase = Phase.FOLLOWING
+        return Result(if (cursor >= indices.size) total else indices[cursor], pending.match.count, "follow (confidence restored)")
+    }
+
+    fun silence() {
+        pendingRetake = null
+        pendingFollow = null
+        phase = Phase.SILENT
+    }
+
+    fun cancelRetake() { pendingRetake = null; pendingFollow = null }
 
     fun setRetakeChars(value: Int) {
         val next = value.coerceIn(ChineseRetakePolicy.MIN_CHARS, ChineseRetakePolicy.MAX_CHARS)

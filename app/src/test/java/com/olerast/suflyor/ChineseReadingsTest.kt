@@ -100,7 +100,7 @@ class ChineseReadingsTest {
         tracker.onTranscript("今天我们介绍", true)
         val result = tracker.onTranscript("这部分连续识别错误完全不对应稿件随后请看镜头保持自然语速", false)
         assertEquals(m.spokenTokens, result.position)
-        assertEquals("follow (recovered phrase)", result.reason)
+        assertTrue(result.reason.startsWith("follow"))
     }
 
     @Test fun aWrongPrefixWithoutSixCorrectTrailingCharactersCannotRecover() {
