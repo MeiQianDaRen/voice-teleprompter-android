@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="overlay_tune_read_lines">Read lines</string>
+    <string name="overlay_tune_line_spacing">Line spacing</string>
+    <string name="settings_read_lines_hint">Default 0. At most the displayed line count minus one, leaving a line for current reading. Fewer read lines are shown when the window shrinks or text size or spacing increases.</string>
+    <string name="settings_line_spacing_hint" formatted="false">100%–200%, default 112%. Higher values increase the distance between lines.</string>
+</resources>

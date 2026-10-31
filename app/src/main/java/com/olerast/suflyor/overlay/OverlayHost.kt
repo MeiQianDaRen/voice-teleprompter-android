@@ -152,6 +152,8 @@ object OverlayHost {
         stopSession(context)
     }
 
+    fun refreshTextSettings() { controller?.refreshTextSettings() }
+
     fun hideWindow() {
         controller?.hide()
         controller = null

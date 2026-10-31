@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="overlay_tune_read_lines">Прочитано строк</string>
+    <string name="overlay_tune_line_spacing">Интервал</string>
+    <string name="settings_read_lines_hint">По умолчанию 0. Не больше числа отображаемых строк минус одна: текущая строка остаётся видимой. При уменьшении окна или увеличении шрифта и интервала число прочитанных строк автоматически сокращается.</string>
+    <string name="settings_line_spacing_hint" formatted="false">100%–200%, по умолчанию 112%. Чем выше значение, тем больше расстояние между строками.</string>
+</resources>

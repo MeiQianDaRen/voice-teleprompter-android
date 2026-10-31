@@ -53,6 +53,23 @@ class PrompterView(context: Context) : View(context) {
             applyProgress(false)
         }
 
+    /** Complete read lines for overlays; null keeps the full-screen fractional reading position. */
+    var readLines: Int? = null
+        set(value) {
+            val next = value?.coerceAtLeast(0)
+            if (field == next) return
+            field = next
+            applyProgress(false)
+        }
+
+    var lineSpacingMultiplier: Float = LINE_SPACING
+        set(value) {
+            val next = value.coerceIn(1f, 2f)
+            if (field == next) return
+            field = next
+            rebuildLayout()
+        }
+
     var paragraphAlignment: Int = 1
         set(value) {
             val next = value.coerceIn(0, 2)
@@ -100,7 +117,8 @@ class PrompterView(context: Context) : View(context) {
         rebuildLayout()
     }
 
-    val lineHeightPx: Int get() = (paint.fontMetricsInt.let { it.descent - it.ascent } * LINE_SPACING).toInt()
+    val lineHeightPx: Int get() = layout?.takeIf { it.lineCount > 1 }?.let { it.getLineTop(1) - it.getLineTop(0) }
+        ?: (paint.fontMetricsInt.let { it.descent - it.ascent } * lineSpacingMultiplier).toInt().coerceAtLeast(1)
 
     fun setScript(m: ScriptModel) {
         model = m
@@ -139,7 +157,12 @@ class PrompterView(context: Context) : View(context) {
             val t = tokens[nextToken]
             text.setSpan(nextSpan, t.start, t.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
-        targetY = (l.getLineTop(currentLine.coerceAtLeast(0)) - linesAbove * lineHeightPx).coerceAtLeast(0f)
+        val readingLine = currentLine.coerceAtLeast(0)
+        val above = readLines?.let {
+            PrompterViewport.readOffset(readingLine, it, (height - paddingTop - paddingBottom).coerceAtLeast(0),
+                l::getLineTop, l::getLineBottom).toFloat()
+        } ?: (linesAbove * lineHeightPx)
+        targetY = (l.getLineTop(readingLine) - above).coerceAtLeast(0f)
         if (!animate) posY = targetY
         invalidate()
     }
@@ -152,7 +175,7 @@ class PrompterView(context: Context) : View(context) {
         }
         layout = StaticLayout.Builder.obtain(text, 0, text.length, paint, w)
             .setAlignment(when (paragraphAlignment) { 1 -> Layout.Alignment.ALIGN_CENTER; 2 -> Layout.Alignment.ALIGN_OPPOSITE; else -> Layout.Alignment.ALIGN_NORMAL })
-            .setLineSpacing(0f, LINE_SPACING)
+            .setLineSpacing(0f, lineSpacingMultiplier)
             .setIncludePad(false)
             .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
             .build()
@@ -180,7 +203,7 @@ class PrompterView(context: Context) : View(context) {
         canvas.translate(paddingLeft.toFloat(), paddingTop - posY)
         if (model.tokens.isNotEmpty() && nextToken < model.tokens.size) {
             val top = l.getLineTop(currentLine).toFloat()
-            val bottom = l.getLineBottom(currentLine).toFloat() - (LINE_SPACING - 1f) * lineHeightPx / LINE_SPACING
+            val bottom = l.getLineBottom(currentLine).toFloat() - (lineSpacingMultiplier - 1f) * lineHeightPx / lineSpacingMultiplier
             val x = -dp(9f)
             markRect.set(x, top + dp(3f), x + dp(3.5f), bottom - dp(1f))
             canvas.drawRoundRect(markRect, dp(2f), dp(2f), markPaint)

@@ -126,7 +126,8 @@ class OverlayController(private val context: Context, private val windowType: In
         topSpacer = View(context)
         prompter = PrompterView(context).apply {
             setTextSizeSp(fontSp.toFloat())
-            linesAbove = 0f
+            readLines = app.settings.overlayReadLines
+            lineSpacingMultiplier = app.settings.overlayLineSpacing / 100f
             wordHighlight = app.settings.wordHighlight
             paragraphAlignment = app.settings.textAlignment
             onWordTap = { app.engine.jumpToToken(it) }
@@ -349,7 +350,7 @@ class OverlayController(private val context: Context, private val windowType: In
 
     private fun minimumWindowSize(): Pair<Int, Int> {
         val chrome = (if (locked) 0 else dp(84)) +
-            (if (tuneRow.visibility == View.VISIBLE) tuneRow.measuredHeight.coerceAtLeast(dp(144)) else 0) +
+            (if (tuneRow.visibility == View.VISIBLE) tuneRow.measuredHeight.coerceAtLeast(dp(180)) else 0) +
             (if (diag.visibility == View.VISIBLE) dp(44) else 0)
         return OverlayGeometry.minimum(frame?.angle ?: 0,
             dp(if (tuneRow.visibility == View.VISIBLE) 320 else 240), prompter.lineHeightPx + dp(36) + chrome + safeTop)
@@ -547,6 +548,8 @@ class OverlayController(private val context: Context, private val windowType: In
     private fun render(s: SessionEngine.State) {
         if (frame == null) return
         prompter.paragraphAlignment = app.settings.textAlignment
+        prompter.readLines = app.settings.overlayReadLines
+        prompter.lineSpacingMultiplier = app.settings.overlayLineSpacing / 100f
         if (lastScript !== app.scripts.model) {
             lastScript = app.scripts.model
             prompter.setScript(app.scripts.model)
@@ -602,7 +605,7 @@ class OverlayController(private val context: Context, private val windowType: In
 
     private fun buildTuneRow(): View {
         val s = app.settings
-        // Two by two: four groups in one row don't fit a phone, and a row that scrolls sideways hides half of them.
+        // Two controls per row keep every setting visible on a phone.
         fun row(vararg groups: View) = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -629,6 +632,12 @@ class OverlayController(private val context: Context, private val windowType: In
                     tuneGroup(R.string.overlay_tune_font, { "$fontSp" }, { changeFont(-2) }, { changeFont(2) }),
                     tuneGroup(R.string.overlay_tune_lines, { "${s.overlayLines}" }, { changeLines(-1) }, { changeLines(1) })
                         .also { linesGroup = it },
+                ),
+            )
+            addView(
+                row(
+                    tuneGroup(R.string.overlay_tune_read_lines, { "${s.overlayReadLines}" }, { changeReadLines(-1) }, { changeReadLines(1) }),
+                    tuneGroup(R.string.overlay_tune_line_spacing, { "${s.overlayLineSpacing}%" }, { changeLineSpacing(-4) }, { changeLineSpacing(4) }),
                 ),
             )
             addView(
@@ -694,6 +703,7 @@ class OverlayController(private val context: Context, private val windowType: In
     private fun changeLines(delta: Int) {
         val old = app.settings.overlayLines
         app.settings.overlayLines = (old + delta).coerceIn(1, 8)
+        prompter.readLines = app.settings.overlayReadLines
         val change = (app.settings.overlayLines - old) * prompter.lineHeightPx
         windowBounds?.let { rect ->
             windowBounds = if (frame?.angle == 0) rect.copy(height = rect.height + change) else rect.copy(width = rect.width + change)
@@ -701,6 +711,27 @@ class OverlayController(private val context: Context, private val windowType: In
         applyPlacement()
         saveBounds()
         frame?.let { wm.updateViewLayout(it, params) }
+    }
+
+    /** Apply reading preferences without recreating the window or resetting recognition. */
+    fun refreshTextSettings() {
+        if (frame == null) return
+        prompter.readLines = app.settings.overlayReadLines
+        prompter.lineSpacingMultiplier = app.settings.overlayLineSpacing / 100f
+        tuneValues.forEach { it() }
+        applyPlacement()
+        frame?.let { wm.updateViewLayout(it, params) }
+        if (locked) positionBubble()
+    }
+
+    private fun changeReadLines(delta: Int) {
+        app.settings.overlayReadLines += delta
+        refreshTextSettings()
+    }
+
+    private fun changeLineSpacing(delta: Int) {
+        app.settings.overlayLineSpacing += delta
+        refreshTextSettings()
     }
 
     private fun changeAlpha(delta: Int) {

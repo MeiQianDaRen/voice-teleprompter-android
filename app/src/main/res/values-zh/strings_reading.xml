@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="overlay_tune_read_lines">已读行数</string>
+    <string name="overlay_tune_line_spacing">行距</string>
+    <string name="settings_read_lines_hint">默认 0；最多为显示行数减 1，至少留一行给当前阅读行。窗口变小、字号或行距变大时，实际显示会自动减少。</string>
+    <string name="settings_line_spacing_hint" formatted="false">100%–200%，默认 112%；数值越大，行间距离越大。</string>
+</resources>

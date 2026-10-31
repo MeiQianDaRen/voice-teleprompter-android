@@ -269,6 +269,8 @@ private fun OverlayPage() {
     var floatingButton by remember { mutableStateOf(s.floatingButton) }
     var alignment by remember { mutableIntStateOf(s.textAlignment) }
     var lines by remember { mutableIntStateOf(s.overlayLines) }
+    var readLines by remember { mutableIntStateOf(s.overlayReadLines) }
+    var lineSpacing by remember { mutableIntStateOf(s.overlayLineSpacing) }
     var font by remember { mutableIntStateOf(s.fontSp) }
     var alpha by remember { mutableIntStateOf(s.overlayAlpha) }
     var autoRotate by remember { mutableStateOf(s.autoRotate) }
@@ -290,8 +292,39 @@ private fun OverlayPage() {
     }
     StepperRow(
         stringResource(R.string.settings_lines_title), "$lines", null,
-        onMinus = { lines = (lines - 1).coerceAtLeast(1); s.overlayLines = lines },
-        onPlus = { lines = (lines + 1).coerceAtMost(8); s.overlayLines = lines },
+        onMinus = {
+            lines = (lines - 1).coerceAtLeast(1); s.overlayLines = lines
+            readLines = s.overlayReadLines; OverlayHost.refreshTextSettings()
+        },
+        onPlus = {
+            lines = (lines + 1).coerceAtMost(8); s.overlayLines = lines
+            readLines = s.overlayReadLines; OverlayHost.refreshTextSettings()
+        },
+    )
+    StepperRow(
+        stringResource(R.string.overlay_tune_read_lines), "$readLines",
+        stringResource(R.string.settings_read_lines_hint),
+        onMinus = {
+            s.overlayReadLines = readLines - 1; readLines = s.overlayReadLines
+            OverlayHost.refreshTextSettings()
+        },
+        onPlus = {
+            s.overlayReadLines = readLines + 1; readLines = s.overlayReadLines
+            OverlayHost.refreshTextSettings()
+        },
+    )
+    StepperRow(
+        stringResource(R.string.overlay_tune_line_spacing),
+        stringResource(R.string.settings_percent_value, lineSpacing),
+        stringResource(R.string.settings_line_spacing_hint),
+        onMinus = {
+            s.overlayLineSpacing = lineSpacing - 4; lineSpacing = s.overlayLineSpacing
+            OverlayHost.refreshTextSettings()
+        },
+        onPlus = {
+            s.overlayLineSpacing = lineSpacing + 4; lineSpacing = s.overlayLineSpacing
+            OverlayHost.refreshTextSettings()
+        },
     )
     StepperRow(
         stringResource(R.string.settings_font_title), "$font", null,
