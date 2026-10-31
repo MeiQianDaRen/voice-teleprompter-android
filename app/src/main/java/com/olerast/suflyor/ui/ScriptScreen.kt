@@ -69,7 +69,7 @@ fun ScriptScreen(
     var showSpeed by remember { mutableStateOf(false) }
     // Read on every composition: the floating window's Aa row may have changed it meanwhile.
     val wpm = app.settings.autoScrollWpm
-    val effectiveWpm = app.settings.readingWpm(model.spokenTokens).toInt().coerceAtLeast(1)
+    val effectiveWpm = app.settings.timedScrollWpm.toInt().coerceAtLeast(1)
     val scriptId = app.scripts.currentId
     val lang = app.settings.speechLangFor(doc)
 

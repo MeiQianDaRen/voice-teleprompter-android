@@ -144,18 +144,6 @@ class Settings(context: Context) {
         set(v) {
             wpmState.intValue = v
             prefs.edit().putInt("autoScrollWpm", v).apply()
-            paceFromDuration = false
-        }
-    private val durationState = androidx.compose.runtime.mutableStateOf(prefs.getBoolean("paceFromDuration", !prefs.contains("autoScrollWpm")))
-    var paceFromDuration: Boolean
-        get() = durationState.value
-        set(v) { durationState.value = v; prefs.edit().putBoolean("paceFromDuration", v).apply() }
-    private val targetSecondsState = androidx.compose.runtime.mutableIntStateOf(prefs.getInt("targetDurationSec", 180).coerceIn(15, 7200))
-    var targetDurationSec: Int
-        get() = targetSecondsState.intValue
-        set(v) {
-            targetSecondsState.intValue = v.coerceIn(15, 7200)
-            prefs.edit().putInt("targetDurationSec", targetSecondsState.intValue).apply()
         }
     private val speedState = androidx.compose.runtime.mutableIntStateOf(prefs.getInt("scrollSpeedPercent", 100).coerceIn(50, 300))
     var scrollSpeedPercent: Int
@@ -164,9 +152,7 @@ class Settings(context: Context) {
             speedState.intValue = v.coerceIn(50, 300)
             prefs.edit().putInt("scrollSpeedPercent", speedState.intValue).apply()
         }
-    fun readingWpm(words: Int): Float = com.olerast.suflyor.session.ReadingPace.perMinute(
-        words, targetDurationSec, autoScrollWpm, paceFromDuration, scrollSpeedPercent,
-    )
+    val timedScrollWpm: Float get() = com.olerast.suflyor.session.ReadingPace.perMinute(autoScrollWpm, scrollSpeedPercent)
 
     var showDiagnostics: Boolean
         get() = prefs.getBoolean("showDiagnostics2", false)
@@ -181,9 +167,7 @@ class Settings(context: Context) {
     var leadWords: Int
         get() = prefs.getInt("leadWords", 1)
         set(v) = prefs.edit().putInt("leadWords", v).apply()
-    var wordHighlight: Boolean
-        get() = prefs.getBoolean("wordHighlight", false)
-        set(v) = prefs.edit().putBoolean("wordHighlight", v).apply()
+
 
     /** Background opacity of the floating window, percent. */
     var overlayAlpha: Int

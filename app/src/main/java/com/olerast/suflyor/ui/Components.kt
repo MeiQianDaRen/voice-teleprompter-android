@@ -230,7 +230,6 @@ fun Prompter(
     motion: com.olerast.suflyor.overlay.ReadingMotion.Sample? = null,
     onWordTap: (Int) -> Unit,
 ) {
-    val highlight = App.instance.settings.wordHighlight
     AndroidView(
         factory = { ctx ->
             PrompterView(ctx).apply {
@@ -246,7 +245,6 @@ fun Prompter(
                 v.setScript(model)
             }
             v.linesAbove = linesAbove
-            v.wordHighlight = highlight
             v.paragraphAlignment = App.instance.settings.textAlignment
             v.mirrorX = mirrorX
             v.mirrorY = mirrorY
@@ -310,23 +308,13 @@ fun SpeedStepper(wpm: Int, onChange: (Int) -> Unit) {
         onMinus = { onChange((wpm - WPM_STEP).coerceAtLeast(MIN_WPM)) },
         onPlus = { onChange((wpm + WPM_STEP).coerceAtMost(MAX_WPM)) },
     )
-    ReadingPaceControls()
+    ScrollSpeedControls()
 }
 
 @Composable
-fun ReadingPaceControls() {
+fun ScrollSpeedControls() {
     val s = App.instance.settings
-    val useDuration = s.paceFromDuration
-    val seconds = s.targetDurationSec
     val percent = s.scrollSpeedPercent
-    ToggleRow(stringResource(R.string.reading_duration_title), stringResource(R.string.reading_duration_hint), useDuration) {
-        s.paceFromDuration = it
-    }
-    if (useDuration) StepperRow(
-        stringResource(R.string.reading_target_title), formatDuration(seconds), stringResource(R.string.reading_target_hint),
-        onMinus = { s.targetDurationSec -= 15 },
-        onPlus = { s.targetDurationSec += 15 },
-    )
     StepperRow(
         stringResource(R.string.reading_speed_title), java.lang.String.format(java.util.Locale.ROOT, "%.2fx", percent / 100f),
         stringResource(R.string.reading_speed_hint),

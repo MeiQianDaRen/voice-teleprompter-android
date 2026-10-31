@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="reading_retreated">Возврат назад</string>
-    <string name="reading_duration_title">Скорость по длительности</string>
-    <string name="reading_duration_hint">Длина текста / длительность. Изменение слов в минуту включает ручную скорость.</string>
-    <string name="reading_target_title">Длительность</string>
-    <string name="reading_target_hint">Шаг 15 секунд; расчёт при 1.00x.</string>
     <string name="reading_speed_title">Множитель скорости</string>
-    <string name="reading_speed_hint">0.50x–3.00x, шаг 0.05x. Голосовой режим корректирует движение и ждёт во время пауз.</string>
+    <string name="reading_speed_hint">Только для режимов скорости и звука: 0.50x–3.00x, шаг 0.05x. Голосовой режим сам определяет темп речи.</string>
     <string name="reading_speed_short">Темп</string>
-    <string name="reading_target_short">Время</string>
-    <string name="reading_duration_on">Основа: длительность (нажмите для смены)</string>
-    <string name="reading_duration_off">Основа: слов/мин (нажмите для смены)</string>
 </resources>

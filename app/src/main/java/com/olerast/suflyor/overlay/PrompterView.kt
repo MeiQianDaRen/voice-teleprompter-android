@@ -9,7 +9,7 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.Shader
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.RectF
+import android.graphics.Path
 import android.graphics.Typeface
 import android.os.SystemClock
 import android.text.Layout
@@ -27,29 +27,21 @@ import com.olerast.suflyor.script.ScriptModel
 import com.olerast.suflyor.R
 import kotlin.math.floor
 
-/** Steady frame-clock scrolling, a clear reading-line band and a gently moving word-group focus. */
+/** Karaoke text-only colour wipes, with confirmed reading separated from cross-line prediction. */
 class PrompterView(context: Context) : View(context) {
     private val paint = TextPaint(TextPaint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         typeface = Typeface.create("sans-serif", Typeface.NORMAL)
     }
-    private val markPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ACCENT }
-    private val markRect = RectF()
     private var model: ScriptModel = ScriptModel.EMPTY
     private var text = SpannableString("")
     private var layout: StaticLayout? = null
 
-    private val spokenSpan = ForegroundColorSpan(Color.argb(95, 255, 255, 255))
-    private val focusPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = HIGHLIGHT }
-    private val rowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = HIGHLIGHT }
-    private val rowStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = HIGHLIGHT; style = Paint.Style.STROKE }
     private val fadePaint = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN) }
     private val noticePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = HIGHLIGHT; textSize = dp(13f) }
-    private val highlightRect = RectF()
-    private val focusMotion = HighlightMotion()
-    private val rowMotion = HighlightMotion()
+    private val colourPath = Path()
+    private var readProgress = KaraokeProgress()
     private val readingMotion = ReadingMotion()
-    private var wordByToken = emptyArray<IntRange?>()
     private var spoken = IntArray(0)
     private var rowFirst = IntArray(0)
     private var rowEnd = IntArray(0)
@@ -88,13 +80,6 @@ class PrompterView(context: Context) : View(context) {
             if (field == next) return
             field = next
             rebuildLayout()
-        }
-
-    var wordHighlight = false
-        set(v) {
-            if (field == v) return
-            field = v
-            applyProgress(false)
         }
 
     var onWordTap: ((tokenIndex: Int) -> Unit)? = null
@@ -150,7 +135,7 @@ class PrompterView(context: Context) : View(context) {
         }
         nextToken = 0
         spoken = m.tokens.indices.filter { m.tokens[it].spoken }.toIntArray()
-        wordByToken = HighlightLayout.words(m.displayText, m.tokens, m.lang == com.olerast.suflyor.script.SpeechLang.ZH)
+        readProgress = KaraokeProgress()
         motionSample = ReadingMotion.Sample()
         readingMotion.reset()
         manualUntil = 0L
@@ -169,10 +154,8 @@ class PrompterView(context: Context) : View(context) {
         nextToken = nextTokenIndex.coerceIn(0, model.tokens.size)
         val ordinal = spoken.binarySearch(nextToken).let { if (it < 0) -it - 1 else it }
         val source = motion ?: ReadingMotion.Sample(ordinal.toFloat())
-        // Do not forecast past the confirmed reading row: short rows must not scroll out of view.
-        val rowCeiling = rowEnd.getOrNull(ordinal)?.toFloat()?.minus(0.001f) ?: source.ceiling
-        val ceiling = if (source.rate > 0f) minOf(source.ceiling, rowCeiling.coerceAtLeast(source.position)) else source.ceiling
-        motionSample = source.copy(ceiling = ceiling, forecast = source.forecast.coerceAtMost(ceiling))
+        motionSample = source
+        readProgress.update(ordinal.toFloat(), source.revision, now, animate)
         readingMotion.follow(motionSample, now, animate)
         if (changed || !animate) applyProgress(animate)
         invalidate()
@@ -180,30 +163,9 @@ class PrompterView(context: Context) : View(context) {
 
     private fun applyProgress(animate: Boolean) {
         val l = layout ?: return
-        text.removeSpan(spokenSpan)
-        val previousLine = currentLine
         currentLine = if (nextToken >= model.tokens.size) l.lineCount - 1 else l.getLineForOffset(model.tokens[nextToken].start)
-        // Keep the whole reading line bright. Updating individual character colours makes partials flicker.
-        val dimEnd = if (nextToken >= model.tokens.size) text.length else l.getLineStart(currentLine)
-        if (dimEnd > 0) text.setSpan(spokenSpan, 0, dimEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        val now = SystemClock.uptimeMillis()
-        val baseline = l.getLineBaseline(currentLine)
-        val fm = paint.fontMetrics
-        val row = if (spoken.isEmpty() || nextToken >= model.tokens.size) null else HighlightMotion.Box(
-            -dp(7f), baseline + fm.ascent - dp(5f), l.width + dp(7f), baseline + fm.descent + dp(5f), currentLine,
-        )
-        rowMotion.move(row, now, animate)
-        if (animate && (fixedReadingRow() || currentLine != previousLine)) {
-            val target = scrollTarget(l, readingMotion.frame(now))
-            if (target != targetY) {
-                scrollFrom = posY
-                scrollStarted = now
-                scrollDuration = ScrollMotion.duration(moveDelta)
-                targetY = target
-            }
-        }
         if (!animate) {
-            targetY = scrollTarget(l, readingMotion.frame(now))
+            targetY = scrollTarget(l, readingMotion.frame(SystemClock.uptimeMillis()))
             posY = targetY
             scrollDuration = 0L
         }
@@ -223,38 +185,42 @@ class PrompterView(context: Context) : View(context) {
             PrompterViewport.readOffset(l.lineCount - 1, it, (height - paddingTop - paddingBottom).coerceAtLeast(0),
                 l::getLineTop, l::getLineBottom).toFloat()
         } ?: (linesAbove * lineHeightPx)
-        return (y - above).coerceIn(0f, l.getLineTop(currentLine).toFloat().coerceAtLeast(0f))
+        return (y - above).coerceAtLeast(0f)
     }
 
-    private fun wordBox(l: StaticLayout, index: Int): HighlightMotion.Box? {
-        val range = wordByToken.getOrNull(index) ?: return null
-        val row = l.getLineForOffset(model.tokens[index].start)
-        val start = maxOf(range.first, l.getLineStart(row))
-        val end = minOf(range.last + 1, l.getLineVisibleEnd(row))
+    private data class TextPoint(val row: Int, val x: Float)
+
+    private fun textPoint(l: StaticLayout, offset: Float): TextPoint {
+        val at = offset.coerceIn(0f, text.length.toFloat())
+        var start = floor(at).toInt()
+        if (start < text.length && Character.isLowSurrogate(text[start])) start--
+        val end = if (start < text.length) (start + Character.charCount(Character.codePointAt(text, start))).coerceAtMost(text.length) else start
+        val row = l.getLineForOffset(start)
         val a = l.getPrimaryHorizontal(start)
-        val b = if (end == l.getLineVisibleEnd(row)) l.getLineRight(row) else l.getPrimaryHorizontal(end)
-        val baseline = l.getLineBaseline(row)
-        val fm = paint.fontMetrics
-        return HighlightMotion.Box(minOf(a, b) - dp(3f), baseline + fm.ascent - dp(2f),
-            maxOf(a, b) + dp(3f), baseline + fm.descent + dp(2f), row)
+        val b = if (l.getLineForOffset(end) != row) l.getLineRight(row) else l.getPrimaryHorizontal(end)
+        val fraction = if (end == start) 0f else (at - start) / (end - start)
+        return TextPoint(row, a + (b - a) * fraction)
     }
 
-    private fun drawFocus(canvas: Canvas, motion: HighlightMotion, now: Long, row: Boolean) {
-        val f = motion.frame(now)
-        fun draw(box: HighlightMotion.Box?, alpha: Float) {
-            if (box == null || alpha <= 0f) return
-            highlightRect.set(box.left, box.top, box.right, box.bottom)
-            val fill = if (row) rowPaint else focusPaint
-            fill.alpha = ((if (row) 100f else 55f) * alpha).toInt()
-            canvas.drawRoundRect(highlightRect, dp(7f), dp(7f), fill)
-            if (row) {
-                rowStroke.alpha = (125f * alpha).toInt()
-                rowStroke.strokeWidth = dp(1f)
-                canvas.drawRoundRect(highlightRect, dp(7f), dp(7f), rowStroke)
-            }
+    /** Repaint glyphs inside a fractional selection; no coloured rectangles behind the text. */
+    private fun drawColour(canvas: Canvas, l: StaticLayout, start: Float, end: Float, colour: Int) {
+        if (start >= end || text.isEmpty()) return
+        val a = textPoint(l, start)
+        val b = textPoint(l, end)
+        val first = maxOf(a.row, l.getLineForVertical((posY - paddingTop).toInt().coerceAtLeast(0)))
+        val last = minOf(b.row, l.getLineForVertical((posY + height).toInt()))
+        colourPath.reset()
+        for (row in first..last) {
+            val left = if (row == a.row) a.x else l.getLineLeft(row)
+            val right = if (row == b.row) b.x else l.getLineRight(row)
+            colourPath.addRect(minOf(left, right), l.getLineTop(row).toFloat(), maxOf(left, right), l.getLineBottom(row).toFloat(), Path.Direction.CW)
         }
-        draw(f.previousBox, f.previousAlpha)
-        draw(f.box, f.alpha)
+        canvas.save()
+        canvas.clipPath(colourPath)
+        paint.color = colour
+        l.draw(canvas)
+        paint.color = Color.WHITE
+        canvas.restore()
     }
 
     private fun drawEdgeFade(canvas: Canvas, l: StaticLayout) {
@@ -306,7 +272,17 @@ class PrompterView(context: Context) : View(context) {
         val l = layout ?: return
         val now = SystemClock.uptimeMillis()
         val position = readingMotion.frame(now)
-        targetY = scrollTarget(l, position)
+        val at = floor(position).toInt().coerceIn(0, spoken.size.coerceAtLeast(1) - 1)
+        val token = spoken.getOrNull(at)
+        val previousLine = currentLine
+        currentLine = token?.let { l.getLineForOffset(model.tokens[it].start) } ?: 0
+        val nextY = scrollTarget(l, position)
+        if (fixedReadingRow() && nextY != targetY && now >= manualUntil && !wasManual) {
+            scrollFrom = posY
+            scrollStarted = now
+            scrollDuration = ScrollMotion.duration(if (currentLine < previousLine) -3 else 3)
+        }
+        targetY = nextY
         if (now >= manualUntil) {
             if (wasManual) {
                 scrollFrom = posY
@@ -317,28 +293,19 @@ class PrompterView(context: Context) : View(context) {
             posY = if (now - scrollStarted < scrollDuration)
                 ScrollMotion.position(scrollFrom, targetY, now - scrollStarted, scrollDuration) else targetY
         }
-        val at = floor(position).toInt().coerceIn(0, spoken.size.coerceAtLeast(1) - 1)
-        // Keep the word focus on the confirmed reading row, even if the baseline predicts the next row.
-        var visible = maxOf(nextToken, spoken.getOrNull(at) ?: model.tokens.size)
-        while (visible > nextToken && (visible >= model.tokens.size || !model.tokens[visible].spoken || l.getLineForOffset(model.tokens[visible].start) > currentLine)) visible--
-        val chinese = model.lang == com.olerast.suflyor.script.SpeechLang.ZH
-        val box = if ((wordHighlight || chinese) && nextToken < model.tokens.size) wordBox(l, visible) else null
-        focusMotion.move(box, now, true)
+        val read = readProgress.frame(now).coerceIn(0f, spoken.size.toFloat())
+        val cue = maxOf(read + 1f, position + 1f).coerceAtMost(spoken.size.toFloat())
+        val readOffset = KaraokeProgress.offset(model.tokens, spoken, read)
+        val cueOffset = KaraokeProgress.offset(model.tokens, spoken, cue)
         val layer = canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), null)
         canvas.save()
         if (mirrorX || mirrorY) canvas.scale(if (mirrorX) -1f else 1f, if (mirrorY) -1f else 1f, width / 2f, height / 2f)
         canvas.clipRect(0, 0, width, height)
         canvas.translate(paddingLeft.toFloat(), paddingTop - posY)
-        drawFocus(canvas, rowMotion, now, true)
-        drawFocus(canvas, focusMotion, now, false)
-        if (model.tokens.isNotEmpty() && nextToken < model.tokens.size) {
-            val top = l.getLineTop(currentLine).toFloat()
-            val bottom = l.getLineBottom(currentLine).toFloat() - (lineSpacingMultiplier - 1f) * lineHeightPx / lineSpacingMultiplier
-            markRect.set(-dp(9f), top + dp(3f), -dp(5.5f), bottom - dp(1f))
-            markPaint.color = HIGHLIGHT
-            canvas.drawRoundRect(markRect, dp(2f), dp(2f), markPaint)
-        }
+        paint.color = Color.WHITE
         l.draw(canvas)
+        drawColour(canvas, l, 0f, readOffset, READ_COLOUR)
+        drawColour(canvas, l, readOffset, cueOffset, HIGHLIGHT)
         drawEdgeFade(canvas, l)
         canvas.restore()
         canvas.restoreToCount(layer)
@@ -347,8 +314,8 @@ class PrompterView(context: Context) : View(context) {
             noticePaint.alpha = (255f * minOf(1f, (noticeUntil - now) / 180f)).toInt()
             canvas.drawText(message, width - paddingRight - noticePaint.measureText(message), paddingTop + dp(16f), noticePaint)
         }
-        if (readingMotion.running(now) || now < manualUntil || now - scrollStarted < scrollDuration ||
-            focusMotion.running(now) || rowMotion.running(now) || now < noticeUntil) postInvalidateOnAnimation()
+        if (readingMotion.running(now) || readProgress.running(now) || now < manualUntil ||
+            now - scrollStarted < scrollDuration || now < noticeUntil) postInvalidateOnAnimation()
     }
 
     private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
@@ -398,6 +365,7 @@ class PrompterView(context: Context) : View(context) {
     companion object {
         const val LINE_SPACING = 1.12f
         const val MANUAL_HOLD_MS = 3000L
+        val READ_COLOUR: Int = Color.rgb(116, 126, 125)
         val HIGHLIGHT: Int = Color.rgb(142, 196, 186)
         val ACCENT: Int = Color.rgb(255, 176, 32)
     }

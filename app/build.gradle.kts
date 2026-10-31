@@ -32,8 +32,8 @@ android {
         applicationId = "com.olerast.suflyor"
         minSdk = 29
         targetSdk = 36
-        versionCode = 17
-        versionName = "1.4.4"
+        versionCode = 18
+        versionName = "1.4.5"
         ndk {
             abiFilters += "arm64-v8a"
         }

@@ -5,22 +5,41 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HighlightPredictionTest {
+    @Test fun cadenceReactsQuicklyToFasterAndSlowerReading() {
+        val p = paced()
+        p.observe(5, false, 600)
+        assertTrue(p.averageRate >= 8f)
+        p.observe(6, false, 1000)
+        assertTrue(p.averageRate < 5f)
+    }
+
+    @Test fun rapidPartialBurstsNeedARealTimeSpanBeforeEstimatingCadence() {
+        val p = HighlightPrediction()
+        p.reset(0, 0)
+        p.observe(1, false, 100)
+        p.observe(2, false, 110)
+        assertEquals(0f, p.motionRate(110, true), 0f)
+        p.observe(3, false, 300)
+        assertEquals(10f, p.motionRate(300, true), 0.01f)
+    }
     @Test fun unmatchedSpeechCannotStartTheVisualBaseline() {
         val p = HighlightPrediction()
         p.reset(0, 0)
         p.observe(0, false, 100)
-        assertEquals(0f, p.motionRate(100, true, 3f), 0f)
+        assertEquals(0f, p.motionRate(100, true), 0f)
         p.observe(1, false, 200)
-        assertEquals(3f, p.motionRate(200, true, 3f), 0f)
+        assertEquals(0f, p.motionRate(200, true), 0f)
+        p.observe(2, false, 400)
+        assertEquals(5f, p.motionRate(400, true), 0f)
     }
 
     @Test fun baselineWaitsAtFinalPauseAndSentenceCeilings() {
         val p = paced()
-        assertEquals(5f, p.motionRate(500, true, 3f), 0f)
-        assertEquals(0f, p.motionRate(500, false, 3f), 0f)
-        assertEquals(0f, p.motionRate(1700, true, 3f), 0f)
+        assertEquals(5f, p.motionRate(500, true), 0f)
+        assertEquals(0f, p.motionRate(500, false), 0f)
+        assertEquals(0f, p.motionRate(1700, true), 0f)
         p.observe(3, true, 550)
-        assertEquals(0f, p.motionRate(550, true, 3f), 0f)
+        assertEquals(0f, p.motionRate(550, true), 0f)
         p.setSentenceEnds(listOf(5, 10))
         assertEquals(4, p.ceiling(3, 10, 6))
         assertEquals(3, p.ceiling(3, 10, 0))
@@ -32,14 +51,15 @@ class HighlightPredictionTest {
     private fun HighlightPrediction.at(actual: Int, now: Long, active: Boolean = true, limit: Int = 6) =
         target(actual, 100, now, active, limit)
 
-    @Test fun coldStartWaitsForEnoughPacingEvidence() {
+    @Test fun cadenceStartsAfterTwoReliableAdvancesWithoutAManualFallback() {
         val p = HighlightPrediction()
         p.reset(0, 0)
         assertEquals(0, p.at(0, 0))
         p.observe(1, false, 100)
         assertEquals(1, p.at(1, 100))
         p.observe(2, false, 300)
-        assertEquals(2, p.at(2, 300))
+        assertTrue(p.at(2, 300) > 2)
+        assertEquals(5f, p.averageRate, 0.01f)
     }
 
     @Test fun averageSpeedCompensatesLatencyAndExtrapolatesBetweenUpdates() {

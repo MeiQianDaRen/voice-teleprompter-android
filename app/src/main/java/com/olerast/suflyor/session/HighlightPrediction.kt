@@ -2,13 +2,13 @@ package com.olerast.suflyor.session
 
 import kotlin.math.roundToInt
 
-/** Visual look-ahead only. Never supplies a position to the speech aligner. */
+/** Learn cadence only from confirmed ASR progress. No manual WPM or target-duration baseline. */
 internal class HighlightPrediction {
-    private data class Sample(val position: Int, val at: Long)
-    private val samples = ArrayDeque<Sample>()
     private var actual = 0
     private var lastAdvance = 0L
     private var lastObserved = 0L
+    private var ratePosition = 0
+    private var rateAt = 0L
     private var ended = true
     private var progressSeen = false
     private var lastTarget = 0
@@ -22,26 +22,29 @@ internal class HighlightPrediction {
         actual = position
         lastAdvance = now
         lastObserved = now
-        lastTarget = position
-        samples.clear()
-        averageRate = 0f
+        ratePosition = position
+        rateAt = now
         ended = true
         progressSeen = false
+        lastTarget = position
+        averageRate = 0f
     }
 
     fun observe(position: Int, isFinal: Boolean, now: Long) {
         val delta = position - actual
         if (delta < 0 || delta > 12 || now < lastObserved || now - lastAdvance > 2000L) reset(position, now)
-        if (position > actual) progressSeen = true
-        if (position > actual || samples.isEmpty() && !isFinal) {
-            samples.addLast(Sample(position, now))
-            while (samples.size > 1 && now - samples.first().at > 4000L) samples.removeFirst()
-            val first = samples.first()
-            val duration = now - first.at
-            if (samples.size >= 3 && duration >= 400L) {
-                val measured = ((position - first.position) * 1000f / duration).coerceIn(0f, 12f)
-                averageRate = if (averageRate == 0f) measured else averageRate * 0.7f + measured * 0.3f
+        if (position > actual) {
+            val duration = now - rateAt
+            if (!progressSeen) {
+                ratePosition = position
+                rateAt = now
+            } else if (duration >= 120L) {
+                val measured = ((position - ratePosition) * 1000f / duration).coerceIn(0f, 16f)
+                averageRate = if (averageRate == 0f) measured else averageRate * 0.3f + measured * 0.7f
+                ratePosition = position
+                rateAt = now
             }
+            progressSeen = true
             lastAdvance = now
             ended = position in sentenceEnds
         }
@@ -51,8 +54,8 @@ internal class HighlightPrediction {
         if (ended) lastTarget = position
     }
 
-    fun motionRate(now: Long, active: Boolean, fallback: Float): Float =
-        if (!active || ended || !progressSeen || now - lastAdvance > 1200L) 0f else averageRate.takeIf { it > 0f } ?: fallback
+    fun motionRate(now: Long, active: Boolean): Float =
+        if (!active || ended || !progressSeen || now - lastAdvance > 1200L) 0f else averageRate
 
     fun ceiling(position: Int, total: Int, maxAhead: Int): Int {
         val boundary = sentenceEnds.firstOrNull { it > position } ?: total
@@ -67,9 +70,8 @@ internal class HighlightPrediction {
             lastTarget = position
             return position
         }
-        val ceiling = ceiling(position, total, maxAhead)
         val lead = (averageRate * (0.45f + age.coerceAtLeast(0) / 1000f)).roundToInt()
-        lastTarget = maxOf(position, lastTarget, position + lead).coerceAtMost(ceiling)
+        lastTarget = maxOf(position, lastTarget, position + lead).coerceAtMost(ceiling(position, total, maxAhead))
         return lastTarget
     }
 }

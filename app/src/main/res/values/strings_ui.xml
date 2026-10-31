@@ -75,9 +75,7 @@
         <item quantity="one">%d word</item>
         <item quantity="other">%d words</item>
     </plurals>
-    <string name="settings_lead_hint">Highlight follows your recent average speaking speed. Chinese leads by up to six characters; this setting caps English words. It settles at the recognized position when speech pauses or a sentence ends.</string>
-    <string name="settings_highlight_title">English word focus</string>
-    <string name="settings_highlight_hint">Chinese always uses line and word-group focus; this switch controls English words.</string>
+    <string name="settings_lead_hint">Voice mode learns recent speech cadence. Cyan text may predict across lines; Chinese leads by up to 6 characters. This setting caps English words. Confirmed text gradually dims.</string>
     <string name="settings_hotwords_title">Boost script words</string>
     <string name="settings_hotwords_hint">Better at rare words. Takes effect the next time the app starts</string>
 
@@ -118,7 +116,7 @@
 
     <string name="settings_section_autoscroll">Scrolling without voice</string>
     <string name="settings_wpm_title">Speed</string>
-    <string name="settings_wpm_hint">Words per minute: for auto-scroll and timing estimates</string>
+    <string name="settings_wpm_hint">For Speed, Sound and duration estimates only. Voice following learns speech cadence automatically.</string>
     <string name="settings_countdown_title">Countdown before start</string>
     <string name="settings_countdown_off">off</string>
     <string name="settings_countdown_value">%1$d s</string>
@@ -185,7 +183,7 @@
     <string name="settings_mirror_pick_hint">Pick the one in which the text reads the right way in the glass.</string>
     <string name="settings_speech_lang_default_title">Default speech language</string>
     <string name="settings_speech_lang_default_hint">For scripts where no language is chosen on the script screen.</string>
-    <string name="settings_timed_page_hint">For the Speed and Sound modes and the length estimate. Speed also changes on the script screen and in the window.</string>
+    <string name="settings_timed_page_hint">WPM and the multiplier apply to Speed and Sound only. Voice mode learns recent recognized progress automatically; no speed-baseline selection is required.</string>
     <string name="settings_scripts_page_hint">The same is in the ⋮ menu of the script list.</string>
     <string name="mirror_off">Off</string>
     <string name="mirror_horizontal">Horizontal</string>

@@ -72,9 +72,7 @@
         <item quantity="many">%d сл.</item>
         <item quantity="other">%d сл.</item>
     </plurals>
-    <string name="settings_lead_hint">Подсветка учитывает среднюю скорость речи. Для китайского предел — шесть иероглифов; здесь задаётся предел слов для английского. После паузы или конца фразы подсветка возвращается к распознанной позиции.</string>
-    <string name="settings_highlight_title">Подсветка английских слов</string>
-    <string name="settings_highlight_hint">Китайский использует строку и группы; переключатель управляет английскими словами.</string>
+    <string name="settings_lead_hint">Голосовой режим сам определяет темп. Цвет текста может опережать на следующую строку; до 6 китайских знаков. Здесь задаётся предел английских слов.</string>
     <string name="settings_hotwords_title">Подсказывать слова сценария</string>
     <string name="settings_hotwords_hint">Точнее узнаёт редкие слова. Применится со следующего запуска</string>
 
@@ -113,7 +111,7 @@
 
     <string name="settings_section_autoscroll">Прокрутка без голоса</string>
     <string name="settings_wpm_title">Скорость</string>
-    <string name="settings_wpm_hint">Слов в минуту: для режима «по скорости» и расчёта хронометража</string>
+    <string name="settings_wpm_hint">Для скорости, звука и оценки времени; голосовой режим сам определяет темп.</string>
     <string name="settings_countdown_title">Отсчёт перед стартом</string>
     <string name="settings_countdown_off">нет</string>
     <string name="settings_countdown_value">%1$d с</string>
@@ -178,7 +176,7 @@
     <string name="settings_mirror_pick_hint">Выбери вариант, при котором текст в стекле читается правильно.</string>
     <string name="settings_speech_lang_default_title">Язык речи по умолчанию</string>
     <string name="settings_speech_lang_default_hint">Для сценариев, у которых язык не выбран на экране сценария.</string>
-    <string name="settings_timed_page_hint">Для режимов «Скорость» и «Звук» и для оценки длительности. Скорость меняется и на экране сценария, и в окне.</string>
+    <string name="settings_timed_page_hint">Скорость и множитель действуют только в режимах скорости и звука. Голосовое слежение автоматически определяет темп без выбора основы скорости.</string>
     <string name="settings_scripts_page_hint">То же самое есть в меню «⋮» в списке сценариев.</string>
     <string name="mirror_off">Выкл</string>
     <string name="mirror_horizontal">По горизонтали</string>

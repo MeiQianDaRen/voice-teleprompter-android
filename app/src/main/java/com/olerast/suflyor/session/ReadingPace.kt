@@ -1,9 +1,6 @@
 package com.olerast.suflyor.session
 
+/** Explicit timer modes only; voice following never consumes manual speed settings. */
 object ReadingPace {
-    fun perMinute(words: Int, targetSeconds: Int, manualWpm: Int, useDuration: Boolean, percent: Int): Float {
-        val base = if (useDuration) words.coerceAtLeast(0) * 60f / targetSeconds.coerceIn(15, 7200)
-            else manualWpm.coerceIn(60, 260).toFloat()
-        return base * percent.coerceIn(50, 300) / 100f
-    }
+    fun perMinute(manualWpm: Int, percent: Int): Float = manualWpm.coerceIn(60, 260) * percent.coerceIn(50, 300) / 100f
 }

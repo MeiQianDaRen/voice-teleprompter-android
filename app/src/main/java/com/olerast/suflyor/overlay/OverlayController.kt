@@ -128,7 +128,6 @@ class OverlayController(private val context: Context, private val windowType: In
             setTextSizeSp(fontSp.toFloat())
             readLines = app.settings.overlayReadLines
             lineSpacingMultiplier = app.settings.overlayLineSpacing / 100f
-            wordHighlight = app.settings.wordHighlight
             paragraphAlignment = app.settings.textAlignment
             onWordTap = { app.engine.jumpToToken(it) }
         }
@@ -648,16 +647,8 @@ class OverlayController(private val context: Context, private val windowType: In
                 ),
             )
             addView(row(
-                tuneGroup(R.string.reading_target_short, { com.olerast.suflyor.ui.formatDuration(s.targetDurationSec) },
-                    { s.targetDurationSec -= 15; s.paceFromDuration = true }, { s.targetDurationSec += 15; s.paceFromDuration = true }),
                 tuneGroup(R.string.overlay_tune_speed, { "${s.autoScrollWpm}" }, { changeSpeed(-10) }, { changeSpeed(10) }),
             ))
-            addView(TextView(context).apply {
-                textSize = 13f; setTextColor(PrompterView.HIGHLIGHT); gravity = Gravity.CENTER; background = ripple()
-                val refresh = { text = context.getString(if (s.paceFromDuration) R.string.reading_duration_on else R.string.reading_duration_off) }
-                refresh(); tuneValues += refresh
-                setOnClickListener { s.paceFromDuration = !s.paceFromDuration; tuneValues.forEach { it() } }
-            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(40)))
         }
     }
 

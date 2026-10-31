@@ -373,7 +373,6 @@ private fun VoicePage() {
     var speechLang by remember { mutableStateOf(s.speechLang) }
     var lead by remember { mutableIntStateOf(s.leadWords) }
     var retakeChars by remember { mutableIntStateOf(s.chineseRetakeChars) }
-    var wordHighlight by remember { mutableStateOf(s.wordHighlight) }
     var hotwords by remember { mutableStateOf(s.useHotwords) }
     // Auto names the language it picked for the current script, so a wrong guess is visible here.
     // What the letters say, not the script's own choice: this hint explains what Auto does.
@@ -427,10 +426,6 @@ private fun VoicePage() {
             app.engine.onRetakeSettingChanged()
         },
     )
-    ToggleRow(stringResource(R.string.settings_highlight_title), stringResource(R.string.settings_highlight_hint), wordHighlight) {
-        wordHighlight = it
-        s.wordHighlight = it
-    }
     ToggleRow(stringResource(R.string.settings_hotwords_title), stringResource(R.string.settings_hotwords_hint), hotwords) {
         hotwords = it
         s.useHotwords = it
@@ -450,7 +445,7 @@ private fun TimedPage() {
         onMinus = { wpm = (wpm - WPM_STEP).coerceAtLeast(MIN_WPM); s.autoScrollWpm = wpm },
         onPlus = { wpm = (wpm + WPM_STEP).coerceAtMost(MAX_WPM); s.autoScrollWpm = wpm },
     )
-    ReadingPaceControls()
+    ScrollSpeedControls()
     StepperRow(
         stringResource(R.string.settings_countdown_title),
         if (countdown == 0) stringResource(R.string.settings_countdown_off) else stringResource(R.string.settings_countdown_value, countdown),
