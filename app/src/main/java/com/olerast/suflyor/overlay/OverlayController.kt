@@ -554,7 +554,7 @@ class OverlayController(private val context: Context, private val windowType: In
             lastScript = app.scripts.model
             prompter.setScript(app.scripts.model)
         }
-        prompter.setProgress(s.nextToken)
+        prompter.setProgress(s.nextToken, highlightTokenIndex = s.highlightToken)
         if (s.countdown > 0) {
             countdown.text = s.countdown.toString()
             countdown.visibility = View.VISIBLE

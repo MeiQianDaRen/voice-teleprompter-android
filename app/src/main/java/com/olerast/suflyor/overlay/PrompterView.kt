@@ -13,7 +13,6 @@ import android.text.SpannableString
 import android.text.Spanned
 import android.text.StaticLayout
 import android.text.TextPaint
-import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import android.util.TypedValue
@@ -40,7 +39,16 @@ class PrompterView(context: Context) : View(context) {
     private var layout: StaticLayout? = null
 
     private val spokenSpan = ForegroundColorSpan(Color.argb(95, 255, 255, 255))
-    private val nextSpan = BackgroundColorSpan(Color.argb(120, 255, 176, 32))
+    private val focusPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ACCENT }
+    private val focusStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ACCENT; style = Paint.Style.STROKE }
+    private val phrasePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ACCENT }
+    private val highlightRect = RectF()
+    private val focusMotion = HighlightMotion()
+    private var phraseByToken = emptyArray<IntRange?>()
+    private var currentPhrase: IntRange? = null
+    private var previousPhrase: IntRange? = null
+    private var phraseStarted = 0L
+    private var phraseDuration = 0L
     private val noteColor = Color.argb(170, 140, 200, 255)
 
     /** Lines of already-read text kept visible above the reading line. */
@@ -100,6 +108,7 @@ class PrompterView(context: Context) : View(context) {
         }
 
     private var nextToken = 0
+    private var highlightToken = 0
     private var currentLine = 0
     private var posY = 0f
     private var targetY = 0f
@@ -135,14 +144,19 @@ class PrompterView(context: Context) : View(context) {
             text.setSpan(StyleSpan(Typeface.ITALIC), r.first, r.last + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
         nextToken = 0
+        highlightToken = 0
+        phraseByToken = HighlightLayout.phrases(m.tokens)
+        currentPhrase = null
+        previousPhrase = null
         rebuildLayout()
         posY = targetY
     }
 
-    fun setProgress(nextTokenIndex: Int, animate: Boolean = true) {
-        if (nextTokenIndex == nextToken && layout != null) return
+    fun setProgress(nextTokenIndex: Int, animate: Boolean = true, highlightTokenIndex: Int = nextTokenIndex) {
+        if (nextTokenIndex == nextToken && highlightTokenIndex == highlightToken && layout != null) return
         moveDelta = nextTokenIndex - nextToken
         nextToken = nextTokenIndex
+        highlightToken = highlightTokenIndex
         applyProgress(animate)
     }
 
@@ -150,17 +164,12 @@ class PrompterView(context: Context) : View(context) {
         val l = layout ?: return
         val tokens = model.tokens
         text.removeSpan(spokenSpan)
-        text.removeSpan(nextSpan)
         val atEnd = nextToken >= tokens.size
         val previousLine = currentLine
         currentLine = if (atEnd) l.lineCount - 1 else l.getLineForOffset(tokens[nextToken].start)
         val chinese = model.lang == com.olerast.suflyor.script.SpeechLang.ZH
         val dimEnd = if (atEnd) text.length else if (chinese) tokens[nextToken].start else l.getLineStart(currentLine)
         if (dimEnd > 0) text.setSpan(spokenSpan, 0, dimEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        if ((wordHighlight || chinese) && !atEnd) {
-            val t = tokens[nextToken]
-            text.setSpan(nextSpan, t.start, t.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
         val readingLine = currentLine.coerceAtLeast(0)
         val above = readLines?.let {
             PrompterViewport.readOffset(readingLine, it, (height - paddingTop - paddingBottom).coerceAtLeast(0),
@@ -180,7 +189,51 @@ class PrompterView(context: Context) : View(context) {
             scrollStarted = now
             scrollDuration = ScrollMotion.duration(moveDelta)
         }
+        val now = SystemClock.uptimeMillis()
+        val visible = HighlightLayout.visibleToken(nextToken, highlightToken, tokens.size,
+            targetY + (height - paddingTop - paddingBottom).coerceAtLeast(0),
+            { l.getLineBottom(l.getLineForOffset(tokens[it].start)) }, { tokens[it].spoken })
+        val box = if ((wordHighlight || chinese) && visible < tokens.size) tokenBox(l, visible) else null
+        focusMotion.move(box, now, animate)
+        val phrase = phraseByToken.getOrNull(visible)
+        if (phrase != currentPhrase || !animate) {
+            previousPhrase = if (animate) currentPhrase else null
+            currentPhrase = phrase
+            phraseStarted = now
+            phraseDuration = if (animate) 180L else 0L
+        }
         invalidate()
+    }
+
+    private fun tokenBox(l: StaticLayout, index: Int): HighlightMotion.Box {
+        val token = model.tokens[index]
+        val row = l.getLineForOffset(token.start)
+        val end = minOf(token.end, l.getLineVisibleEnd(row))
+        val startX = l.getPrimaryHorizontal(token.start)
+        val endX = if (end == l.getLineVisibleEnd(row)) l.getLineRight(row) else l.getPrimaryHorizontal(end)
+        val baseline = l.getLineBaseline(row)
+        val metrics = paint.fontMetrics
+        return HighlightMotion.Box(minOf(startX, endX) - dp(2f), baseline + metrics.ascent - dp(1f),
+            maxOf(startX, endX, startX + dp(4f)) + dp(2f), baseline + metrics.descent + dp(1f), row)
+    }
+
+    private fun drawPhrase(canvas: Canvas, l: StaticLayout, range: IntRange?, alpha: Float) {
+        if (range == null || alpha <= 0f || text.isEmpty()) return
+        val end = (range.last + 1).coerceAtMost(text.length)
+        if (range.first >= end) return
+        phrasePaint.alpha = (25f * alpha).toInt().coerceIn(0, 25)
+        for (row in l.getLineForOffset(range.first)..l.getLineForOffset(end - 1)) {
+            val start = maxOf(range.first, l.getLineStart(row))
+            val stop = minOf(end, l.getLineVisibleEnd(row))
+            if (start >= stop) continue
+            val a = l.getPrimaryHorizontal(start)
+            val b = if (stop == l.getLineVisibleEnd(row)) l.getLineRight(row) else l.getPrimaryHorizontal(stop)
+            val baseline = l.getLineBaseline(row)
+            val metrics = paint.fontMetrics
+            highlightRect.set(minOf(a, b) - dp(4f), baseline + metrics.ascent - dp(2f),
+                maxOf(a, b) + dp(4f), baseline + metrics.descent + dp(2f))
+            canvas.drawRoundRect(highlightRect, dp(6f), dp(6f), phrasePaint)
+        }
     }
 
     private fun rebuildLayout() {
@@ -219,6 +272,19 @@ class PrompterView(context: Context) : View(context) {
         if (mirrorX || mirrorY) canvas.scale(if (mirrorX) -1f else 1f, if (mirrorY) -1f else 1f, width / 2f, height / 2f)
         canvas.clipRect(0, 0, width, height)
         canvas.translate(paddingLeft.toFloat(), paddingTop - posY)
+        val phraseFade = ScrollMotion.position(0f, 1f, now - phraseStarted, phraseDuration)
+        drawPhrase(canvas, l, previousPhrase, 1f - phraseFade)
+        drawPhrase(canvas, l, currentPhrase, phraseFade)
+        if (phraseFade >= 1f) previousPhrase = null
+        val focus = focusMotion.frame(now)
+        focus.box?.let { box ->
+            highlightRect.set(box.left, box.top, box.right, box.bottom)
+            focusPaint.alpha = (105f * focus.alpha).toInt().coerceIn(0, 105)
+            focusStroke.alpha = (150f * focus.alpha).toInt().coerceIn(0, 150)
+            focusStroke.strokeWidth = dp(1f)
+            canvas.drawRoundRect(highlightRect, dp(4f), dp(4f), focusPaint)
+            canvas.drawRoundRect(highlightRect, dp(4f), dp(4f), focusStroke)
+        }
         if (model.tokens.isNotEmpty() && nextToken < model.tokens.size) {
             val top = l.getLineTop(currentLine).toFloat()
             val bottom = l.getLineBottom(currentLine).toFloat() - (lineSpacingMultiplier - 1f) * lineHeightPx / lineSpacingMultiplier
@@ -228,7 +294,7 @@ class PrompterView(context: Context) : View(context) {
         }
         l.draw(canvas)
         canvas.restore()
-        if (posY != targetY || now < manualUntil) postInvalidateOnAnimation()
+        if (posY != targetY || now < manualUntil || focusMotion.running(now) || phraseFade < 1f) postInvalidateOnAnimation()
     }
 
     private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {

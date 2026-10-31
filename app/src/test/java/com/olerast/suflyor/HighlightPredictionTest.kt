@@ -1,0 +1,119 @@
+package com.olerast.suflyor
+
+import com.olerast.suflyor.session.HighlightPrediction
+import org.junit.Assert.*
+import org.junit.Test
+
+class HighlightPredictionTest {
+    private fun paced() = HighlightPrediction().apply {
+        reset(0, 0)
+        observe(1, false, 0); observe(2, false, 200); observe(3, false, 400)
+    }
+    private fun HighlightPrediction.at(actual: Int, now: Long, active: Boolean = true, limit: Int = 6) =
+        target(actual, 100, now, active, limit)
+
+    @Test fun coldStartWaitsForEnoughPacingEvidence() {
+        val p = HighlightPrediction()
+        p.reset(0, 0)
+        assertEquals(0, p.at(0, 0))
+        p.observe(1, false, 100)
+        assertEquals(1, p.at(1, 100))
+        p.observe(2, false, 300)
+        assertEquals(2, p.at(2, 300))
+    }
+
+    @Test fun averageSpeedCompensatesLatencyAndExtrapolatesBetweenUpdates() {
+        val p = paced()
+        assertEquals(5f, p.averageRate, 0.01f)
+        assertEquals(5, p.at(3, 400))
+        assertEquals(6, p.at(3, 600))
+        assertEquals(7, p.at(3, 800))
+    }
+
+    @Test fun predictionHasAHardLeadLimitEvenAtHighSpeed() {
+        val p = HighlightPrediction()
+        p.observe(3, false, 0); p.observe(6, false, 200); p.observe(9, false, 400)
+        assertTrue(p.at(9, 1000) <= 15)
+        assertEquals(10, p.at(9, 1000, limit = 1))
+        assertEquals(9, p.at(9, 1000, limit = 0))
+    }
+
+    @Test fun finalReturnsToActualAndCannotPredictAgainWithoutNewProgress() {
+        val p = paced()
+        assertTrue(p.at(3, 500) > 3)
+        p.observe(3, true, 550)
+        assertEquals(3, p.at(3, 550))
+        assertEquals(3, p.at(3, 700))
+        p.observe(4, false, 800)
+        assertTrue(p.at(4, 800) > 4)
+    }
+
+    @Test fun textualSentenceBoundaryCapsAndSettlesTheForecast() {
+        val p = HighlightPrediction()
+        p.setSentenceEnds(listOf(10, 20))
+        p.observe(6, false, 0); p.observe(7, false, 200); p.observe(8, false, 400)
+        assertEquals(9, p.at(8, 700))
+        p.observe(10, false, 800)
+        assertEquals(10, p.at(10, 800))
+        p.observe(11, false, 1000)
+        assertTrue(p.at(11, 1000) > 11)
+        assertTrue(p.at(11, 1000) < 20)
+    }
+
+    @Test fun staleOrInactiveSpeechSettlesWithoutDriftingOnATimer() {
+        val p = paced()
+        assertTrue(p.at(3, 1100) > 3)
+        assertEquals(3, p.at(3, 1101))
+        assertEquals(3, p.at(3, 1200))
+        val paused = paced()
+        assertEquals(3, paused.at(3, 500, active = false))
+        assertEquals(3, paused.at(3, 600))
+    }
+
+    @Test fun manualSeekAndRetakeDiscardTheOldRateAndForecast() {
+        val p = paced()
+        p.at(3, 600)
+        p.reset(20, 700)
+        assertEquals(20, p.at(20, 700))
+        assertEquals(0f, p.averageRate, 0f)
+        val back = paced()
+        back.observe(1, false, 600)
+        assertEquals(1, back.at(1, 600))
+        assertEquals(0f, back.averageRate, 0f)
+    }
+
+    @Test fun largeRecognitionJumpsAreNotMistakenForFastSpeaking() {
+        val p = paced()
+        p.observe(50, false, 600)
+        assertEquals(50, p.at(50, 600))
+        assertEquals(0f, p.averageRate, 0f)
+    }
+
+    @Test fun unevenBatchSizesProduceTheSameAverageRate() {
+        val batch = HighlightPrediction()
+        batch.observe(2, false, 0); batch.observe(4, false, 400); batch.observe(6, false, 800)
+        assertEquals(paced().averageRate, batch.averageRate, 0.01f)
+    }
+
+    @Test fun slowerNewSpeechDoesNotMakeFocusWobbleBackwardMidSentence() {
+        val p = paced()
+        val ahead = p.at(3, 800)
+        p.observe(4, false, 900)
+        assertTrue(p.at(4, 900) >= ahead)
+        assertTrue(p.at(4, 900) <= 10)
+    }
+
+    @Test fun endOfScriptAndUnexpectedPositionAreBounded() {
+        val p = paced()
+        assertEquals(3, p.target(3, 4, 700, true, 6))
+        assertEquals(4, p.target(4, 4, 700, true, 6))
+        assertEquals(60, p.at(60, 700))
+    }
+
+    @Test fun aLongPauseRequiresFreshSpeedSamples() {
+        val p = paced()
+        p.observe(4, false, 3000)
+        assertEquals(4, p.at(4, 3000))
+        assertEquals(0f, p.averageRate, 0f)
+    }
+}

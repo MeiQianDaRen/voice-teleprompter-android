@@ -107,6 +107,7 @@ fun RehearsalScreen(onBack: () -> Unit) {
             Prompter(
                 model = app.scripts.model,
                 nextToken = state.nextToken,
+                highlightToken = state.highlightToken,
                 fontSp = font,
                 linesAbove = 1.5f,
                 modifier = Modifier.fillMaxSize(),

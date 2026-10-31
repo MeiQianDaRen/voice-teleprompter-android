@@ -70,12 +70,12 @@
     <string name="settings_speech_lang_name_ru">Russian</string>
     <string name="settings_speech_lang_name_en">English</string>
     <string name="settings_speech_lang_name_zh">Chinese</string>
-    <string name="settings_lead_title">Look-ahead</string>
+    <string name="settings_lead_title">Highlight limit (English)</string>
     <plurals name="settings_lead_value">
         <item quantity="one">%d word</item>
         <item quantity="other">%d words</item>
     </plurals>
-    <string name="settings_lead_hint">How far the text runs ahead of what\'s recognized while you speak</string>
+    <string name="settings_lead_hint">Highlight follows your recent average speaking speed. Chinese leads by up to six characters; this setting caps English words. It settles at the recognized position when speech pauses or a sentence ends.</string>
     <string name="settings_highlight_title">Highlight the next word</string>
     <string name="settings_highlight_hint">Otherwise only the current line is marked</string>
     <string name="settings_hotwords_title">Boost script words</string>

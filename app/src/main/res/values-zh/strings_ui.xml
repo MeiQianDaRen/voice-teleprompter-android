@@ -52,11 +52,11 @@
     <string name="settings_speech_lang_name_ru">俄语</string>
     <string name="settings_speech_lang_name_en">英语</string>
     <string name="settings_speech_lang_name_zh">中文</string>
-    <string name="settings_lead_title">提前显示</string>
+    <string name="settings_lead_title">英文高亮提前上限</string>
     <plurals name="settings_lead_value">
         <item quantity="other">%d 个字词</item>
     </plurals>
-    <string name="settings_lead_hint">朗读时，文字比已识别的内容提前显示多少个字词</string>
+    <string name="settings_lead_hint">根据最近平均语速预判高亮。中文最多提前 6 字，此项设置英文的词数上限。停顿或语句结束后回到实际识别位置。</string>
     <string name="settings_highlight_title">高亮下一个字词</string>
     <string name="settings_highlight_hint">关闭时仅标记当前行</string>
     <string name="settings_hotwords_title">增强稿件词汇识别</string>

@@ -113,7 +113,7 @@ class Settings(context: Context) {
         get() = prefs.getInt("sampleRate", 48000)
         set(v) = prefs.edit().putInt("sampleRate", v).apply()
     var phraseMode: Boolean
-        get() = prefs.getBoolean("phraseMode", true)
+        get() = prefs.getBoolean("phraseMode", false)
         set(v) = prefs.edit().putBoolean("phraseMode", v).apply()
     var maxWords: Int
         get() = prefs.getInt("maxWords", 7)
@@ -129,7 +129,7 @@ class Settings(context: Context) {
                 .putInt("overlayReadLines", overlayReadLines.coerceAtMost(lines - 1)).apply()
         }
     var overlayReadLines: Int
-        get() = prefs.getInt("overlayReadLines", 0).coerceIn(0, overlayLines - 1)
+        get() = prefs.getInt("overlayReadLines", 1).coerceIn(0, overlayLines - 1)
         set(v) = prefs.edit().putInt("overlayReadLines", v.coerceIn(0, overlayLines - 1)).apply()
     var overlayLineSpacing: Int
         get() = prefs.getInt("overlayLineSpacing", 112).coerceIn(100, 200)

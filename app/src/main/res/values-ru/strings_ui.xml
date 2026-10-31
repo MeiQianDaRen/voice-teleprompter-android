@@ -65,14 +65,14 @@
     <string name="settings_speech_lang_name_ru">русский</string>
     <string name="settings_speech_lang_name_en">английский</string>
     <string name="settings_speech_lang_name_zh">китайский</string>
-    <string name="settings_lead_title">Упреждение</string>
+    <string name="settings_lead_title">Предел упреждения (английский)</string>
     <plurals name="settings_lead_value">
         <item quantity="one">%d сл.</item>
         <item quantity="few">%d сл.</item>
         <item quantity="many">%d сл.</item>
         <item quantity="other">%d сл.</item>
     </plurals>
-    <string name="settings_lead_hint">Насколько текст забегает вперёд распознанного, пока ты говоришь</string>
+    <string name="settings_lead_hint">Подсветка учитывает среднюю скорость речи. Для китайского предел — шесть иероглифов; здесь задаётся предел слов для английского. После паузы или конца фразы подсветка возвращается к распознанной позиции.</string>
     <string name="settings_highlight_title">Подсвечивать следующее слово</string>
     <string name="settings_highlight_hint">Иначе видна только текущая строка</string>
     <string name="settings_hotwords_title">Подсказывать слова сценария</string>

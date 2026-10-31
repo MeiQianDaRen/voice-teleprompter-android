@@ -72,6 +72,8 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         val partial: String = "",
         val lastFinal: String = "",
         val nextToken: Int = 0,
+        /** Visual forecast only; nextToken and position always retain confirmed reading progress. */
+        val highlightToken: Int = 0,
         val position: Int = 0,
         val total: Int = 0,
         val recordings: List<RecordingMonitor.Rec> = emptyList(),
@@ -93,6 +95,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     private val lock = Any()
     private var model: ScriptModel = ScriptModel.EMPTY
     private var tracker = ScriptTracker(emptyList())
+    private val highlightPrediction = HighlightPrediction()
 
     /** Language of [model], readable from the audio thread without the lock. */
     @Volatile
@@ -114,10 +117,6 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
 
     private val finalWords = ArrayDeque<String>()
     private var partialWords: List<String> = emptyList()
-
-    /** What the reader sees: the tracker position plus a small lead while speaking; never moves back by itself. */
-    private var displayPos = 0
-    private var lastSpeechAt = 0L
 
     // Capture-thread statistics for the periodic journal line.
     private var statFrames = 0
@@ -173,7 +172,13 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             tracker = ScriptTracker(m.tokens, m.lang, app.settings.chineseRetakeChars, ChinesePhonetics::key)
             finalWords.clear()
             partialWords = emptyList()
-            displayPos = 0
+            val spoken = m.tokens.filter { it.spoken }
+            val sentenceEnds = spoken.mapIndexedNotNull { i, t ->
+                val gapEnd = spoken.getOrNull(i + 1)?.start ?: m.displayText.length
+                if (i == spoken.lastIndex || m.displayText.substring(t.end, gapEnd).any { it in ".。！？!?；;\n" }) i + 1 else null
+            }
+            highlightPrediction.setSentenceEnds(sentenceEnds)
+            highlightPrediction.reset(0, SystemClock.elapsedRealtime())
             // A script in the other language needs the other model; the audio thread sees no recognizer meanwhile.
             asr?.takeIf { it.lang != m.lang }?.let {
                 stale = it
@@ -187,7 +192,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         } else {
             asr?.setBiasWords(m.biasWords())
         }
-        update { copy(nextToken = tracker.nextTokenIndex(), position = 0, total = tracker.size, partial = "", lastFinal = "") }
+        update { copy(nextToken = tracker.nextTokenIndex(), highlightToken = tracker.nextTokenIndex(), position = 0, total = tracker.size, partial = "", lastFinal = "") }
     }
 
     /** Frees the model of the old language first (they are large), then loads the new one if a session needs it. */
@@ -273,11 +278,11 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             finalWords.clear()
             partialWords = emptyList()
             pos = tracker.position
-            displayPos = pos
+            highlightPrediction.reset(pos, SystemClock.elapsedRealtime())
             next = tracker.nextTokenIndex()
         }
         autoCarry = 0.0
-        update { copy(position = pos, nextToken = next) }
+        update { copy(position = pos, nextToken = next, highlightToken = next) }
     }
 
     // ---- session ------------------------------------------------------------------------------------------------
@@ -362,7 +367,11 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     }
 
     fun stop() {
-        synchronized(lock) { tracker.cancelRetake() }
+        synchronized(lock) {
+            tracker.cancelRetake()
+            highlightPrediction.reset(tracker.position, SystemClock.elapsedRealtime())
+        }
+        update { copy(highlightToken = tracker.nextTokenIndex()) }
         main.removeCallbacks(ticker)
         capture?.stop()
         capture = null
@@ -416,7 +425,8 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     fun togglePause() {
         synchronized(lock) { tracker.cancelRetake() }
         val paused = !state.paused
-        update { copy(paused = paused) }
+        synchronized(lock) { highlightPrediction.reset(tracker.position, SystemClock.elapsedRealtime()) }
+        update { copy(paused = paused, highlightToken = tracker.nextTokenIndex()) }
         DiagLog.i(if (paused) "Paused" else "Resumed")
         if (!paused && state.scroll == Scroll.AUTO) startCountdown()
     }
@@ -424,7 +434,8 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     fun setScroll(scroll: Scroll) {
         synchronized(lock) { tracker.cancelRetake() }
         autoCarry = 0.0
-        update { copy(scroll = scroll) }
+        synchronized(lock) { highlightPrediction.reset(tracker.position, SystemClock.elapsedRealtime()) }
+        update { copy(scroll = scroll, highlightToken = tracker.nextTokenIndex()) }
         DiagLog.i(
             when (scroll) {
                 Scroll.AUTO -> "Scroll: auto, ${app.settings.autoScrollWpm} wpm"
@@ -518,7 +529,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         val pos: Int
         val next: Int
         val now = SystemClock.elapsedRealtime()
-        if (!upd.isFinal) lastSpeechAt = now
+        val highlight: Int
         synchronized(lock) {
             // A manual move or a new script happened while this audio was being recognized: it would undo the move.
             if (fromEpoch != epoch) return
@@ -535,13 +546,10 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
                     else tracker.onHypothesis(finalWords.toList() + partialWords)
             }
             pos = tracker.position
-            if (pos < before) displayPos = pos
-            // The lead hides recognition latency while following the voice; it has no meaning when paused or timed.
-            val voice = !state.paused && state.scroll == Scroll.VOICE
-            val maxLead = if (voice && lang != SpeechLang.ZH) app.settings.leadWords else 0
-            val lead = if (voice && now - lastSpeechAt < SPEAKING_MS) maxLead else 0
-            displayPos = maxOf(displayPos, minOf(pos + lead, tracker.size)).coerceAtMost(pos + maxLead)
-            next = tracker.tokenIndexAt(displayPos)
+            if (pos < before || moved?.reason?.startsWith("restart") == true) highlightPrediction.reset(pos, now)
+            highlightPrediction.observe(pos, upd.isFinal, now)
+            next = tracker.nextTokenIndex()
+            highlight = predictedHighlight(now)
         }
         moved?.let { u ->
             if (u.moved && u.reason != "follow") {
@@ -558,6 +566,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
                 lastFinal = if (upd.isFinal && upd.text.isNotBlank()) upd.text else lastFinal,
                 position = pos,
                 nextToken = next,
+                highlightToken = highlight,
             )
         }
     }
@@ -585,6 +594,15 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     private fun speechActive(now: Long) = !state.digitalSilence && state.silencedBySystem != true &&
         (lastVoiceAt == 0L || now - lastVoiceAt <= 1500L || state.levelDb > VOICE_MIN_DB)
 
+    /** Called under lock; the tracker never consumes the forecast. */
+    private fun predictedHighlight(now: Long): Int {
+        val s = state
+        val active = s.listening && !s.paused && s.scroll == Scroll.VOICE && !s.starting &&
+            !s.loadingModel && !s.autoFallback && !s.micFailed && countdownEndsAt == 0L && speechActive(now)
+        val limit = if (lang == SpeechLang.ZH) 6 else app.settings.leadWords.coerceIn(0, 4)
+        return tracker.tokenIndexAt(highlightPrediction.target(tracker.position, tracker.size, now, active, limit))
+    }
+
     private val ticker = object : Runnable {
         override fun run() {
             val now = SystemClock.elapsedRealtime()
@@ -611,8 +629,8 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
                     if (!speechActive(now)) tracker.silence()
                     val confirmed = if (speechActive(now)) tracker.confirmRetake(now) ?: tracker.confirmFollow(now) else null
                     confirmed?.let { result ->
-                        displayPos = result.position
-                        update { copy(position = result.position, nextToken = result.nextToken) }
+                        highlightPrediction.reset(result.position, now)
+                        update { copy(position = result.position, nextToken = result.nextToken, highlightToken = result.nextToken) }
                     }
                 } else tracker.cancelRetake()
             }
@@ -628,11 +646,18 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
                     val next: Int
                     synchronized(lock) {
                         tracker.reset(tracker.position + steps)
+                        highlightPrediction.reset(tracker.position, now)
                         pos = tracker.position
-                        displayPos = pos
                         next = tracker.nextTokenIndex()
                     }
-                    update { copy(position = pos, nextToken = next) }
+                    update { copy(position = pos, nextToken = next, highlightToken = next) }
+                }
+            }
+            synchronized(lock) {
+                // An ASR publication already queued on main owns its matching position and highlight.
+                if (state.position == tracker.position) {
+                    val highlight = predictedHighlight(now)
+                    if (highlight != state.highlightToken) update { copy(highlightToken = highlight) }
                 }
             }
             main.postDelayed(this, 100)
@@ -653,9 +678,6 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     }
 
     private companion object {
-        /** A partial result within this time means the reader is still talking. */
-        const val SPEAKING_MS = 900L
-
         /** Sound mode: text keeps moving this long after the last loud chunk, so short gaps between words don't stop it. */
         const val SOUND_HOLD_MS = 600L
         const val VOICE_MARGIN_DB = 10f
