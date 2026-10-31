@@ -658,7 +658,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             val fallbackTimed = (st.autoFallback || st.micFailed) && !(lang == SpeechLang.ZH && st.scroll == Scroll.VOICE)
             val timed = st.scroll == Scroll.AUTO || fallbackTimed || (st.scroll == Scroll.SOUND && talking)
             if (st.listening && !st.paused && countdownEndsAt == 0L && timed) {
-                autoCarry += app.settings.readingWpm(tracker.size) / 60.0 * dt.coerceIn(0.0, 0.25)
+                autoCarry += app.settings.readingWpm(tracker.size) / 60.0 * dt.coerceAtLeast(0.0)
                 if (autoCarry >= 1.0) {
                     val steps = autoCarry.toInt()
                     autoCarry -= steps

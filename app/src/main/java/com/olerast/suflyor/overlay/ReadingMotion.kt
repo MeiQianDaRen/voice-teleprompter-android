@@ -36,7 +36,8 @@ class ReadingMotion {
         val delta = next.forecast - current
         sample = next
         origin = if (animate && previous != null) current else next.position
-        correction = if (!animate || previous == null) 0f else if (!seek && next.rate > 0f && abs(delta) <= 2f) 0f else delta
+        correction = if (!animate || previous == null) 0f
+            else if (!seek && next.rate > 0f && (delta < 0f || abs(delta) <= 2f)) 0f else delta
         ceilingFrom = maxOf(origin, next.ceiling)
         started = now
         duration = if (!animate || previous == null) 0L else ScrollMotion.duration(if (seek) -3 else abs(delta).roundToInt())

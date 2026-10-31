@@ -30,6 +30,28 @@ class ReadingMotionTest {
         assertFalse(m.running(3000))
     }
 
+    @Test fun delayedForwardRecognitionNeverPullsTheSpeakingFocusBackwards() {
+        val m = ReadingMotion()
+        m.follow(ReadingMotion.Sample(3f, 5f, 9f, 5.25f), 0)
+        val before = m.frame(1100)
+        m.follow(ReadingMotion.Sample(4f, 5f, 10f, 6.25f), 1100)
+        var previous = before
+        for (t in 1100L..1600L step 16) {
+            val next = m.frame(t)
+            assertTrue(next >= previous)
+            previous = next
+        }
+    }
+
+    @Test fun aLongerTimerTickKeepsTheBaselineInStepWithTheFrameClock() {
+        val m = ReadingMotion()
+        m.follow(ReadingMotion.Sample(0f, 5f, 100f), 0)
+        val before = m.frame(1100)
+        m.follow(ReadingMotion.Sample(5.5f, 5f, 100f), 1100)
+        assertEquals(before, m.frame(1100), 0f)
+        assertEquals(6f, m.frame(1200), 0.001f)
+    }
+
     @Test fun pauseSettlesSmoothlyAndStaysAtConfirmedProgress() {
         val m = ReadingMotion()
         m.follow(ReadingMotion.Sample(0f, 5f, 10f), 0)
