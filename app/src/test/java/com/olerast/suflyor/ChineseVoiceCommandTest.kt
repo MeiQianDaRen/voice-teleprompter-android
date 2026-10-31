@@ -75,8 +75,8 @@ class ChineseVoiceCommandTest {
         assertEquals(0, t.onTranscript("欧了重新来", true, 1200).position)
     }
 
-    @Test fun commandRequiresTheExactWakePhrase() {
-        for (phrase in listOf("重新开始", "我们重新来", "从新开始", "从头开始", "返回开始", "欧了重新开", "欧乐重新开始", "欧了重新莱", "欧了返回开")) {
+    @Test fun commandRejectsMissingWakeUnknownWakeIncompleteActionAndArbitraryEdits() {
+        for (phrase in listOf("重新开始", "我们重新来", "从新开始", "从头开始", "返回开始", "欧了重新开", "欧洲重新开始", "欧门重新开始", "欧了重新走", "欧了返回开", "欧了重心开使")) {
             val t = tracker()
             t.reset(t.size)
             assertEquals(phrase, t.size, t.onTranscript(phrase, true, 0).position)
@@ -86,8 +86,90 @@ class ChineseVoiceCommandTest {
 
     @Test fun commandHotwordsSurviveTheVocabularyLimit() {
         val words = hotwordList(SpeechLang.ZH, List(1600) { "中文" } + listOf("欧了重新来")).split('/')
-        assertEquals(ChineseVoiceCommands.restartPhrases + "中文", words)
+        val commands = (ChineseVoiceCommands.restartPhrases + "欧了").map { "$it :3.0" }
+        assertEquals(commands + "中文", words)
+        assertEquals(commands.joinToString("/"), hotwordList(SpeechLang.ZH, listOf("正文"), includeScriptWords = false))
+        val large = hotwordList(SpeechLang.ZH, List(1600) { "专" + (0x4e00 + it).toChar() }).split('/')
+        assertEquals(1500, large.size)
+        assertEquals(commands, large.take(commands.size))
         assertFalse(hotwordList(SpeechLang.EN, listOf("English")).contains("欧了"))
+    }
+
+    @Test fun homophoneCommandsAreAcceptedOnFinalWithoutBroadEditMatching() {
+        for (phrase in listOf("欧乐重新开始", "欧勒重新来", "哦了从头开始", "噢了返回开始", "欧了重新莱", "欧了重心开始", "欧了重新开使", "欧了反回开始")) {
+            val t = tracker().apply { reset(size) }
+            assertEquals(phrase, 0, t.onTranscript(phrase, true, 100).position)
+        }
+    }
+
+    @Test fun weakPartialsNeedTwoDifferentHypothesesAndDoNotRestartAgainOnFinal() {
+        val t = tracker().apply { reset(size) }
+        assertEquals(t.size, t.onTranscript("欧乐重新开始", false, 100).position)
+        assertEquals(t.size, t.onTranscript("欧乐重新开始", false, 200).position)
+        val confirmed = t.onTranscript("欧乐重新开始" + text.take(4), false, 300)
+        assertEquals(4, confirmed.position)
+        assertTrue(confirmed.reason.startsWith("restart"))
+        val final = t.onTranscript("欧乐重新开始" + text.take(8), true, 400)
+        assertEquals(8, final.position)
+        assertFalse(final.reason.startsWith("restart"))
+    }
+
+    @Test fun everyCommandCanBeSplitAcrossFinalBoundaries() {
+        for (phrase in ChineseVoiceCommands.restartPhrases) for (split in 1 until phrase.length) {
+            val t = tracker().apply { reset(size) }
+            assertEquals(t.size, t.onTranscript(phrase.take(split), true, 100).position)
+            val partial = t.onTranscript(phrase.drop(split) + text.take(4), false, 1100)
+            assertEquals("$phrase at $split", 4, partial.position)
+            assertTrue(partial.reason.startsWith("restart"))
+            val final = t.onTranscript(phrase.drop(split) + text.take(8), true, 1300)
+            assertEquals(8, final.position)
+            assertFalse(final.reason.startsWith("restart"))
+        }
+    }
+
+    @Test fun consecutiveCommandUtterancesDoNotSwallowTheSecondRestart() {
+        for (phrase in ChineseVoiceCommands.restartPhrases) {
+            val t = tracker().apply { reset(size) }
+            assertEquals(5, t.onTranscript(phrase + text.take(5), true, 100).position)
+            val again = t.onTranscript(phrase, true, 1200)
+            assertEquals(0, again.position)
+            assertTrue(again.reason.startsWith("restart"))
+        }
+    }
+
+    @Test fun anAsrRevisionCannotRearmAnAlreadyHandledCommand() {
+        val t = tracker().apply { reset(size) }
+        assertEquals(5, t.onTranscript("欧了重新开始" + text.take(5), false, 100).position)
+        t.onTranscript("欧门重新开始" + text.take(5), false, 200)
+        val corrected = t.onTranscript("欧了重新开始" + text.take(8), false, 300)
+        assertEquals(8, corrected.position)
+        assertFalse(corrected.reason.startsWith("restart"))
+    }
+
+    @Test fun splitCommandsExpireAndManualSeeksClearTheirPrefix() {
+        val expired = tracker().apply { reset(size) }
+        expired.onTranscript("欧了", true, 100)
+        assertEquals(expired.size, expired.onTranscript("重新开始", true, 2101).position)
+        val manual = tracker().apply { reset(size) }
+        manual.onTranscript("欧了", true, 100)
+        manual.reset(manual.size)
+        assertEquals(manual.size, manual.onTranscript("重新开始", true, 1100).position)
+    }
+
+    @Test fun commandPrefixCanSpanThreeShortUtterancesWithoutExtendingItsDeadline() {
+        val t = tracker().apply { reset(size) }
+        t.onTranscript("欧了", true, 100)
+        t.onTranscript("重新", true, 700)
+        assertEquals(0, t.onTranscript("开始", true, 1400).position)
+        val expired = tracker().apply { reset(size) }
+        expired.onTranscript("欧了", true, 100)
+        expired.onTranscript("重新", true, 1700)
+        assertEquals(expired.size, expired.onTranscript("开始", true, 2200).position)
+    }
+
+    @Test fun systemPronunciationCanSupplyAnUnlistedActionHomophone() {
+        val detector = ChineseVoiceCommands.Detector { if (it == "铠") "kai" else null }
+        assertTrue(detector.consume("欧了重新铠始".map(Char::toString), true, 0).restart)
     }
 
     @Test fun replacingAWordTemporarilyStillFollowsCorrectLaterWords() {

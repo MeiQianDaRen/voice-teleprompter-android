@@ -140,7 +140,7 @@ class ChineseTrackerTest {
         val phrases = m.biasWords()
         assertTrue(phrases.containsAll(listOf("中文", "中文提词", "离线识别")))
         assertFalse(phrases.any { it.contains("微笑") || it.contains("Android") || it.length == 1 })
-        assertEquals("欧了重新开始/欧了从新开始/欧了重新来/欧了从新来/欧了从头开始/欧了返回开始/中文/提词器", hotwordList(zh, listOf("中文", "提词器", "中文", "中", "Android", "中文/提词")))
+        assertEquals("欧了重新开始 :3.0/欧了从新开始 :3.0/欧了重新来 :3.0/欧了从新来 :3.0/欧了从头开始 :3.0/欧了返回开始 :3.0/欧了 :3.0/中文/提词器", hotwordList(zh, listOf("中文", "提词器", "中文", "中", "Android", "中文/提词")))
         assertTrue(phrases.size <= 1500)
     }
 

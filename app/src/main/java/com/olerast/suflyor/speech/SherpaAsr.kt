@@ -18,7 +18,7 @@ import com.olerast.suflyor.script.SpeechLang
  * Offline streaming recognizer: sherpa-onnx with Chinese and English streaming Zipformer models (int8, in assets).
  * English: icefall's LibriSpeech model of 2023-06-26 (~73 MB), which prints UPPER CASE.
  * Chinese: WenetSpeech 14M of 2023-02-23 (~31 MB), which prints Han characters.
- * With "hotwords" on, words or Chinese character phrases are boosted through modified beam search.
+ * Script hotwords are optional; Chinese voice commands are always boosted through modified beam search.
  */
 class SherpaAsr private constructor(
     private val recognizer: OnlineRecognizer,
@@ -55,7 +55,7 @@ class SherpaAsr private constructor(
     @Synchronized
     override fun setBiasWords(words: List<String>) {
         if (!hotwordsEnabled || released) return
-        hotwords = hotwordList(lang, words)
+        hotwords = hotwordList(lang, words, includeScriptWords = hotwordsSetting)
         hotwordsChanged = true
     }
 
@@ -99,6 +99,8 @@ class SherpaAsr private constructor(
         fun create(context: Context, lang: SpeechLang = SpeechLang.EN, hotwords: Boolean = App.instance.settings.useHotwords): SherpaAsr {
             val model = modelFor(lang)
             val dir = model.dir
+            // Commands remain boosted even when script vocabulary hints are disabled.
+            val contextual = hotwords || lang == SpeechLang.ZH
             val config = OnlineRecognizerConfig(
                 featConfig = FeatureConfig(sampleRate = 16000, featureDim = 80),
                 modelConfig = OnlineModelConfig(
@@ -111,8 +113,8 @@ class SherpaAsr private constructor(
                     numThreads = 2,
                     provider = "cpu",
                     modelType = model.type,
-                    modelingUnit = if (hotwords) model.unit else "",
-                    bpeVocab = if (hotwords && model.unit == "bpe") "$dir/bpe.vocab" else "",
+                    modelingUnit = if (contextual) model.unit else "",
+                    bpeVocab = if (contextual && model.unit == "bpe") "$dir/bpe.vocab" else "",
                 ),
                 // Close an utterance after 0.8 s of silence following speech; the tracker keeps its own history anyway.
                 endpointConfig = EndpointConfig(
@@ -121,7 +123,7 @@ class SherpaAsr private constructor(
                     rule3 = EndpointRule(false, 0.0f, 12.0f),
                 ),
                 enableEndpoint = true,
-                decodingMethod = if (hotwords) "modified_beam_search" else "greedy_search",
+                decodingMethod = if (contextual) "modified_beam_search" else "greedy_search",
                 maxActivePaths = 4,
                 hotwordsScore = 1.5f,
             )
@@ -144,17 +146,21 @@ class SherpaAsr private constructor(
  *   The words come normalized (ScriptModel.biasWords), so stop words, numbers and Cyrillic are already gone.
  * - Chinese: Han phrases of 2–8 characters, encoded with cjkchar without a BPE vocabulary.
  */
-internal fun hotwordList(lang: SpeechLang, words: List<String>): String {
+internal fun hotwordList(lang: SpeechLang, words: List<String>, includeScriptWords: Boolean = true): String {
+    val scriptWords = if (includeScriptWords) words else emptyList()
+    val commands = if (lang == SpeechLang.ZH) ChineseVoiceCommands.restartPhrases + "欧了" else emptyList()
     val usable = when (lang) {
-        SpeechLang.RU -> words.asSequence()
+        SpeechLang.RU -> scriptWords.asSequence()
             .map { it.lowercase() }
             .filter { w -> w.length >= 4 && w.all { it in 'а'..'я' || it == 'ё' } }
-        SpeechLang.EN -> words.asSequence()
+        SpeechLang.EN -> scriptWords.asSequence()
             .map { it.uppercase() }
             .filter { w -> w.count { it in 'A'..'Z' } >= 4 && w.all { it in 'A'..'Z' || it == '\'' } }
-        SpeechLang.ZH -> (ChineseVoiceCommands.restartPhrases.asSequence() + words.asSequence())
+        SpeechLang.ZH -> scriptWords.asSequence()
             .map { ChineseNorm.normalizeWord(it) }
             .filter { it.codePointCount(0, it.length) in 2..8 && ChineseNorm.isHan(it) }
     }
-    return usable.distinct().take(1500).joinToString("/")
+    return (commands.asSequence() + usable).distinct().take(1500).joinToString("/") {
+        if (it in commands) "$it :3.0" else it
+    }
 }

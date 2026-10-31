@@ -32,7 +32,7 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
     private var ignoredPrefix: List<String> = emptyList()
     private var retakeChars = retakeChars.coerceIn(ChineseRetakePolicy.MIN_CHARS, ChineseRetakePolicy.MAX_CHARS)
     private var pendingRetake: PendingRetake? = null
-    private var handledCommands = 0
+    private val commands = ChineseVoiceCommands.Detector(pronunciation)
     private data class PendingRetake(val match: Match, val prefix: List<String>, val raw: List<String>,
         val tail: List<String>, val isFinal: Boolean, val since: Long, val observations: Int)
 
@@ -40,6 +40,11 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
     private data class Match(val start: Int, val end: Int, val count: Int, val consecutive: Int, val tail: Int, val heardStart: Int = 0, val edits: Int = 0)
 
     fun reset(position: Int) {
+        commands.reset()
+        resetProgress(position)
+    }
+
+    private fun resetProgress(position: Int) {
         // A written symbol can map to several spoken characters: seek to its first character.
         var low = 0
         var high = indices.size
@@ -52,7 +57,6 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
         longestPartial = emptyList()
         ignoredPrefix = emptyList()
         pendingRetake = null
-        handledCommands = 0
         lastLocalHeard = emptyList()
         lastLocalMatched = false
         failures = 0
@@ -64,12 +68,16 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
 
     fun consume(text: String, isFinal: Boolean, nowMs: Long, speechActive: Boolean = true): Result {
         val utterance = ChineseNorm.words(text).filter { ChineseNorm.isHan(it) && it !in ChineseNorm.FILLERS }.takeLast(512)
-        val commands = ChineseVoiceCommands.restartEnds(utterance)
-        val restarted = commands.size > handledCommands
-        if (restarted) reset(0)
-        handledCommands = commands.size
+        val command = commands.consume(utterance, isFinal, nowMs)
+        val restarted = command.restart
+        if (restarted) resetProgress(0)
+        if (command.pending) {
+            pendingRetake = null
+            pendingFollow = null
+            return Result(if (cursor >= indices.size) total else indices[cursor], 0, "command pending")
+        }
         // Keep stripping the command as its partial grows; the matching final must not restart twice.
-        val raw = utterance.drop(commands.lastOrNull() ?: 0)
+        val raw = utterance.drop(command.strip)
         val retracting = !isFinal && raw.size < longestPartial.size && raw == longestPartial.take(raw.size)
         if (ignoredPrefix.isNotEmpty() && raw.take(ignoredPrefix.size) != ignoredPrefix) ignoredPrefix = emptyList()
         val heard = raw.drop(ignoredPrefix.size)
