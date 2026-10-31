@@ -31,7 +31,8 @@ class SherpaAsr private constructor(
     private var stream: OnlineStream = recognizer.createStream()
     private var hotwords = ""
     private var hotwordsChanged = false
-    private var lastText = ""
+    private var lastUpdate: AsrUpdate? = null
+    private var segmentId = 0L
     private var released = false
 
     @Synchronized
@@ -41,15 +42,20 @@ class SherpaAsr private constructor(
         if (hotwordsChanged) recreateStream()
         stream.acceptWaveform(samples, sampleRate)
         while (recognizer.isReady(stream)) recognizer.decode(stream)
-        val text = recognizer.getResult(stream).text.trim()
+        val result = recognizer.getResult(stream)
+        val text = result.text.trim()
+        val update = AsrUpdate(text, false, result.tokens.mapIndexed { i, token ->
+            AsrToken(token, result.timestamps.getOrNull(i), result.ysProbs.getOrNull(i))
+        }, segmentId)
         if (recognizer.isEndpoint(stream)) {
             recognizer.reset(stream)
-            lastText = ""
-            return if (text.isNotEmpty()) AsrUpdate(text, isFinal = true) else null
+            lastUpdate = null
+            segmentId++
+            return if (text.isNotEmpty()) update.copy(isFinal = true) else null
         }
-        if (text == lastText) return null
-        lastText = text
-        return AsrUpdate(text, isFinal = false)
+        if (update == lastUpdate) return null
+        lastUpdate = update
+        return update
     }
 
     @Synchronized
@@ -65,14 +71,16 @@ class SherpaAsr private constructor(
         // model's vocabulary can spell): the plain stream is the one sherpa-onnx is tested with.
         stream = if (hotwordsEnabled && hotwords.isNotEmpty()) recognizer.createStream(hotwords) else recognizer.createStream()
         hotwordsChanged = false
-        lastText = ""
+        lastUpdate = null
+        segmentId++
     }
 
     @Synchronized
     override fun reset() {
         if (released) return
         recognizer.reset(stream)
-        lastText = ""
+        lastUpdate = null
+        segmentId++
     }
 
     @Synchronized

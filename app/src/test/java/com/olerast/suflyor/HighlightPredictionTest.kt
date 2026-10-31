@@ -11,8 +11,8 @@ class HighlightPredictionTest {
         assertEquals(6.5f, p.motionRate(400, true, 30), 0.001f)
         assertEquals(3.5f, p.motionRate(400, true, -30), 0.001f)
         assertEquals(5f, p.averageRate, 0f)
-        assertEquals(5, paced().target(3, 100, 400, true, 6, 0))
-        assertEquals(8, paced().target(3, 100, 400, true, 6, 100))
+        assertEquals(4, paced().target(3, 100, 400, true, 6, 0))
+        assertEquals(5, paced().target(3, 100, 400, true, 6, 100))
         assertEquals(4, paced().target(3, 100, 400, true, 6, -50))
     }
 
@@ -24,10 +24,10 @@ class HighlightPredictionTest {
 
     @Test fun compensationCannotBypassLeadOrSentenceLimits() {
         val p = paced()
-        assertEquals(9, p.target(3, 100, 1200, true, 6, 100))
+        assertEquals(5, p.target(3, 100, 400, true, 6, 100))
         p.setSentenceEnds(listOf(5))
-        assertEquals(4, p.target(3, 100, 1200, true, 6, 100))
-        assertEquals(3, p.target(3, 100, 1200, true, 0, 100))
+        assertEquals(4, p.target(3, 100, 400, true, 6, 100))
+        assertEquals(3, p.target(3, 100, 400, true, 0, 100))
     }
 
     @Test fun compensationCannotCreateSpeechProgressOrOverrideStops() {
@@ -101,20 +101,21 @@ class HighlightPredictionTest {
         assertEquals(5f, p.averageRate, 0.01f)
     }
 
-    @Test fun averageSpeedCompensatesLatencyAndExtrapolatesBetweenUpdates() {
+    @Test fun shortPredictionBudgetDoesNotGrowDuringARecognitionGap() {
         val p = paced()
         assertEquals(5f, p.averageRate, 0.01f)
-        assertEquals(5, p.at(3, 400))
-        assertEquals(6, p.at(3, 600))
-        assertEquals(7, p.at(3, 800))
+        assertEquals(4, p.at(3, 400))
+        assertEquals(4, p.at(3, 600))
+        assertEquals(4, p.at(3, 800))
+        assertTrue(p.forecast(3, 100, 800, true, 6) <= 3 + p.averageRate * 0.3f)
     }
 
     @Test fun predictionHasAHardLeadLimitEvenAtHighSpeed() {
         val p = HighlightPrediction()
         p.observe(3, false, 0); p.observe(6, false, 200); p.observe(9, false, 400)
-        assertTrue(p.at(9, 1000) <= 15)
-        assertEquals(10, p.at(9, 1000, limit = 1))
-        assertEquals(9, p.at(9, 1000, limit = 0))
+        assertTrue(p.at(9, 600) <= 15)
+        assertEquals(10, p.at(9, 600, limit = 1))
+        assertEquals(9, p.at(9, 600, limit = 0))
     }
 
     @Test fun finalReturnsToActualAndCannotPredictAgainWithoutNewProgress() {
@@ -141,8 +142,8 @@ class HighlightPredictionTest {
 
     @Test fun staleOrInactiveSpeechSettlesWithoutDriftingOnATimer() {
         val p = paced()
-        assertTrue(p.at(3, 1600) > 3)
-        assertEquals(3, p.at(3, 1601))
+        assertTrue(p.at(3, 900) > 3)
+        assertEquals(3, p.at(3, 1000))
         assertEquals(3, p.at(3, 1700))
         val paused = paced()
         assertEquals(3, paused.at(3, 500, active = false))

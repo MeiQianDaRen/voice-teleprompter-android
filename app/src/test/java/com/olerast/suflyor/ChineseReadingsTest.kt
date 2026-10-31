@@ -11,6 +11,67 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChineseReadingsTest {
+    @Test fun numbersDatesRangesUnitsAndMathUseSpokenMeaning() {
+        for ((written, spoken) in listOf(
+            "36.5" to "三十六点五", "−5" to "负五", "1,234.5" to "一千二百三十四点五",
+            "5～8" to "五到八", "5–8kg" to "五至八公斤", "−5℃" to "零下五度",
+            "2026-10-31" to "二零二六年十月三十一日", "2026年" to "二零二六年",
+            "09:05" to "九点零五分", "3×2=6" to "三乘二等于六", "3+2=5" to "三加二等于五",
+            "3-2=1" to "三减二等于一", "1/4" to "四分之一", "￥50" to "五十元",
+            "2.5km/h" to "二点五千米每小时", "10cm" to "十厘米", "20m²" to "二十平方米",
+            "1.4.7" to "一点四点七", "2公斤" to "两千克",
+            "3 + 2 = 5" to "三加二等于五", "3 - 2 = 1" to "三减二等于一", "㎡" to "平方米", "m²" to "平方米",
+            "5±1" to "五正负一", "3≥2" to "三大于等于二",
+        )) {
+            assertEquals(written, ChineseNorm.words(spoken), ChineseNorm.words(written))
+            val m = model("现在读数为${written}随后请看镜头继续朗读")
+            assertEquals(written, m.spokenTokens, ScriptTracker(m.tokens, m.lang).onTranscript("现在读数为${spoken}随后请看镜头继续朗读", true).position)
+        }
+    }
+
+    @Test fun colonsAndIdentifiersUseNearbyContext() {
+        for ((written, spoken) in listOf("时长3:20" to "时长三分二十秒", "比例3:20" to "比例三比二十", "编号2026" to "编号二零二六")) {
+            assertEquals(written, ChineseNorm.words(spoken), ChineseNorm.words(written))
+            val m = model(written + "请继续看镜头自然说话")
+            assertEquals(m.spokenTokens, ScriptTracker(m.tokens, m.lang).onTranscript(spoken + "请继续看镜头自然说话", true).position)
+        }
+    }
+
+    @Test fun punctuationEmojiAndNotesPreserveOriginalOffsetsWithoutDemandingAPause() {
+        val text = "开始，价格￥50；温度−5℃！[请微笑]（请看镜头）✨然后继续说话。"
+        val m = model(text)
+        assertEquals(text, m.displayText)
+        for (t in m.tokens) assertTrue(t.start >= 0 && t.end <= text.length && t.end > t.start)
+        val result = ScriptTracker(m.tokens, m.lang).onTranscript("开始价格五十元温度零下五度请看镜头然后继续说话", true)
+        assertEquals(m.spokenTokens, result.position)
+        assertTrue(m.tokens.filter { it.start in text.indexOf('[')..text.indexOf(']') }.none { it.spoken })
+    }
+
+    @Test fun invalidDatesAndTimesAreNotTurnedIntoValidReadings() {
+        assertEquals("2026-02-31", ChineseNorm.normalizeWord("2026-02-31"))
+        assertEquals("25:99", ChineseNorm.normalizeWord("25:99"))
+    }
+
+    @Test fun unknownDecorationsAndUrlsDoNotSwallowFollowingChinese() {
+        val m = model("开始★ https://example.com/path 然后继续说话")
+        assertEquals(m.spokenTokens, ScriptTracker(m.tokens, m.lang).onTranscript("开始然后继续说话", true).position)
+        assertEquals(listOf("https://example.com", "请", "继", "续"), ChineseNorm.words("https://example.com请继续"))
+        assertEquals(listOf("标", "题"), ChineseNorm.words("- 标题").filter { it.isNotEmpty() })
+    }
+
+    @Test fun clocksDatesAndFullWidthNotesAcceptCommonReadingVariants() {
+        for ((written, spoken) in listOf("09:05" to "九点零五", "03:00" to "三点", "2026-10-31" to "二零二六年十月三十一号")) {
+            val m = model(written + "继续")
+            val t = ScriptTracker(m.tokens, m.lang)
+            assertEquals(written, "继", m.tokens[t.onTranscript(spoken, false).nextToken].norm)
+        }
+        for (phrase in listOf(false, true)) {
+            val m = model("开始［停顿］请看镜头", phrase)
+            assertEquals(m.spokenTokens, ScriptTracker(m.tokens, m.lang).onTranscript("开始请看镜头", true).position)
+            assertEquals("开始［停顿］请看镜头", m.displayText.replace("\n", ""))
+        }
+    }
+
     private fun model(text: String, phraseMode: Boolean = false) =
         ScriptLayout.build(ScriptDocument("", "test", listOf(Paragraph(text))), phraseMode, lang = SpeechLang.ZH)
 

@@ -70,8 +70,8 @@ class ChineseAlignmentTest {
         val tracker = ScriptTracker(m.tokens, m.lang)
         val result = tracker.onTranscript("𠀀 中 文 提 词", false)
         val next = m.tokens[result.nextToken]
-        assertEquals("测", m.displayText.substring(next.start, next.end))
-        assertEquals(m.spokenTokens, tracker.onTranscript("𠀀中文提词测试", true).position)
+        assertEquals("2026", m.displayText.substring(next.start, next.end))
+        assertEquals(m.spokenTokens, tracker.onTranscript("𠀀中文提词二千零二十六测试", true).position)
     }
 
     @Test fun manualSeekAndRestartResetBothAnchorAndCursor() {

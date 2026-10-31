@@ -108,6 +108,7 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
         val matches: Int,
         val score: Float,
         val reason: String,
+        val alignmentQuality: Float = if (matches > 0) 1f else 0f,
     )
 
     fun nextTokenIndex(): Int = tokenIndexAt(position)
@@ -130,12 +131,12 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
     }
 
     /** Raw sherpa-onnx utterance: Chinese partials replace each other; finals commit a stable character anchor. */
-    fun onTranscript(text: String, isFinal: Boolean, nowMs: Long = System.nanoTime() / 1_000_000L, speechActive: Boolean = true): Update {
+    fun onTranscript(text: String, isFinal: Boolean, nowMs: Long = System.nanoTime() / 1_000_000L, speechActive: Boolean = true, confidence: Float? = null): Update {
         val alignment = chineseAlignment ?: return onHypothesis(lang.words(text))
         val before = position
-        val result = alignment.consume(text, isFinal, nowMs, speechActive)
+        val result = alignment.consume(text, isFinal, nowMs, speechActive, confidence)
         position = result.position
-        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason)
+        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason, result.quality)
     }
 
     fun silence() { chineseAlignment?.silence() }
@@ -143,7 +144,7 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
         val result = chineseAlignment?.confirmFollow(nowMs) ?: return null
         val before = position
         position = result.position
-        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason)
+        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason, result.quality)
     }
 
     fun setRetakeChars(value: Int) { chineseAlignment?.setRetakeChars(value) }
@@ -153,7 +154,7 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
         val result = chineseAlignment?.confirmRetake(nowMs) ?: return null
         val before = position
         position = result.position
-        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason)
+        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason, result.quality)
     }
 
     /** @param hypothesis normalized recognized words, oldest first (finalized history + current partial). */

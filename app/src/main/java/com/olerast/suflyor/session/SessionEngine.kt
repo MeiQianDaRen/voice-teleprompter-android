@@ -14,6 +14,7 @@ import com.olerast.suflyor.script.SpeechLang
 import com.olerast.suflyor.script.biasWords
 import com.olerast.suflyor.speech.AsrEngine
 import com.olerast.suflyor.speech.AsrUpdate
+import com.olerast.suflyor.speech.AcousticConfidence
 import com.olerast.suflyor.speech.AudioCapture
 import com.olerast.suflyor.speech.CaptureError
 import com.olerast.suflyor.speech.SherpaAsr
@@ -98,6 +99,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     private var model: ScriptModel = ScriptModel.EMPTY
     private var tracker = ScriptTracker(emptyList())
     private val highlightPrediction = HighlightPrediction()
+    private val confidenceModel = AcousticConfidence()
 
     /** Language of [model], readable from the audio thread without the lock. */
     @Volatile
@@ -181,6 +183,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             }
             highlightPrediction.setSentenceEnds(sentenceEnds)
             highlightPrediction.reset(0, SystemClock.elapsedRealtime())
+            confidenceModel.reset()
             // A script in the other language needs the other model; the audio thread sees no recognizer meanwhile.
             asr?.takeIf { it.lang != m.lang }?.let {
                 stale = it
@@ -364,7 +367,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         )
         update { copy(starting = false, listening = true, error = asrError) }
         lastTick = SystemClock.elapsedRealtime()
-        synchronized(lock) { highlightPrediction.reset(tracker.position, lastTick) }
+        synchronized(lock) { highlightPrediction.reset(tracker.position, lastTick); confidenceModel.reset() }
         main.removeCallbacks(ticker)
         main.post(ticker)
     }
@@ -534,9 +537,12 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         val now = SystemClock.elapsedRealtime()
         val highlight: Int
         val motion: ReadingMotion.Sample
+        val rawConfidence = upd.confidence
+        val speechTime = upd.speechTimeMs
         synchronized(lock) {
             // A manual move or a new script happened while this audio was being recognized: it would undo the move.
             if (fromEpoch != epoch) return
+            val acousticConfidence = confidenceModel.score(rawConfidence)
             if (upd.isFinal) {
                 words.forEach { finalWords.addLast(it) }
                 while (finalWords.size > 16) finalWords.removeFirst()
@@ -546,12 +552,14 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             }
             val before = tracker.position
             if (!state.paused && state.scroll == Scroll.VOICE) {
-                moved = if (lang == SpeechLang.ZH) tracker.onTranscript(upd.text, upd.isFinal, now, speechActive(now))
+                moved = if (lang == SpeechLang.ZH) tracker.onTranscript(upd.text, upd.isFinal, now, speechActive(now), acousticConfidence)
                     else tracker.onHypothesis(finalWords.toList() + partialWords)
             }
             pos = tracker.position
+            if (pos > before) confidenceModel.observe(rawConfidence, moved?.alignmentQuality ?: 0f)
             if (pos < before || moved?.reason?.startsWith("restart") == true) highlightPrediction.reset(pos, now)
-            highlightPrediction.observe(pos, upd.isFinal, now)
+            highlightPrediction.observe(pos, upd.isFinal, now, speechTime, upd.segmentId, acousticConfidence,
+                trusted = (moved?.alignmentQuality ?: 0f) >= 0.8f)
             next = tracker.nextTokenIndex()
             highlight = predictedHighlight(now)
             motion = readingMotion(now, timed = false)
@@ -609,7 +617,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         return tracker.tokenIndexAt(highlightPrediction.target(tracker.position, tracker.size, now, active, limit, app.settings.speechRateCompensation))
     }
 
-    /** A steady visual baseline, corrected by ASR; confirmed progress is kept in the tracker. */
+    /** Frame-clock interpolation within a short ASR prediction budget; the tracker keeps confirmed progress. */
     private fun readingMotion(now: Long, timed: Boolean): ReadingMotion.Sample {
         val s = state
         val actual = tracker.position.toFloat()
@@ -620,8 +628,8 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         val limit = if (lang == SpeechLang.ZH) 6 else app.settings.leadWords.coerceIn(0, 4)
         val rate = highlightPrediction.motionRate(now, active, app.settings.speechRateCompensation)
         if (rate <= 0f) return ReadingMotion.Sample(actual, revision = epoch)
-        val ceiling = highlightPrediction.ceiling(tracker.position, tracker.size, limit).toFloat()
-        val forecast = (actual + rate * 0.45f).coerceAtMost(ceiling)
+        val ceiling = highlightPrediction.forecast(tracker.position, tracker.size, now, active, limit, app.settings.speechRateCompensation)
+        val forecast = (actual + rate * 0.1f).coerceAtMost(ceiling)
         return ReadingMotion.Sample(actual, rate, ceiling, forecast, epoch)
     }
 
@@ -651,7 +659,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
                     if (!speechActive(now)) tracker.silence()
                     val confirmed = if (speechActive(now)) tracker.confirmRetake(now) ?: tracker.confirmFollow(now) else null
                     confirmed?.let { result ->
-                        highlightPrediction.observe(result.position, false, now)
+                        highlightPrediction.observe(result.position, false, now, trusted = result.alignmentQuality >= 0.8f)
                         update { copy(position = result.position, nextToken = result.nextToken, highlightToken = result.nextToken, motion = readingMotion(now, timed = false)) }
                     }
                 } else tracker.cancelRetake()

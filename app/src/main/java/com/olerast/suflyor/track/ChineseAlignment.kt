@@ -20,6 +20,8 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
         private set
     private var lastLocalHeard: List<String> = emptyList()
     private var lastLocalMatched = false
+    private var repeatedQuality = 0f
+    private var repeatedMatches = 0
     private var failures = 0
     private var lostSince: Long? = null
     private var holdUntil = 0L
@@ -36,8 +38,8 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
     private data class PendingRetake(val match: Match, val prefix: List<String>, val raw: List<String>,
         val tail: List<String>, val isFinal: Boolean, val since: Long, val observations: Int)
 
-    data class Result(val position: Int, val matches: Int, val reason: String)
-    private data class Match(val start: Int, val end: Int, val count: Int, val consecutive: Int, val tail: Int, val heardStart: Int = 0, val edits: Int = 0)
+    data class Result(val position: Int, val matches: Int, val reason: String, val quality: Float = if (matches > 0) 1f else 0f)
+    private data class Match(val start: Int, val end: Int, val count: Int, val consecutive: Int, val tail: Int, val heardStart: Int = 0, val edits: Int = 0, val quality: Float = 1f)
 
     fun reset(position: Int) {
         commands.reset()
@@ -59,6 +61,8 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
         pendingRetake = null
         lastLocalHeard = emptyList()
         lastLocalMatched = false
+        repeatedQuality = 0f
+        repeatedMatches = 0
         failures = 0
         lostSince = null
         holdUntil = 0L
@@ -66,7 +70,7 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
         phase = Phase.FOLLOWING
     }
 
-    fun consume(text: String, isFinal: Boolean, nowMs: Long, speechActive: Boolean = true): Result {
+    fun consume(text: String, isFinal: Boolean, nowMs: Long, speechActive: Boolean = true, confidence: Float? = null): Result {
         val utterance = ChineseNorm.words(text).filter { ChineseNorm.isHan(it) && it !in ChineseNorm.FILLERS }.takeLast(512)
         val command = commands.consume(utterance, isFinal, nowMs)
         val restarted = command.restart
@@ -75,6 +79,14 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
             pendingRetake = null
             pendingFollow = null
             return Result(if (cursor >= indices.size) total else indices[cursor], 0, "command pending")
+        }
+        // Commands have their own confirmation. Ordinary low-acoustic observations cannot move the script.
+        if (!restarted && confidence != null && confidence < 0.1f) {
+            pendingRetake = null
+            pendingFollow = null
+            lastLocalMatched = false
+            phase = Phase.LOW_CONFIDENCE
+            return Result(if (cursor >= indices.size) total else indices[cursor], 0, "low acoustic confidence")
         }
         // Keep stripping the command as its partial grows; the matching final must not restart twice.
         val raw = utterance.drop(command.strip)
@@ -86,6 +98,9 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
             return Result(if (cursor >= indices.size) total else indices[cursor], 0, "silent hold")
         }
         val changed = heard != lastLocalHeard
+        if (!changed && !isFinal && lastLocalMatched && phase == Phase.FOLLOWING && repeatedQuality >= 0.8f) {
+            return Result(if (cursor >= indices.size) total else indices[cursor], repeatedMatches, "follow (same anchor)", repeatedQuality)
+        }
         val previousHeard = lastLocalHeard
         var best: Match? = null
         // Search near the last committed position; short common fragments cannot relocate the cursor.
@@ -111,7 +126,7 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
                     continuity = trusted || endpoint <= 8 && from == 0)
                 if (from == 0 && endpoint <= 8 && hit != null && hit.start <= cursor) validStart = true
                 if (hit != null) {
-                    best = Match(hit.start, hit.end, hit.matches, hit.matches, 0)
+                    best = Match(hit.start, hit.end, hit.matches, hit.matches, 0, quality = hit.quality)
                     shortAnchor = hit.length == 3 || (hit.length < 6 && !validStart && hit.end - cursor > 3)
                     probe = hit.end
                     trusted = true
@@ -141,8 +156,9 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
             val previous = pendingFollow
             val confirmedShort = previous?.requiresSecond == true && changed &&
                 followCandidate.end - previous.match.end in 0..3
-            if ((shortAnchor && !confirmedShort) || nowMs < holdUntil) {
-                pendingFollow = PendingFollow(followCandidate, shortAnchor && !confirmedShort, isFinal)
+            val uncertain = confidence != null && confidence < 0.75f
+            if (((shortAnchor || uncertain) && !confirmedShort) || nowMs < holdUntil) {
+                pendingFollow = PendingFollow(followCandidate, (shortAnchor || uncertain) && !confirmedShort, isFinal)
                 best = null
                 phase = Phase.LOW_CONFIDENCE
             } else {
@@ -196,8 +212,11 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
             longestPartial = emptyList()
             ignoredPrefix = emptyList()
         } else if (raw.size > longestPartial.size) longestPartial = raw
+        repeatedQuality = if (phase == Phase.FOLLOWING) best?.quality ?: 0f else 0f
+        repeatedMatches = best?.count ?: 0
         return Result(if (cursor >= indices.size) total else indices[cursor], best?.count ?: 0,
-            if (restarted) "restart (voice command)" else if (best == null) "no confident characters" else reason)
+            if (restarted) "restart (voice command)" else if (best == null) "no confident characters" else reason,
+            repeatedQuality)
     }
 
     private fun confident(match: Match, length: Int): Boolean {
@@ -241,7 +260,8 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
             s++
             h++
         }
-        return Match(start, end, matched, longest, heard.size - lastHeard - 1)
+        return Match(start, end, matched, longest, heard.size - lastHeard - 1,
+            quality = matched.toFloat() / maxOf(heard.size, end - start, 1))
     }
 
     /** A wrong prefix must not block a fresh, unambiguous phrase at the end of the utterance. */
@@ -269,7 +289,8 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
             if (length <= 0 || end > limit) continue
             val edits = ChineseRetakePolicy.editCount(tail, script, start, end) ?: continue
             val matches = minOf(tail.size, length) - if (length == tail.size) edits else 0
-            val candidate = Match(start, end, matches, matches, 0, edits = edits)
+            val candidate = Match(start, end, matches, matches, 0, edits = edits,
+                quality = 1f - edits.toFloat() / maxOf(tail.size, length))
             if (best == null || candidate.edits < best.edits ||
                 (candidate.edits == best.edits && candidate.count > best.count)) best = candidate
         }
@@ -308,7 +329,7 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
         val pending = pendingRetake ?: return null
         if (nowMs - pending.since < ChineseRetakePolicy.STABLE_MS) return null
         applyRetake(pending)
-        return Result(if (cursor >= indices.size) total else indices[cursor], pending.match.count, "back (stable phrase)")
+        return Result(if (cursor >= indices.size) total else indices[cursor], pending.match.count, "back (stable phrase)", pending.match.quality)
     }
 
     fun confirmFollow(nowMs: Long): Result? {
@@ -320,7 +341,7 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
         failures = 0
         lostSince = null
         phase = Phase.FOLLOWING
-        return Result(if (cursor >= indices.size) total else indices[cursor], pending.match.count, "follow (confidence restored)")
+        return Result(if (cursor >= indices.size) total else indices[cursor], pending.match.count, "follow (confidence restored)", pending.match.quality)
     }
 
     fun silence() {

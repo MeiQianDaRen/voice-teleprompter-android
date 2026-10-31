@@ -6,7 +6,7 @@ import java.util.Locale
 /** The Chinese Zipformer emits Han characters, with or without spaces: never split only on whitespace. */
 object ChineseNorm {
     // Keep measurements together; other Han characters retain one code point per displayed token.
-    val WORD = Regex(ChineseReadings.PATTERN + "|\\p{IsHan}|[\\p{L}\\p{N}&&[^\\p{IsHan}]]+(?:['’][\\p{L}&&[^\\p{IsHan}]]+)*")
+    val WORD = Regex("(?:https?://|www\\.)[^\\s\\p{IsHan}，。！？；]+|" + ChineseReadings.PATTERN + "|[a-zA-Z]+[a-zA-Z0-9._/-]*|\\p{IsHan}|[\\p{L}\\p{N}&&[^\\p{IsHan}]]+(?:['’][\\p{L}&&[^\\p{IsHan}]]+)*")
     val FILLERS = setOf("嗯", "呃", "啊")
     private val FUNCTION = setOf("的", "地", "得", "了", "着", "过", "是", "在", "和", "与", "及", "也", "就", "都")
     private val HAN_SPACES = Regex("(?<=\\p{IsHan})\\s+(?=\\p{IsHan})")
@@ -16,11 +16,21 @@ object ChineseNorm {
         return ChineseReadings.normalize(normalized) ?: normalized
     }
 
-    fun words(text: String): List<String> = WORD.findAll(text.replace(HAN_SPACES, "")).flatMap { match ->
-        val norm = normalizeWord(match.value)
+    fun normalizeAt(text: String, offset: Int, raw: String): String {
+        val value = Normalizer.normalize(raw, Normalizer.Form.NFKC).lowercase(Locale.ROOT)
+        val end = offset + raw.length
+        return ChineseReadings.inContext(value, text.substring((offset - 16).coerceAtLeast(0), offset),
+            text.substring(end, (end + 16).coerceAtMost(text.length))) ?: normalizeWord(raw)
+    }
+
+    fun words(text: String): List<String> {
+        val source = text.replace(HAN_SPACES, "")
+        return WORD.findAll(source).flatMap { match ->
+        val norm = normalizeAt(source, match.range.first, match.value)
         if (isHan(norm)) norm.codePoints().toArray().asSequence().map { String(Character.toChars(it)) }
         else sequenceOf(norm)
-    }.toList()
+        }.toList()
+    }
 
     fun isHan(text: String): Boolean = text.isNotEmpty() &&
         text.codePoints().allMatch { Character.UnicodeScript.of(it) == Character.UnicodeScript.HAN }
@@ -36,7 +46,7 @@ object ChineseNorm {
 
     /** Insert before the next token; punctuation, original characters and UTF-16 offsets stay recoverable. */
     fun lineBreaks(text: String, maxChars: Int): Set<Int> {
-        val notes = Regex("\\[[^\\[\\]]*]").findAll(text).map { it.range }.toList()
+        val notes = Regex("[\\[［][^\\[\\]［］]*[\\]］]").findAll(text).map { it.range }.toList()
         val tokens = WORD.findAll(text).filter { token -> notes.none { token.range.first in it } }.toList()
         val out = linkedSetOf<Int>()
         var count = 0

@@ -125,10 +125,10 @@ class ChineseTrackerTest {
     fun notesForeignTextAndDigitRunsKeepTheirDisplayOffsets() {
         val m = build("今天使用 Android 2026 版本进行录制，[停顿]请保持自然的语速。")
         val t = tracker(m)
-        read(t, "今天使用版本进行录制请保持自然的语速")
+        read(t, "今天使用二千零二十六版本进行录制请保持自然的语速")
         assertEquals(m.spokenTokens, t.position)
         assertTrue(m.tokens.first { it.norm == "android" }.weight == 0f)
-        assertTrue(m.tokens.first { it.norm == "2026" }.weight == 0f)
+        assertTrue(m.tokens.first { it.norm == "二千零二十六" }.weight > 0f)
         val target = m.tokens.indexOfFirst { it.norm == "请" }
         t.jumpToToken(target)
         assertEquals(target, t.nextTokenIndex())

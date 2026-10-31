@@ -45,6 +45,8 @@ internal class ChineseLocalAlignment(
         }
     }
     private val phraseEnds = phrases.map { it.end }.toSet()
+    private fun locality(hit: Hit, cursor: Int): Float = hit.quality -
+        (kotlin.math.abs(hit.end - cursor) - 3).coerceAtLeast(0) * 0.006f
 
     /** Only the latest 3–8 characters, at most 8 behind / [ahead] ahead of the live pointer. */
     fun find(heard: List<String>, cursor: Int, ahead: Int = 28, continuity: Boolean = true): Hit? {
@@ -69,7 +71,7 @@ internal class ChineseLocalAlignment(
             }
         }
         if (hits.isEmpty()) return null
-        val ordered = hits.sortedWith(compareByDescending<Hit> { it.quality }
+        val ordered = hits.sortedWith(compareByDescending<Hit> { locality(it, cursor) }
             .thenByDescending { it.length }.thenByDescending { it.start <= cursor && it.end > cursor }
             .thenByDescending { it.end in phraseEnds }.thenBy { kotlin.math.abs(it.end - cursor) })
         val best = ordered.first()

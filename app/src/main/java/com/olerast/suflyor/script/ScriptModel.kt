@@ -111,7 +111,7 @@ object ScriptLayout {
         val noteChars = BooleanArray(text.length)
         for (r in notes) for (k in r) if (k in noteChars.indices) noteChars[k] = true
         val tokens = lang.wordRegex.findAll(text).mapNotNull { m ->
-            val norm = lang.normalize(m.value)
+            val norm = if (lang == SpeechLang.ZH) ChineseNorm.normalizeAt(text, m.range.first, m.value) else lang.normalize(m.value)
             if (norm.isEmpty()) return@mapNotNull null
             val inNote = noteChars[m.range.first]
             Token(
@@ -181,19 +181,20 @@ object ScriptLayout {
     /** [Stage directions in square brackets] are displayed but skipped by the voice tracker. */
     private fun bracketNotes(text: String): List<IntRange> {
         val out = mutableListOf<IntRange>()
-        var i = text.indexOf('[')
+        val scan = text.replace('［', '[').replace('］', ']')
+        var i = scan.indexOf('[')
         while (i >= 0) {
-            val close = text.indexOf(']', i + 1)
+            val close = scan.indexOf(']', i + 1)
             if (close < 0) break
             val paraEnd = text.indexOf(PARAGRAPH_SEPARATOR, i).let { if (it < 0) text.length else it }
-            val reopen = text.indexOf('[', i + 1)
+            val reopen = scan.indexOf('[', i + 1)
             // An unmatched "[" (closed only in a later paragraph, or reopened first) is plain text: skip just it.
             if (close > paraEnd || (reopen in 0 until close)) {
                 i = reopen
                 continue
             }
             out += i..close
-            i = text.indexOf('[', close + 1)
+            i = scan.indexOf('[', close + 1)
         }
         return out
     }
