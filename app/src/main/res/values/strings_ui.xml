@@ -76,8 +76,8 @@
         <item quantity="other">%d words</item>
     </plurals>
     <string name="settings_lead_hint">Highlight follows your recent average speaking speed. Chinese leads by up to six characters; this setting caps English words. It settles at the recognized position when speech pauses or a sentence ends.</string>
-    <string name="settings_highlight_title">Highlight the next word</string>
-    <string name="settings_highlight_hint">Otherwise only the current line is marked</string>
+    <string name="settings_highlight_title">English word focus</string>
+    <string name="settings_highlight_hint">Chinese always uses line and word-group focus; this switch controls English words.</string>
     <string name="settings_hotwords_title">Boost script words</string>
     <string name="settings_hotwords_hint">Better at rare words. Takes effect the next time the app starts</string>
 

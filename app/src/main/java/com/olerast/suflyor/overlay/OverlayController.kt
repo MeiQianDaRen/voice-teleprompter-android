@@ -554,7 +554,7 @@ class OverlayController(private val context: Context, private val windowType: In
             lastScript = app.scripts.model
             prompter.setScript(app.scripts.model)
         }
-        prompter.setProgress(s.nextToken, highlightTokenIndex = s.highlightToken)
+        prompter.setProgress(s.nextToken, highlightTokenIndex = s.highlightToken, motion = s.motion)
         if (s.countdown > 0) {
             countdown.text = s.countdown.toString()
             countdown.visibility = View.VISIBLE
@@ -643,9 +643,21 @@ class OverlayController(private val context: Context, private val windowType: In
             addView(
                 row(
                     tuneGroup(R.string.overlay_tune_background, { "${s.overlayAlpha}%" }, { changeAlpha(-8) }, { changeAlpha(8) }),
-                    tuneGroup(R.string.overlay_tune_speed, { "${s.autoScrollWpm}" }, { changeSpeed(-10) }, { changeSpeed(10) }),
+                    tuneGroup(R.string.reading_speed_short, { java.lang.String.format(java.util.Locale.ROOT, "%.2fx", s.scrollSpeedPercent / 100f) },
+                        { s.scrollSpeedPercent -= 5 }, { s.scrollSpeedPercent += 5 }),
                 ),
             )
+            addView(row(
+                tuneGroup(R.string.reading_target_short, { com.olerast.suflyor.ui.formatDuration(s.targetDurationSec) },
+                    { s.targetDurationSec -= 15; s.paceFromDuration = true }, { s.targetDurationSec += 15; s.paceFromDuration = true }),
+                tuneGroup(R.string.overlay_tune_speed, { "${s.autoScrollWpm}" }, { changeSpeed(-10) }, { changeSpeed(10) }),
+            ))
+            addView(TextView(context).apply {
+                textSize = 13f; setTextColor(PrompterView.HIGHLIGHT); gravity = Gravity.CENTER; background = ripple()
+                val refresh = { text = context.getString(if (s.paceFromDuration) R.string.reading_duration_on else R.string.reading_duration_off) }
+                refresh(); tuneValues += refresh
+                setOnClickListener { s.paceFromDuration = !s.paceFromDuration; tuneValues.forEach { it() } }
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(40)))
         }
     }
 

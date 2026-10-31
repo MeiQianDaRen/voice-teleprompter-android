@@ -2,7 +2,9 @@ package com.olerast.suflyor.script
 
 /** Exact local commands; kept separate from fuzzy script matching to avoid accidental restarts. */
 internal object ChineseVoiceCommands {
-    val restartPhrases = listOf("欧了重新开始", "欧了重新来")
+    val restartPhrases = listOf(
+        "欧了重新开始", "欧了从新开始", "欧了重新来", "欧了从新来", "欧了从头开始", "欧了返回开始",
+    )
     private val characters = restartPhrases.map { it.map(Char::toString) }
 
     /** Exclusive end positions, so words after the last command can immediately follow the script again. */

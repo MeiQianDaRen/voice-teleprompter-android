@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reading_retreated">Moved back</string>
+    <string name="reading_duration_title">Estimate speed from target duration</string>
+    <string name="reading_duration_hint">Use script length / target duration as the baseline. Changing words per minute switches to manual speed.</string>
+    <string name="reading_target_title">Target duration</string>
+    <string name="reading_target_hint">Adjust in 15-second steps; estimated duration at 1.00x.</string>
+    <string name="reading_speed_title">Scroll speed multiplier</string>
+    <string name="reading_speed_hint">0.50x–3.00x in 0.05x steps. Speed mode runs continuously; voice mode corrects to speech and waits on pauses.</string>
+    <string name="reading_speed_short">Rate</string>
+    <string name="reading_target_short">Time</string>
+    <string name="reading_duration_on">Baseline: target duration (tap to switch)</string>
+    <string name="reading_duration_off">Baseline: manual words/min (tap to switch)</string>
+</resources>

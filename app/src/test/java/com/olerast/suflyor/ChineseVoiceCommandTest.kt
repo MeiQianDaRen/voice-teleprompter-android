@@ -4,6 +4,7 @@ import com.olerast.suflyor.doc.Paragraph
 import com.olerast.suflyor.doc.ScriptDocument
 import com.olerast.suflyor.script.ScriptLayout
 import com.olerast.suflyor.script.SpeechLang
+import com.olerast.suflyor.script.ChineseVoiceCommands
 import com.olerast.suflyor.speech.hotwordList
 import com.olerast.suflyor.track.ScriptTracker
 import org.junit.Assert.*
@@ -14,8 +15,8 @@ class ChineseVoiceCommandTest {
     private fun tracker() = ScriptLayout.build(ScriptDocument("", "test", listOf(Paragraph(text))),
         false, lang = SpeechLang.ZH).let { ScriptTracker(it.tokens, it.lang) }
 
-    @Test fun eitherExactCommandImmediatelyRestarts() {
-        for (command in listOf("欧了重新开始", "欧了重新来", "欧了，重新开始！", "欧 了 重 新 来")) {
+    @Test fun allSixCommandsImmediatelyRestartIncludingSpacingAndPunctuation() {
+        for (command in ChineseVoiceCommands.restartPhrases.flatMap { listOf(it, it.toList().joinToString(" "), it.replace("欧了", "欧了，") + "！") }) {
             val t = tracker()
             t.reset(t.size)
             val result = t.onTranscript(command, false, 0)
@@ -26,14 +27,16 @@ class ChineseVoiceCommandTest {
     }
 
     @Test fun partialAndFinalDoNotRestartTheSameCommandTwice() {
-        val t = tracker()
-        t.reset(t.size)
-        t.onTranscript("欧了重新开始", false, 0)
-        for (end in 1..12) {
-            assertEquals(end, t.onTranscript("欧了重新开始" + text.take(end), false, end * 100L).position)
+        for (command in ChineseVoiceCommands.restartPhrases) {
+            val t = tracker()
+            t.reset(t.size)
+            t.onTranscript(command, false, 0)
+            for (end in 1..12) {
+                assertEquals(command, end, t.onTranscript(command + text.take(end), false, end * 100L).position)
+            }
+            assertEquals(12, t.onTranscript(command + text.take(12), true, 1400).position)
+            assertEquals(16, t.onTranscript(text.substring(12, 16), false, 1500).position)
         }
-        assertEquals(12, t.onTranscript("欧了重新开始" + text.take(12), true, 1400).position)
-        assertEquals(16, t.onTranscript(text.substring(12, 16), false, 1500).position)
     }
 
     @Test fun aSecondCommandInTheSameUtteranceCanRestartAgain() {
@@ -42,6 +45,24 @@ class ChineseVoiceCommandTest {
         assertEquals(8, t.onTranscript(prefix, false, 0).position)
         assertEquals(0, t.onTranscript(prefix + "欧了重新来", false, 100).position)
         assertEquals(4, t.onTranscript(prefix + "欧了重新来" + text.take(4), true, 200).position)
+    }
+
+    @Test fun revisingTheSpellingOfACommandDoesNotRestartFollowingTextAgain() {
+        val t = tracker()
+        t.reset(t.size)
+        assertEquals(5, t.onTranscript("欧了重新开始" + text.take(5), false, 0).position)
+        assertEquals(8, t.onTranscript("欧了从新开始" + text.take(8), false, 100).position)
+        assertEquals(10, t.onTranscript("欧了从新开始" + text.take(10), true, 200).position)
+    }
+
+    @Test fun allAliasesCanRestartAfterTextInTheSameUtterance() {
+        for (command in ChineseVoiceCommands.restartPhrases) {
+            val t = tracker()
+            val prefix = "欧了重新开始" + text.take(8)
+            assertEquals(8, t.onTranscript(prefix, false, 0).position)
+            assertEquals(0, t.onTranscript(prefix + command, false, 100).position)
+            assertEquals(4, t.onTranscript(prefix + command + text.take(4), true, 200).position)
+        }
     }
 
     @Test fun commandCanRestartAfterAnotherUtteranceAndCancelsRetake() {
@@ -55,7 +76,7 @@ class ChineseVoiceCommandTest {
     }
 
     @Test fun commandRequiresTheExactWakePhrase() {
-        for (phrase in listOf("重新开始", "我们重新来", "欧了重新开", "欧乐重新开始", "欧了重新莱")) {
+        for (phrase in listOf("重新开始", "我们重新来", "从新开始", "从头开始", "返回开始", "欧了重新开", "欧乐重新开始", "欧了重新莱", "欧了返回开")) {
             val t = tracker()
             t.reset(t.size)
             assertEquals(phrase, t.size, t.onTranscript(phrase, true, 0).position)
@@ -65,7 +86,7 @@ class ChineseVoiceCommandTest {
 
     @Test fun commandHotwordsSurviveTheVocabularyLimit() {
         val words = hotwordList(SpeechLang.ZH, List(1600) { "中文" } + listOf("欧了重新来")).split('/')
-        assertEquals(listOf("欧了重新开始", "欧了重新来", "中文"), words)
+        assertEquals(ChineseVoiceCommands.restartPhrases + "中文", words)
         assertFalse(hotwordList(SpeechLang.EN, listOf("English")).contains("欧了"))
     }
 

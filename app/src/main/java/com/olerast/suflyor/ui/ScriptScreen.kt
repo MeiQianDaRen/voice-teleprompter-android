@@ -69,6 +69,7 @@ fun ScriptScreen(
     var showSpeed by remember { mutableStateOf(false) }
     // Read on every composition: the floating window's Aa row may have changed it meanwhile.
     val wpm = app.settings.autoScrollWpm
+    val effectiveWpm = app.settings.readingWpm(model.spokenTokens).toInt().coerceAtLeast(1)
     val scriptId = app.scripts.currentId
     val lang = app.settings.speechLangFor(doc)
 
@@ -91,6 +92,7 @@ fun ScriptScreen(
             Prompter(
                 model = model,
                 nextToken = state.nextToken,
+                motion = state.motion,
                 fontSp = app.settings.fontSp,
                 linesAbove = 1f,
                 modifier = Modifier.fillMaxSize(),
@@ -114,12 +116,12 @@ fun ScriptScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Pill(stringResource(R.string.script_lang_chip, stringResource(speechLangName(lang))), false) { showLang = true }
-            Pill(stringResource(R.string.speed_value, wpm), false) { showSpeed = true }
+            Pill(stringResource(R.string.speed_value, effectiveWpm), false) { showSpeed = true }
         }
         Text(
             stringResource(
                 R.string.script_stats,
-                formatDuration(model.durationSeconds(wpm)),
+                formatDuration(model.durationSeconds(effectiveWpm)),
                 pluralStringResource(R.plurals.words_count, model.spokenTokens, model.spokenTokens),
                 formatLabel(doc.format),
             ),

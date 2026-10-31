@@ -450,6 +450,7 @@ private fun TimedPage() {
         onMinus = { wpm = (wpm - WPM_STEP).coerceAtLeast(MIN_WPM); s.autoScrollWpm = wpm },
         onPlus = { wpm = (wpm + WPM_STEP).coerceAtMost(MAX_WPM); s.autoScrollWpm = wpm },
     )
+    ReadingPaceControls()
     StepperRow(
         stringResource(R.string.settings_countdown_title),
         if (countdown == 0) stringResource(R.string.settings_countdown_off) else stringResource(R.string.settings_countdown_value, countdown),

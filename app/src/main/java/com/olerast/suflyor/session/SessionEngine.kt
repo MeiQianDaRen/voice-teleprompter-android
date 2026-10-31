@@ -6,6 +6,7 @@ import android.os.Looper
 import android.os.SystemClock
 import com.olerast.suflyor.App
 import com.olerast.suflyor.R
+import com.olerast.suflyor.overlay.ReadingMotion
 import com.olerast.suflyor.diag.DiagLog
 import com.olerast.suflyor.overlay.PrompterAccessibilityService
 import com.olerast.suflyor.script.ScriptModel
@@ -74,6 +75,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         val nextToken: Int = 0,
         /** Visual forecast only; nextToken and position always retain confirmed reading progress. */
         val highlightToken: Int = 0,
+        val motion: ReadingMotion.Sample = ReadingMotion.Sample(),
         val position: Int = 0,
         val total: Int = 0,
         val recordings: List<RecordingMonitor.Rec> = emptyList(),
@@ -192,7 +194,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         } else {
             asr?.setBiasWords(m.biasWords())
         }
-        update { copy(nextToken = tracker.nextTokenIndex(), highlightToken = tracker.nextTokenIndex(), position = 0, total = tracker.size, partial = "", lastFinal = "") }
+        update { copy(nextToken = tracker.nextTokenIndex(), highlightToken = tracker.nextTokenIndex(), motion = ReadingMotion.Sample(revision = epoch), position = 0, total = tracker.size, partial = "", lastFinal = "") }
     }
 
     /** Frees the model of the old language first (they are large), then loads the new one if a session needs it. */
@@ -282,7 +284,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             next = tracker.nextTokenIndex()
         }
         autoCarry = 0.0
-        update { copy(position = pos, nextToken = next, highlightToken = next) }
+        update { copy(position = pos, nextToken = next, highlightToken = next, motion = ReadingMotion.Sample(pos.toFloat(), revision = epoch)) }
     }
 
     // ---- session ------------------------------------------------------------------------------------------------
@@ -371,7 +373,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             tracker.cancelRetake()
             highlightPrediction.reset(tracker.position, SystemClock.elapsedRealtime())
         }
-        update { copy(highlightToken = tracker.nextTokenIndex()) }
+        update { copy(highlightToken = tracker.nextTokenIndex(), motion = ReadingMotion.Sample(tracker.position.toFloat(), revision = epoch)) }
         main.removeCallbacks(ticker)
         capture?.stop()
         capture = null
@@ -426,7 +428,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         synchronized(lock) { tracker.cancelRetake() }
         val paused = !state.paused
         synchronized(lock) { highlightPrediction.reset(tracker.position, SystemClock.elapsedRealtime()) }
-        update { copy(paused = paused, highlightToken = tracker.nextTokenIndex()) }
+        update { copy(paused = paused, highlightToken = tracker.nextTokenIndex(), motion = ReadingMotion.Sample(tracker.position.toFloat(), revision = epoch)) }
         DiagLog.i(if (paused) "Paused" else "Resumed")
         if (!paused && state.scroll == Scroll.AUTO) startCountdown()
     }
@@ -435,11 +437,11 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         synchronized(lock) { tracker.cancelRetake() }
         autoCarry = 0.0
         synchronized(lock) { highlightPrediction.reset(tracker.position, SystemClock.elapsedRealtime()) }
-        update { copy(scroll = scroll, highlightToken = tracker.nextTokenIndex()) }
+        update { copy(scroll = scroll, highlightToken = tracker.nextTokenIndex(), motion = ReadingMotion.Sample(tracker.position.toFloat(), revision = epoch)) }
         DiagLog.i(
             when (scroll) {
-                Scroll.AUTO -> "Scroll: auto, ${app.settings.autoScrollWpm} wpm"
-                Scroll.SOUND -> "Scroll: while talking, ${app.settings.autoScrollWpm} wpm"
+                Scroll.AUTO -> "Scroll: auto, ${app.settings.readingWpm(tracker.size)} wpm"
+                Scroll.SOUND -> "Scroll: while talking, ${app.settings.readingWpm(tracker.size)} wpm"
                 Scroll.VOICE -> "Scroll: voice"
             },
         )
@@ -603,6 +605,24 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         return tracker.tokenIndexAt(highlightPrediction.target(tracker.position, tracker.size, now, active, limit))
     }
 
+    /** A steady visual baseline, corrected by ASR; confirmed progress is kept in the tracker. */
+    private fun readingMotion(now: Long, timed: Boolean): ReadingMotion.Sample {
+        val s = state
+        val actual = tracker.position.toFloat()
+        val ready = s.listening && !s.paused && !s.starting && !s.loadingModel && countdownEndsAt == 0L
+        if (!ready) return ReadingMotion.Sample(actual, revision = epoch)
+        val configuredRate = app.settings.readingWpm(tracker.size) / 60f
+        if (timed) return ReadingMotion.Sample(actual + autoCarry.toFloat(), configuredRate, tracker.size.toFloat(), revision = epoch)
+        val active = s.scroll == Scroll.VOICE && !s.autoFallback && !s.micFailed && speechActive(now)
+        val limit = if (lang == SpeechLang.ZH) 6 else app.settings.leadWords.coerceIn(0, 4)
+        val scale = app.settings.scrollSpeedPercent / 100f
+        val rate = highlightPrediction.motionRate(now, active, configuredRate / scale) * scale
+        if (rate <= 0f) return ReadingMotion.Sample(actual, revision = epoch)
+        val ceiling = highlightPrediction.ceiling(tracker.position, tracker.size, limit).toFloat()
+        val forecast = (actual + rate * 0.45f).coerceAtMost(ceiling)
+        return ReadingMotion.Sample(actual, rate, ceiling, forecast, epoch)
+    }
+
     private val ticker = object : Runnable {
         override fun run() {
             val now = SystemClock.elapsedRealtime()
@@ -638,7 +658,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             val fallbackTimed = (st.autoFallback || st.micFailed) && !(lang == SpeechLang.ZH && st.scroll == Scroll.VOICE)
             val timed = st.scroll == Scroll.AUTO || fallbackTimed || (st.scroll == Scroll.SOUND && talking)
             if (st.listening && !st.paused && countdownEndsAt == 0L && timed) {
-                autoCarry += app.settings.autoScrollWpm / 60.0 * dt
+                autoCarry += app.settings.readingWpm(tracker.size) / 60.0 * dt.coerceIn(0.0, 0.25)
                 if (autoCarry >= 1.0) {
                     val steps = autoCarry.toInt()
                     autoCarry -= steps
@@ -650,14 +670,15 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
                         pos = tracker.position
                         next = tracker.nextTokenIndex()
                     }
-                    update { copy(position = pos, nextToken = next, highlightToken = next) }
+                    update { copy(position = pos, nextToken = next, highlightToken = next, motion = readingMotion(now, timed = true)) }
                 }
             }
             synchronized(lock) {
                 // An ASR publication already queued on main owns its matching position and highlight.
                 if (state.position == tracker.position) {
                     val highlight = predictedHighlight(now)
-                    if (highlight != state.highlightToken) update { copy(highlightToken = highlight) }
+                    val motion = readingMotion(now, timed)
+                    if (highlight != state.highlightToken || motion != state.motion) update { copy(highlightToken = highlight, motion = motion) }
                 }
             }
             main.postDelayed(this, 100)

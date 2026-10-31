@@ -56,9 +56,9 @@
     <plurals name="settings_lead_value">
         <item quantity="other">%d 个字词</item>
     </plurals>
-    <string name="settings_lead_hint">根据最近平均语速预判高亮。中文最多提前 6 字，此项设置英文的词数上限。停顿或语句结束后回到实际识别位置。</string>
-    <string name="settings_highlight_title">高亮下一个字词</string>
-    <string name="settings_highlight_hint">关闭时仅标记当前行</string>
+    <string name="settings_lead_hint">中文按语速预判，最多提前 6 字；英文由此项限制提前词数。整行聚焦、词组轻微高亮，停顿或句末平滑回位。</string>
+    <string name="settings_highlight_title">英文词组高亮</string>
+    <string name="settings_highlight_hint">中文固定使用当前行和词组聚焦；此开关控制英文词高亮。</string>
     <string name="settings_hotwords_title">增强稿件词汇识别</string>
     <string name="settings_hotwords_hint">提高生僻词识别效果，下次启动应用时生效</string>
     <string name="settings_section_text">文本</string>
@@ -155,7 +155,7 @@
     <string name="settings_mirror_pick_hint">请选择能让反射玻璃中的文字方向正确的模式。</string>
     <string name="settings_speech_lang_default_title">默认语音识别语言</string>
     <string name="settings_speech_lang_default_hint">用于未在稿件详情中单独指定语言的稿件。</string>
-    <string name="settings_timed_page_hint">用于定速模式、声音模式和时长估算，也可在稿件详情及悬浮窗中调整速度。</string>
+    <string name="settings_timed_page_hint">定速模式连续滚动；语音模式用平滑基线承接识别修正，停顿时等待。可按目标时长估算速度，再用倍率微调。</string>
     <string name="settings_scripts_page_hint">稿件列表的 ⋮ 菜单中也提供这些操作。</string>
     <string name="mirror_off">关闭</string>
     <string name="mirror_horizontal">水平</string>

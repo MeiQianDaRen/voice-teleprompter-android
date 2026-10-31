@@ -17,6 +17,7 @@ import com.olerast.suflyor.doc.ImportWarning
 import com.olerast.suflyor.doc.MarkdownImporter
 import com.olerast.suflyor.doc.Paragraph
 import com.olerast.suflyor.doc.ScriptDocument
+import com.olerast.suflyor.script.ChineseVoiceCommands
 import com.olerast.suflyor.script.ScriptLayout
 import com.olerast.suflyor.script.ScriptModel
 import com.olerast.suflyor.script.SpeechLang
@@ -66,6 +67,13 @@ class ScriptRepository(context: Context, private val settings: Settings) {
         migrateLegacy()
         items = loadAllMeta()
         if (items.isEmpty()) add(sample())
+        // Append help once to previously saved built-in examples; never replace their existing text.
+        items.filter { it.format == ScriptDocument.FORMAT_SAMPLE }.forEach { meta ->
+            val doc = read(meta.id) ?: return@forEach
+            if (doc.paragraphs.none { p -> ChineseVoiceCommands.restartPhrases.all { it in p.text } }) {
+                update(meta.id, doc.copy(paragraphs = doc.paragraphs + Paragraph(appContext.getString(R.string.sample_restart_note))))
+            }
+        }
         val last = settings.currentScriptId?.takeIf { id -> items.any { it.id == id } } ?: items.firstOrNull()?.id
         if (last != null) select(last) else showUnsaved(sample())
     }

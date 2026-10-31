@@ -10,6 +10,10 @@ internal object ScrollMotion {
     }
     // Keep exact highlighting; the dead zone must never suppress a necessary line change.
     fun shouldScroll(characterDelta: Int, lineChanged: Boolean) = lineChanged || abs(characterDelta) > 2
+    fun rowPosition(position: Float, first: Int, end: Int, top: Float, nextTop: Float): Float {
+        val fraction = ((position - first) / (end - first).coerceAtLeast(1)).coerceIn(0f, 1f)
+        return top + (nextTop - top) * fraction
+    }
     fun position(from: Float, to: Float, elapsed: Long, duration: Long): Float {
         if (duration <= 0 || elapsed >= duration) return to
         val t = (elapsed.toFloat() / duration).coerceIn(0f, 1f)

@@ -108,6 +108,7 @@ fun RehearsalScreen(onBack: () -> Unit) {
                 model = app.scripts.model,
                 nextToken = state.nextToken,
                 highlightToken = state.highlightToken,
+                motion = state.motion,
                 fontSp = font,
                 linesAbove = 1.5f,
                 modifier = Modifier.fillMaxSize(),

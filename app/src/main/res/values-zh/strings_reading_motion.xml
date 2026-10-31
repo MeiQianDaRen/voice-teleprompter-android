@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reading_retreated">已回退</string>
+    <string name="reading_duration_title">按目标时长估算速度</string>
+    <string name="reading_duration_hint">按稿件字词数 ÷ 目标时长作为基线；手动调整字词/分钟会切回手动速度。</string>
+    <string name="reading_target_title">目标时长</string>
+    <string name="reading_target_hint">每次微调 15 秒；1.00x 时按此时长估速。</string>
+    <string name="reading_speed_title">滚动速度倍率</string>
+    <string name="reading_speed_hint">0.50x～3.00x，每次微调 0.05x。定速持续滚动，语音模式按朗读进度修正，停顿时等待。</string>
+    <string name="reading_speed_short">倍率</string>
+    <string name="reading_target_short">时长</string>
+    <string name="reading_duration_on">速度基线：目标时长（点击切换）</string>
+    <string name="reading_duration_off">速度基线：手动字词/分钟（点击切换）</string>
+</resources>

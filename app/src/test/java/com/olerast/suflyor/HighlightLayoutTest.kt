@@ -11,6 +11,32 @@ import org.junit.Test
 class HighlightLayoutTest {
     private fun model(text: String) = ScriptLayout.build(ScriptDocument("", "test", listOf(Paragraph(text))), false, lang = SpeechLang.ZH)
 
+    @Test fun chineseFocusUsesStableGroupsRatherThanChangingEveryCharacter() {
+        val m = model("今天我们一起学习自然表达")
+        val ranges = HighlightLayout.words(m.displayText, m.tokens, true)
+        val counts = ranges.groupingBy { it }.eachCount()
+        assertTrue(counts.values.all { it in 2..4 })
+        assertTrue(ranges.asList().zipWithNext().any { it.first == it.second })
+    }
+
+    @Test fun wordGroupsKeepMeasurementsWholeAndNeverIncludeNotesOrPunctuation() {
+        val m = model("今天气温36.5℃，适合散步[停顿]继续录制")
+        val ranges = HighlightLayout.words(m.displayText, m.tokens, true)
+        m.tokens.forEachIndexed { i, t ->
+            if (!t.spoken) assertNull(ranges[i])
+            else assertNotNull(ranges[i])
+        }
+        val selected = ranges.filterNotNull().map { m.displayText.substring(it) }
+        assertTrue(selected.contains("36.5℃"))
+        assertFalse(selected.any { "停顿" in it || "，" in it })
+    }
+
+    @Test fun englishFocusKeepsEachWordWhole() {
+        val m = ScriptLayout.build(ScriptDocument("", "test", listOf(Paragraph("Read this naturally."))), false, lang = SpeechLang.EN)
+        val ranges = HighlightLayout.words(m.displayText, m.tokens, false)
+        assertEquals(listOf("Read", "this", "naturally"), ranges.map { m.displayText.substring(it!!) })
+    }
+
     @Test fun phraseBandsRespectPunctuationAndOriginalOffsets() {
         val m = model("今天介绍设备，随后检查镜头")
         val ranges = HighlightLayout.phrases(m.tokens)

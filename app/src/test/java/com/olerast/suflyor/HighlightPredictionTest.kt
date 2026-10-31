@@ -5,6 +5,26 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HighlightPredictionTest {
+    @Test fun unmatchedSpeechCannotStartTheVisualBaseline() {
+        val p = HighlightPrediction()
+        p.reset(0, 0)
+        p.observe(0, false, 100)
+        assertEquals(0f, p.motionRate(100, true, 3f), 0f)
+        p.observe(1, false, 200)
+        assertEquals(3f, p.motionRate(200, true, 3f), 0f)
+    }
+
+    @Test fun baselineWaitsAtFinalPauseAndSentenceCeilings() {
+        val p = paced()
+        assertEquals(5f, p.motionRate(500, true, 3f), 0f)
+        assertEquals(0f, p.motionRate(500, false, 3f), 0f)
+        assertEquals(0f, p.motionRate(1700, true, 3f), 0f)
+        p.observe(3, true, 550)
+        assertEquals(0f, p.motionRate(550, true, 3f), 0f)
+        p.setSentenceEnds(listOf(5, 10))
+        assertEquals(4, p.ceiling(3, 10, 6))
+        assertEquals(3, p.ceiling(3, 10, 0))
+    }
     private fun paced() = HighlightPrediction().apply {
         reset(0, 0)
         observe(1, false, 0); observe(2, false, 200); observe(3, false, 400)
@@ -62,9 +82,9 @@ class HighlightPredictionTest {
 
     @Test fun staleOrInactiveSpeechSettlesWithoutDriftingOnATimer() {
         val p = paced()
-        assertTrue(p.at(3, 1100) > 3)
-        assertEquals(3, p.at(3, 1101))
-        assertEquals(3, p.at(3, 1200))
+        assertTrue(p.at(3, 1600) > 3)
+        assertEquals(3, p.at(3, 1601))
+        assertEquals(3, p.at(3, 1700))
         val paused = paced()
         assertEquals(3, paused.at(3, 500, active = false))
         assertEquals(3, paused.at(3, 600))
