@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="speech_rate_compensation">Коррекция темпа речи</string>
+    <string name="speech_rate_compensation_hint" formatted="false">Только голосовой режим: плюс ускоряет, минус замедляет. От −50% до +100% с шагом 5%; 0% — автоматически определённый темп.</string>
     <string name="reading_retreated">Возврат назад</string>
     <string name="reading_speed_title">Множитель скорости</string>
     <string name="reading_speed_hint">Только для режимов скорости и звука: 0.50x–3.00x, шаг 0.05x. Голосовой режим сам определяет темп речи.</string>

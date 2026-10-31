@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="speech_rate_compensation">Speech rate compensation</string>
+    <string name="speech_rate_compensation_hint" formatted="false">Voice following only: positive speeds up, negative slows down. Range −50% to +100% in 5% steps; 0% uses the learned speech rate.</string>
     <string name="reading_retreated">Moved back</string>
     <string name="reading_speed_title">Scroll speed multiplier</string>
     <string name="reading_speed_hint">Only for Speed and Sound modes: 0.50x–3.00x in 0.05x steps. Voice following learns recent speech cadence automatically.</string>

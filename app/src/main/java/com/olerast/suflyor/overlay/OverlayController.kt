@@ -642,13 +642,18 @@ class OverlayController(private val context: Context, private val windowType: In
             addView(
                 row(
                     tuneGroup(R.string.overlay_tune_background, { "${s.overlayAlpha}%" }, { changeAlpha(-8) }, { changeAlpha(8) }),
-                    tuneGroup(R.string.reading_speed_short, { java.lang.String.format(java.util.Locale.ROOT, "%.2fx", s.scrollSpeedPercent / 100f) },
-                        { s.scrollSpeedPercent -= 5 }, { s.scrollSpeedPercent += 5 }),
                 ),
             )
             addView(row(
-                tuneGroup(R.string.overlay_tune_speed, { "${s.autoScrollWpm}" }, { changeSpeed(-10) }, { changeSpeed(10) }),
+                tuneGroup(R.string.speech_rate_compensation, { java.lang.String.format(java.util.Locale.ROOT, "%+d%%", s.speechRateCompensation) },
+                    { s.speechRateCompensation -= 5 }, { s.speechRateCompensation += 5 }),
             ))
+            addView(TextView(context).apply {
+                text = context.getString(R.string.speech_rate_compensation_hint)
+                textSize = 11f
+                setTextColor(Color.argb(170, 255, 255, 255))
+                setPadding(dp(4), 0, dp(4), dp(4))
+            })
         }
     }
 
@@ -740,10 +745,6 @@ class OverlayController(private val context: Context, private val windowType: In
     private fun changeAlpha(delta: Int) {
         app.settings.overlayAlpha = (app.settings.overlayAlpha + delta).coerceIn(24, 96)
         background.setColor(Color.argb(app.settings.overlayAlpha * 255 / 100, 8, 8, 10))
-    }
-
-    private fun changeSpeed(delta: Int) {
-        app.settings.autoScrollWpm = (app.settings.autoScrollWpm + delta).coerceIn(60, 260)
     }
 
     private fun changeFont(delta: Int) {

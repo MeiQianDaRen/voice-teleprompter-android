@@ -154,6 +154,11 @@ class Settings(context: Context) {
         }
     val timedScrollWpm: Float get() = com.olerast.suflyor.session.ReadingPace.perMinute(autoScrollWpm, scrollSpeedPercent)
 
+    /** Adjust the learned voice cadence without changing confirmed reading progress. */
+    var speechRateCompensation: Int
+        get() = prefs.getInt("speechRateCompensation", 0).coerceIn(-50, 100)
+        set(v) = prefs.edit().putInt("speechRateCompensation", v.coerceIn(-50, 100)).apply()
+
     var showDiagnostics: Boolean
         get() = prefs.getBoolean("showDiagnostics2", false)
         set(v) = prefs.edit().putBoolean("showDiagnostics2", v).apply()

@@ -54,15 +54,16 @@ internal class HighlightPrediction {
         if (ended) lastTarget = position
     }
 
-    fun motionRate(now: Long, active: Boolean): Float =
-        if (!active || ended || !progressSeen || now - lastAdvance > 1200L) 0f else averageRate
+    fun motionRate(now: Long, active: Boolean, compensationPercent: Int = 0): Float =
+        if (!active || ended || !progressSeen || now - lastAdvance > 1200L) 0f
+        else averageRate * (1f + compensationPercent.coerceIn(-50, 100) / 100f)
 
     fun ceiling(position: Int, total: Int, maxAhead: Int): Int {
         val boundary = sentenceEnds.firstOrNull { it > position } ?: total
         return minOf(total - 1, boundary - 1, position + maxAhead.coerceIn(0, 6)).coerceAtLeast(position)
     }
 
-    fun target(position: Int, total: Int, now: Long, active: Boolean, maxAhead: Int): Int {
+    fun target(position: Int, total: Int, now: Long, active: Boolean, maxAhead: Int, compensationPercent: Int = 0): Int {
         if (position != actual) reset(position, now)
         val age = now - lastAdvance
         if (!active || ended || age > 1200L || position >= total || maxAhead <= 0) {
@@ -70,7 +71,7 @@ internal class HighlightPrediction {
             lastTarget = position
             return position
         }
-        val lead = (averageRate * (0.45f + age.coerceAtLeast(0) / 1000f)).roundToInt()
+        val lead = (motionRate(now, active, compensationPercent) * (0.45f + age.coerceAtLeast(0) / 1000f)).roundToInt()
         lastTarget = maxOf(position, lastTarget, position + lead).coerceAtMost(ceiling(position, total, maxAhead))
         return lastTarget
     }

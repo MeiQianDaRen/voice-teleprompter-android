@@ -5,6 +5,45 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HighlightPredictionTest {
+    @Test fun compensationScalesTheLearnedRateWithoutChangingTheMeasurement() {
+        val p = paced()
+        assertEquals(5f, p.motionRate(400, true, 0), 0f)
+        assertEquals(6.5f, p.motionRate(400, true, 30), 0.001f)
+        assertEquals(3.5f, p.motionRate(400, true, -30), 0.001f)
+        assertEquals(5f, p.averageRate, 0f)
+        assertEquals(5, paced().target(3, 100, 400, true, 6, 0))
+        assertEquals(8, paced().target(3, 100, 400, true, 6, 100))
+        assertEquals(4, paced().target(3, 100, 400, true, 6, -50))
+    }
+
+    @Test fun compensationClampsInvalidSavedValues() {
+        val p = paced()
+        assertEquals(2.5f, p.motionRate(400, true, Int.MIN_VALUE), 0f)
+        assertEquals(10f, p.motionRate(400, true, Int.MAX_VALUE), 0f)
+    }
+
+    @Test fun compensationCannotBypassLeadOrSentenceLimits() {
+        val p = paced()
+        assertEquals(9, p.target(3, 100, 1200, true, 6, 100))
+        p.setSentenceEnds(listOf(5))
+        assertEquals(4, p.target(3, 100, 1200, true, 6, 100))
+        assertEquals(3, p.target(3, 100, 1200, true, 0, 100))
+    }
+
+    @Test fun compensationCannotCreateSpeechProgressOrOverrideStops() {
+        val cold = HighlightPrediction().apply { reset(0, 0) }
+        assertEquals(0f, cold.motionRate(100, true, 100), 0f)
+        assertEquals(0, cold.target(0, 100, 100, true, 6, 100))
+        val p = paced()
+        assertEquals(0f, p.motionRate(400, false, 100), 0f)
+        assertEquals(0f, p.motionRate(1601, true, 100), 0f)
+        p.observe(3, true, 500)
+        assertEquals(0f, p.motionRate(500, true, 100), 0f)
+        assertEquals(3, p.target(3, 100, 500, true, 6, 100))
+        p.reset(0, 600)
+        assertEquals(0f, p.motionRate(600, true, 100), 0f)
+    }
+
     @Test fun cadenceReactsQuicklyToFasterAndSlowerReading() {
         val p = paced()
         p.observe(5, false, 600)

@@ -606,7 +606,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         val active = s.listening && !s.paused && s.scroll == Scroll.VOICE && !s.starting &&
             !s.loadingModel && !s.autoFallback && !s.micFailed && countdownEndsAt == 0L && speechActive(now)
         val limit = if (lang == SpeechLang.ZH) 6 else app.settings.leadWords.coerceIn(0, 4)
-        return tracker.tokenIndexAt(highlightPrediction.target(tracker.position, tracker.size, now, active, limit))
+        return tracker.tokenIndexAt(highlightPrediction.target(tracker.position, tracker.size, now, active, limit, app.settings.speechRateCompensation))
     }
 
     /** A steady visual baseline, corrected by ASR; confirmed progress is kept in the tracker. */
@@ -618,7 +618,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         if (timed) return ReadingMotion.Sample(actual + autoCarry.toFloat(), app.settings.timedScrollWpm / 60f, tracker.size.toFloat(), revision = epoch)
         val active = s.scroll == Scroll.VOICE && !s.autoFallback && !s.micFailed && speechActive(now)
         val limit = if (lang == SpeechLang.ZH) 6 else app.settings.leadWords.coerceIn(0, 4)
-        val rate = highlightPrediction.motionRate(now, active)
+        val rate = highlightPrediction.motionRate(now, active, app.settings.speechRateCompensation)
         if (rate <= 0f) return ReadingMotion.Sample(actual, revision = epoch)
         val ceiling = highlightPrediction.ceiling(tracker.position, tracker.size, limit).toFloat()
         val forecast = (actual + rate * 0.45f).coerceAtMost(ceiling)
