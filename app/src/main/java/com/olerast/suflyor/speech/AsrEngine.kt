@@ -12,8 +12,12 @@ interface AsrEngine {
     /** The "boost script words" setting the engine was created with; a change of the setting needs a new engine. */
     val hotwordsSetting: Boolean
 
-    /** Audio thread: publish changed text, token metadata, or an utterance boundary. */
+    /** Decoder worker: publish changed text, token metadata, or an utterance boundary. */
     fun accept(samples: FloatArray, sampleRate: Int): AsrUpdate?
+
+    /** Recheck ownership after waiting for a model operation (pause, seek, or a replaced capture). */
+    fun accept(samples: FloatArray, sampleRate: Int, isCurrent: () -> Boolean): AsrUpdate? =
+        if (isCurrent()) accept(samples, sampleRate) else null
 
     /** Words of the current script to bias recognition towards (may be ignored by the engine). */
     fun setBiasWords(words: List<String>)
@@ -27,7 +31,8 @@ interface AsrEngine {
 /** Scores are sherpa token log probabilities, not calibrated transcript correctness. */
 data class AsrToken(val text: String, val timestampSeconds: Float? = null, val logProbability: Float? = null)
 
-data class AsrUpdate(val text: String, val isFinal: Boolean, val tokens: List<AsrToken> = emptyList(), val segmentId: Long = 0L) {
+data class AsrUpdate(val text: String, val isFinal: Boolean, val tokens: List<AsrToken> = emptyList(), val segmentId: Long = 0L,
+                     val audioDurationMs: Long? = null) {
     private val spoken: List<AsrToken> get() = tokens.filter { token -> token.text.any { it.isLetterOrDigit() } && !token.text.startsWith("<") }
 
     /** Geometric mean of the recent acoustic scores; absent or invalid metadata stays unknown. */
@@ -58,4 +63,23 @@ internal class AcousticConfidence {
         anchors.addLast(raw)
         while (anchors.size > 32) anchors.removeFirst()
     }
+}
+
+/** A fresh native stream has a known origin; decoder-only resets retain undecoded audio. */
+internal class AsrInputClock {
+    companion object { const val MAX_SEGMENT_MS = 12_000L }
+    private var duration = 0.0
+    private var segmentStart = 0.0
+    private var lastVoiced = 0.0
+    private var known = true
+    val audioDurationMs: Long? get() = if (known) duration.toLong() else null
+    val mayRecreateAtEndpoint: Boolean get() = known && duration - segmentStart < MAX_SEGMENT_MS || duration - lastVoiced >= 500.0
+
+    fun accept(samples: Int, sampleRate: Int, voiced: Boolean) {
+        duration += samples * 1000.0 / sampleRate
+        if (voiced) lastVoiced = duration
+    }
+    fun textChanged() { lastVoiced = duration }
+    fun reset() { duration = 0.0; segmentStart = 0.0; lastVoiced = 0.0; known = true }
+    fun decoderReset() { segmentStart = duration; known = false }
 }

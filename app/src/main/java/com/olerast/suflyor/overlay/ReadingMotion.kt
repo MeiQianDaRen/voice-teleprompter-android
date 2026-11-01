@@ -11,6 +11,7 @@ class ReadingMotion {
         val ceiling: Float = position,
         val forecast: Float = position,
         val revision: Int = 0,
+        val issuedAtMs: Long = 0L,
     )
 
     private var sample: Sample? = null

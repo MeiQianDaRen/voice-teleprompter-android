@@ -109,6 +109,7 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
         val score: Float,
         val reason: String,
         val alignmentQuality: Float = if (matches > 0) 1f else 0f,
+        val provisionalPosition: Int? = null,
     )
 
     fun nextTokenIndex(): Int = tokenIndexAt(position)
@@ -136,7 +137,7 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
         val before = position
         val result = alignment.consume(text, isFinal, nowMs, speechActive, confidence)
         position = result.position
-        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason, result.quality)
+        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason, result.quality, result.provisionalPosition)
     }
 
     fun silence() { chineseAlignment?.silence() }
@@ -144,7 +145,7 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
         val result = chineseAlignment?.confirmFollow(nowMs) ?: return null
         val before = position
         position = result.position
-        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason, result.quality)
+        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason, result.quality, result.provisionalPosition)
     }
 
     fun setRetakeChars(value: Int) { chineseAlignment?.setRetakeChars(value) }
@@ -154,7 +155,7 @@ class ScriptTracker(tokens: List<Token>, private val lang: SpeechLang = SpeechLa
         val result = chineseAlignment?.confirmRetake(nowMs) ?: return null
         val before = position
         position = result.position
-        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason, result.quality)
+        return Update(position != before, position, nextTokenIndex(), result.matches, result.matches.toFloat(), result.reason, result.quality, result.provisionalPosition)
     }
 
     /** @param hypothesis normalized recognized words, oldest first (finalized history + current partial). */

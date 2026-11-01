@@ -15,6 +15,7 @@ import com.olerast.suflyor.script.biasWords
 import com.olerast.suflyor.speech.AsrEngine
 import com.olerast.suflyor.speech.AsrUpdate
 import com.olerast.suflyor.speech.AcousticConfidence
+import com.olerast.suflyor.speech.AudioFrame
 import com.olerast.suflyor.speech.AudioCapture
 import com.olerast.suflyor.speech.CaptureError
 import com.olerast.suflyor.speech.SherpaAsr
@@ -100,6 +101,8 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     private var tracker = ScriptTracker(emptyList())
     private val highlightPrediction = HighlightPrediction()
     private val confidenceModel = AcousticConfidence()
+    private val recognitionLatency = RecognitionLatency()
+    private val followTiming = FollowTiming()
 
     /** Language of [model], readable from the audio thread without the lock. */
     @Volatile
@@ -122,17 +125,20 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     private val finalWords = ArrayDeque<String>()
     private var partialWords: List<String> = emptyList()
 
-    // Capture-thread statistics for the periodic journal line.
+    // Decoder-worker statistics for the periodic journal line.
     private var statFrames = 0
     private var statZeroFrames = 0
     private var statDbSum = 0.0
     private var statDbMax = -120f
     private var statWords = 0
     private var lastSilencedCheck = 0L
+    private var lastLevelUpdate = 0L
+    private var lastEmissionLagMs: Long? = null
+    @Volatile private var acceptAudioAfter = 0L
     private var zeroSince = 0L
 
     /** Audio thread: the recognizer got the last chunk (it is skipped while paused, timed or on digital silence). */
-    private var feeding = false
+    @Volatile private var feeding = false
 
     /** Sound mode: slowly adapting background level and when a louder chunk (a voice) was last heard. */
     private var noiseFloorDb = Float.NaN
@@ -171,6 +177,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             // Reset first, then bump the epoch: a result decoded before the reset carries the old epoch and is dropped.
             asr?.reset()
             epoch++
+            acceptAudioAfter = SystemClock.elapsedRealtime()
             model = m
             lang = m.lang
             tracker = ScriptTracker(m.tokens, m.lang, app.settings.chineseRetakeChars, ChinesePhonetics::key)
@@ -184,6 +191,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             highlightPrediction.setSentenceEnds(sentenceEnds)
             highlightPrediction.reset(0, SystemClock.elapsedRealtime())
             confidenceModel.reset()
+            recognitionLatency.reset()
             // A script in the other language needs the other model; the audio thread sees no recognizer meanwhile.
             asr?.takeIf { it.lang != m.lang }?.let {
                 stale = it
@@ -279,11 +287,12 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         synchronized(lock) {
             asr?.reset()
             epoch++
+            acceptAudioAfter = SystemClock.elapsedRealtime()
             action(tracker)
             finalWords.clear()
             partialWords = emptyList()
             pos = tracker.position
-            highlightPrediction.reset(pos, SystemClock.elapsedRealtime())
+            highlightPrediction.reset(pos, SystemClock.elapsedRealtime()); recognitionLatency.reset()
             next = tracker.nextTokenIndex()
         }
         autoCarry = 0.0
@@ -346,9 +355,12 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     private fun continueStart(mode: Mode, asrError: SessionError?) {
         val s = app.settings
         resetStats()
+        acceptAudioAfter = SystemClock.elapsedRealtime()
         val cap = AudioCapture(s.audioSource, s.sampleRate, this)
+        capture = cap
         val err = cap.start()
         if (err != null) {
+            capture = null
             DiagLog.e(err.toString())
             update { copy(mode = Mode.IDLE, starting = false, listening = false, error = SessionError.Capture(err)) }
             // The model may have loaded before the microphone refused: free it later like after a normal stop.
@@ -356,7 +368,6 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             main.postDelayed(unloadIdle, UNLOAD_AFTER_MS)
             return
         }
-        capture = cap
         monitor = RecordingMonitor(app, { cap.audioSessionId }) { onRecordings(it) }.also { it.start() }
         val a11y = PrompterAccessibilityService.instance != null
         DiagLog.i(
@@ -367,20 +378,23 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         )
         update { copy(starting = false, listening = true, error = asrError) }
         lastTick = SystemClock.elapsedRealtime()
-        synchronized(lock) { highlightPrediction.reset(tracker.position, lastTick); confidenceModel.reset() }
+        synchronized(lock) { highlightPrediction.reset(tracker.position, lastTick); confidenceModel.reset(); recognitionLatency.reset() }
         main.removeCallbacks(ticker)
         main.post(ticker)
     }
 
     fun stop() {
         synchronized(lock) {
+            epoch++
+            acceptAudioAfter = SystemClock.elapsedRealtime()
             tracker.cancelRetake()
-            highlightPrediction.reset(tracker.position, SystemClock.elapsedRealtime())
+            highlightPrediction.reset(tracker.position, SystemClock.elapsedRealtime()); recognitionLatency.reset()
         }
         update { copy(highlightToken = tracker.nextTokenIndex(), motion = ReadingMotion.Sample(tracker.position.toFloat(), revision = epoch)) }
         main.removeCallbacks(ticker)
-        capture?.stop()
+        val stoppedCapture = capture
         capture = null
+        stoppedCapture?.stop()
         monitor?.stop()
         monitor = null
         if (state.mode != Mode.IDLE) DiagLog.i("Session stopped")
@@ -429,18 +443,22 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     }
 
     fun togglePause() {
-        synchronized(lock) { tracker.cancelRetake() }
+        acceptAudioAfter = SystemClock.elapsedRealtime()
+        feeding = false
+        synchronized(lock) { epoch++; tracker.cancelRetake() }
         val paused = !state.paused
-        synchronized(lock) { highlightPrediction.reset(tracker.position, SystemClock.elapsedRealtime()) }
+        synchronized(lock) { highlightPrediction.reset(tracker.position, SystemClock.elapsedRealtime()); recognitionLatency.reset() }
         update { copy(paused = paused, highlightToken = tracker.nextTokenIndex(), motion = ReadingMotion.Sample(tracker.position.toFloat(), revision = epoch)) }
         DiagLog.i(if (paused) "Paused" else "Resumed")
         if (!paused && state.scroll == Scroll.AUTO) startCountdown()
     }
 
     fun setScroll(scroll: Scroll) {
-        synchronized(lock) { tracker.cancelRetake() }
+        acceptAudioAfter = SystemClock.elapsedRealtime()
+        feeding = false
+        synchronized(lock) { epoch++; tracker.cancelRetake() }
         autoCarry = 0.0
-        synchronized(lock) { highlightPrediction.reset(tracker.position, SystemClock.elapsedRealtime()) }
+        synchronized(lock) { highlightPrediction.reset(tracker.position, SystemClock.elapsedRealtime()); recognitionLatency.reset() }
         update { copy(scroll = scroll, highlightToken = tracker.nextTokenIndex(), motion = ReadingMotion.Sample(tracker.position.toFloat(), revision = epoch)) }
         DiagLog.i(
             when (scroll) {
@@ -461,10 +479,29 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         update { copy(foregroundApp = pkg) }
     }
 
-    // ---- audio thread -------------------------------------------------------------------------------------------
+    // ---- decoder worker (capture remains independent) -------------------------------------------------------------------------------------------
 
     override fun onAudio(samples: FloatArray, sampleRate: Int, rmsDb: Float, digitalSilence: Boolean) {
+        val source = capture ?: return
         val now = SystemClock.elapsedRealtime()
+        onAudioFrame(source, AudioFrame(samples, sampleRate, rmsDb, digitalSilence, now, now))
+    }
+
+    override fun onAudioFrame(source: AudioCapture, frame: AudioFrame) {
+        if (source !== capture || frame.capturedAtMs < acceptAudioAfter) return
+        val samples = frame.samples
+        val sampleRate = frame.sampleRate
+        val rmsDb = frame.rmsDb
+        val digitalSilence = frame.digitalSilence
+        val frameEpoch = epoch
+        val now = SystemClock.elapsedRealtime()
+        if (frame.discontinuity) {
+            feeding = false
+            synchronized(lock) {
+                recognitionLatency.reset()
+                highlightPrediction.reset(tracker.position, now)
+            }
+        }
         statFrames++
         if (digitalSilence) statZeroFrames++
         statDbSum += rmsDb
@@ -485,12 +522,13 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         // the first chunk heard, falls a few dB per chunk and rises slowly, so one very quiet chunk doesn't make the
         // room itself count as a voice for seconds.
         if (!digitalSilence) {
+            val cadenceScale = samples.size * 10f / sampleRate
             if (noiseFloorDb.isNaN()) noiseFloorDb = rmsDb
             if (rmsDb > noiseFloorDb + VOICE_MARGIN_DB && rmsDb > VOICE_MIN_DB) lastVoiceAt = now
             noiseFloorDb = if (rmsDb < noiseFloorDb) {
-                maxOf(rmsDb, noiseFloorDb - FLOOR_FALL_DB)
+                maxOf(rmsDb, noiseFloorDb - FLOOR_FALL_DB * cadenceScale)
             } else {
-                noiseFloorDb + (rmsDb - noiseFloorDb) * 0.01f
+                noiseFloorDb + (rmsDb - noiseFloorDb) * 0.01f * cadenceScale
             }
         }
 
@@ -508,27 +546,43 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         }
         feeding = engine != null
         if (engine != null) {
-            val e = epoch
+            val e = frameEpoch
+            val decodeStarted = SystemClock.elapsedRealtime()
+            if (source !== capture || frameEpoch != epoch || frame.capturedAtMs < acceptAudioAfter) return
             val upd = try {
-                engine.accept(samples, sampleRate)
+                engine.accept(samples, sampleRate) {
+                    source === capture && e == epoch && frame.capturedAtMs >= acceptAudioAfter
+                }
             } catch (t: Throwable) {
                 DiagLog.e("Recognition error", t)
                 null
             }
-            if (upd != null) onAsr(upd, e)
+            val decodedAt = SystemClock.elapsedRealtime()
+            if (source !== capture || e != epoch || frame.capturedAtMs < acceptAudioAfter) {
+                if (source === capture) { runCatching { engine.reset() }; feeding = false }
+                return
+            }
+            if (upd != null) onAsr(upd, e, frame.capturedAtMs)
+            followTiming.record(now - frame.queuedAtMs, decodedAt - decodeStarted,
+                SystemClock.elapsedRealtime() - decodedAt)
         }
         // Voice and sound both depend on hearing: when Android feeds silence, the timer keeps the text moving.
         val needsMic = state.scroll == Scroll.VOICE || state.scroll == Scroll.SOUND
         val fallback = needsMic && (silenced == true || (zeroSince != 0L && now - zeroSince > 2000))
-        update { copy(levelDb = rmsDb, digitalSilence = digitalSilence, silencedBySystem = silenced, autoFallback = fallback) }
-        // The capture thread owns the statistics window, so it also reports and resets it.
+        if (source !== capture || frameEpoch != epoch) return
+        if (now - lastLevelUpdate >= 100L) {
+            lastLevelUpdate = now
+            update { if (source === capture && frameEpoch == epoch)
+                copy(levelDb = rmsDb, digitalSilence = digitalSilence, silencedBySystem = silenced, autoFallback = fallback) else this }
+        }
+        // The decoder worker owns the statistics window, so it also reports and resets it.
         if (now - lastStatLog >= 5000) {
             lastStatLog = now
             logStats()
         }
     }
 
-    private fun onAsr(upd: AsrUpdate, fromEpoch: Int) {
+    private fun onAsr(upd: AsrUpdate, fromEpoch: Int, capturedAtMs: Long) {
         // A result in the old language after a script change is dropped by the epoch check below.
         val words = lang.words(upd.text)
         var moved: ScriptTracker.Update? = null
@@ -557,9 +611,17 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             }
             pos = tracker.position
             if (pos > before) confidenceModel.observe(rawConfidence, moved?.alignmentQuality ?: 0f)
-            if (pos < before || moved?.reason?.startsWith("restart") == true) highlightPrediction.reset(pos, now)
+            if (pos < before || moved?.reason?.startsWith("restart") == true) {
+                highlightPrediction.reset(pos, now)
+                recognitionLatency.reset()
+            }
+            val trusted = (moved?.alignmentQuality ?: 0f) >= 0.8f || moved?.provisionalPosition != null
+            val lag = recognitionLatency.observe(upd.segmentId, upd.audioDurationMs, speechTime, capturedAtMs, now,
+                trusted && predictionActive(now), upd.isFinal)
+            lastEmissionLagMs = lag
             highlightPrediction.observe(pos, upd.isFinal, now, speechTime, upd.segmentId, acousticConfidence,
-                trusted = (moved?.alignmentQuality ?: 0f) >= 0.8f)
+                trusted = trusted, latencyMs = lag)
+            highlightPrediction.preview(moved?.provisionalPosition, now)
             next = tracker.nextTokenIndex()
             highlight = predictedHighlight(now)
             motion = readingMotion(now, timed = false)
@@ -573,7 +635,10 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
             statWords += words.size
             DiagLog.i("Heard: ${upd.text}")
         }
+        val publishedAt = SystemClock.elapsedRealtime()
         update {
+            if (fromEpoch != epoch) return@update this
+            followTiming.publish(SystemClock.elapsedRealtime() - publishedAt)
             copy(
                 partial = if (upd.isFinal) "" else upd.text,
                 lastFinal = if (upd.isFinal && upd.text.isNotBlank()) upd.text else lastFinal,
@@ -590,7 +655,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         // A capture from an earlier session may report late, after a new one has started.
         if (source !== capture) return
         DiagLog.e("$error; microphone unavailable")
-        update { copy(error = SessionError.Capture(error), micFailed = true, levelDb = -120f) }
+        update { if (source === capture) copy(error = SessionError.Capture(error), micFailed = true, levelDb = -120f) else this }
     }
 
     // ---- main thread --------------------------------------------------------------------------------------------
@@ -608,11 +673,16 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     private fun speechActive(now: Long) = !state.digitalSilence && state.silencedBySystem != true &&
         (lastVoiceAt == 0L || now - lastVoiceAt <= 1500L || state.levelDb > VOICE_MIN_DB)
 
+    private fun predictionActive(now: Long): Boolean {
+        val audible = capture?.lastAudibleAtMs ?: return false
+        return state.silencedBySystem != true && now - audible in 0L..160L
+    }
+
     /** Called under lock; the tracker never consumes the forecast. */
     private fun predictedHighlight(now: Long): Int {
         val s = state
         val active = s.listening && !s.paused && s.scroll == Scroll.VOICE && !s.starting &&
-            !s.loadingModel && !s.autoFallback && !s.micFailed && countdownEndsAt == 0L && speechActive(now)
+            !s.loadingModel && !s.autoFallback && !s.micFailed && countdownEndsAt == 0L && predictionActive(now)
         val limit = if (lang == SpeechLang.ZH) 6 else app.settings.leadWords.coerceIn(0, 4)
         return tracker.tokenIndexAt(highlightPrediction.target(tracker.position, tracker.size, now, active, limit, app.settings.speechRateCompensation))
     }
@@ -624,13 +694,12 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         val ready = s.listening && !s.paused && !s.starting && !s.loadingModel && countdownEndsAt == 0L
         if (!ready) return ReadingMotion.Sample(actual, revision = epoch)
         if (timed) return ReadingMotion.Sample(actual + autoCarry.toFloat(), app.settings.timedScrollWpm / 60f, tracker.size.toFloat(), revision = epoch)
-        val active = s.scroll == Scroll.VOICE && !s.autoFallback && !s.micFailed && speechActive(now)
+        val active = s.scroll == Scroll.VOICE && !s.autoFallback && !s.micFailed && predictionActive(now)
         val limit = if (lang == SpeechLang.ZH) 6 else app.settings.leadWords.coerceIn(0, 4)
         val rate = highlightPrediction.motionRate(now, active, app.settings.speechRateCompensation)
-        if (rate <= 0f) return ReadingMotion.Sample(actual, revision = epoch)
         val ceiling = highlightPrediction.forecast(tracker.position, tracker.size, now, active, limit, app.settings.speechRateCompensation)
-        val forecast = (actual + rate * highlightPrediction.horizonSeconds).coerceAtMost(ceiling)
-        return ReadingMotion.Sample(actual, rate, ceiling, forecast, epoch)
+        val forecast = ceiling
+        return ReadingMotion.Sample(actual, rate, ceiling, forecast, epoch, now)
     }
 
     private val ticker = object : Runnable {
@@ -696,12 +765,15 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
     }
 
     private fun resetStats() {
+        followTiming.drain()
         statFrames = 0
         statZeroFrames = 0
         statDbSum = 0.0
         statDbMax = -120f
         statWords = 0
         zeroSince = 0L
+        lastLevelUpdate = 0L
+        lastEmissionLagMs = null
         feeding = false
         noiseFloorDb = Float.NaN
         lastVoiceAt = 0L
@@ -723,6 +795,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
 
     private fun logStats() {
         if (statFrames == 0) return
+        DiagLog.i(followTiming.drain() + ", emission=${lastEmissionLagMs?.toString() ?: "unknown"}")
         val avg = statDbSum / statFrames
         val zeroPct = statZeroFrames * 100 / statFrames
         DiagLog.i(

@@ -25,6 +25,7 @@ import android.view.MotionEvent
 import android.view.View
 import com.olerast.suflyor.script.ScriptModel
 import com.olerast.suflyor.R
+import com.olerast.suflyor.diag.DiagLog
 import kotlin.math.floor
 
 /** Karaoke text-only colour wipes, with confirmed reading separated from cross-line prediction. */
@@ -46,6 +47,8 @@ class PrompterView(context: Context) : View(context) {
     private val viewportMotion = ViewportMotion()
     private var motionSample = ReadingMotion.Sample()
     private var noticeUntil = 0L
+    private var lastRenderLog = 0L
+    private var lastRenderedSample = 0L
     private val noteColor = Color.argb(170, 140, 200, 255)
 
     /** Lines of already-read text kept visible above the reading line. */
@@ -264,6 +267,15 @@ class PrompterView(context: Context) : View(context) {
         val l = layout ?: return
         val now = SystemClock.uptimeMillis()
         val position = readingMotion.frame(now)
+        val issued = motionSample.issuedAtMs
+        val elapsed = SystemClock.elapsedRealtime()
+        if (issued > 0L && issued != lastRenderedSample) {
+            lastRenderedSample = issued
+            if (elapsed - lastRenderLog >= 5000L) {
+                lastRenderLog = elapsed
+                DiagLog.i("Follow render dispatch: ${(elapsed - issued).coerceAtLeast(0L)} ms")
+            }
+        }
         val nextY = scrollTarget(l)
         targetY = nextY
         if (now >= manualUntil) {

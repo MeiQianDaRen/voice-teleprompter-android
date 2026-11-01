@@ -13,7 +13,8 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
     private val eligible = tokens.indices.filter { ChineseNorm.isHan(tokens[it].norm) && tokens[it].weight > 0f }
     private val indices = eligible.flatMap { i -> List(tokens[i].norm.codePointCount(0, tokens[i].norm.length)) { i } }.toIntArray()
     private val script = eligible.flatMap { ChineseNorm.words(tokens[it].norm) }
-    private val local = ChineseLocalAlignment(script, indices.map { tokens[it].weight },
+    private val scriptWeights = indices.map { tokens[it].weight }
+    private val local = ChineseLocalAlignment(script, scriptWeights,
         indices.indices.filter { i -> tokens[indices[i]].anchor && (i == 0 || indices[i] != indices[i - 1]) }.toSet(), pronunciation)
     enum class Phase { FOLLOWING, LOW_CONFIDENCE, SILENT, RETAKE_PENDING, REANCHORING }
     var phase = Phase.FOLLOWING
@@ -38,7 +39,8 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
     private data class PendingRetake(val match: Match, val prefix: List<String>, val raw: List<String>,
         val tail: List<String>, val isFinal: Boolean, val since: Long, val observations: Int)
 
-    data class Result(val position: Int, val matches: Int, val reason: String, val quality: Float = if (matches > 0) 1f else 0f)
+    data class Result(val position: Int, val matches: Int, val reason: String, val quality: Float = if (matches > 0) 1f else 0f,
+                      val provisionalPosition: Int? = null)
     private data class Match(val start: Int, val end: Int, val count: Int, val consecutive: Int, val tail: Int, val heardStart: Int = 0, val edits: Int = 0, val quality: Float = 1f)
 
     fun reset(position: Int) {
@@ -216,7 +218,26 @@ internal class ChineseAlignment(tokens: List<Token>, retakeChars: Int = ChineseR
         repeatedMatches = best?.count ?: 0
         return Result(if (cursor >= indices.size) total else indices[cursor], best?.count ?: 0,
             if (restarted) "restart (voice command)" else if (best == null) "no confident characters" else reason,
-            repeatedQuality)
+            repeatedQuality,
+            if (!isFinal && !retracting && nowMs >= holdUntil && phase != Phase.RETAKE_PENDING &&
+                (confidence == null || confidence >= 0.35f)) preview(heard) else null)
+    }
+
+    /** Exact, informative, unambiguous short tails may colour text without committing progress. */
+    private fun preview(heard: List<String>): Int? {
+        for (length in minOf(4, heard.size) downTo 2) {
+            val tail = heard.takeLast(length)
+            val ends = ((cursor - length + 1).coerceAtLeast(0)..minOf(cursor + 1, script.size - length))
+                .filter { start ->
+                    val end = start + length
+                    end > cursor && end - cursor <= 4 && script.subList(start, end) == tail &&
+                        scriptWeights.subList(start, end).average() >= 0.65
+                }.map { it + length }.distinct()
+            if (ends.size > 1) return null
+            val end = ends.singleOrNull() ?: continue
+            return if (end >= indices.size) total else indices[end]
+        }
+        return null
     }
 
     private fun confident(match: Match, length: Int): Boolean {

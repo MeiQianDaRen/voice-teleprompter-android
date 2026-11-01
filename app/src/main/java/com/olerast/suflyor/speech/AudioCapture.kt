@@ -3,10 +3,12 @@ package com.olerast.suflyor.speech
 import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioFormat
+import android.media.AudioTimestamp
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.Process
+import android.os.SystemClock
 import com.olerast.suflyor.R
 import com.olerast.suflyor.diag.DiagLog
 import kotlin.math.log10
@@ -59,8 +61,11 @@ class AudioCapture(
     private val listener: Listener,
 ) {
     interface Listener {
-        /** Called on the capture thread with ~100 ms of mono audio in [-1, 1]. */
+        /** Called on the processing thread; capture remains independent of model inference. */
         fun onAudio(samples: FloatArray, sampleRate: Int, rmsDb: Float, digitalSilence: Boolean)
+        fun onAudioFrame(source: AudioCapture, frame: AudioFrame) {
+            onAudio(frame.samples, frame.sampleRate, frame.rmsDb, frame.digitalSilence)
+        }
         /** The microphone stopped for good; [source] tells an old capture's late report from the current one. */
         fun onCaptureError(source: AudioCapture, error: CaptureError)
     }
@@ -69,6 +74,11 @@ class AudioCapture(
     private var running = false
     private var record: AudioRecord? = null
     private var thread: Thread? = null
+    private var processor: Thread? = null
+    private var queue = AudioFrameQueue()
+
+    @Volatile var lastAudibleAtMs = 0L
+        private set
 
     val audioSessionId: Int get() = record?.audioSessionId ?: 0
 
@@ -83,6 +93,17 @@ class AudioCapture(
         if (rec == null) return error
         record = rec
         running = true
+        queue = AudioFrameQueue()
+        val input = queue
+        processor = Thread({
+            Process.setThreadPriority(Process.THREAD_PRIORITY_DEFAULT)
+            while (running) {
+                val frame = input.take() ?: break
+                if (!running) break
+                if (frame.discontinuity) DiagLog.i("Audio stream gap; pending audio cleared, total ${input.droppedMs} ms")
+                listener.onAudioFrame(this, frame)
+            }
+        }, "asr-decode").also { it.start() }
         thread = Thread({ loop(rec) }, "audio-capture").also { it.start() }
         return null
     }
@@ -127,7 +148,11 @@ class AudioCapture(
         Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
         var rec = first
         var reopens = 0
-        val chunk = sampleRate / 10
+        val chunk = sampleRate / 25 // 40 ms; model readiness still determines decoding cadence.
+        var readFrames = 0L
+        var clock = AudioSampleClock(sampleRate)
+        val timestamp = AudioTimestamp()
+        var gap = false
         val shorts = ShortArray(chunk)
         while (running) {
             val n = rec.read(shorts, 0, chunk)
@@ -143,6 +168,9 @@ class AudioCapture(
                 }
                 reopens++
                 rec = reopened
+                readFrames = 0L
+                clock = AudioSampleClock(sampleRate)
+                gap = true
                 continue
             }
             if (n == 0) continue
@@ -158,8 +186,19 @@ class AudioCapture(
             }
             val rms = sqrt(sum / n)
             val db = if (rms > 1e-7) (20 * log10(rms)).toFloat() else -120f
-            listener.onAudio(samples, sampleRate, db, !nonZero)
+            readFrames += n
+            val now = SystemClock.elapsedRealtime()
+            val stamped = runCatching {
+                rec.getTimestamp(timestamp, AudioTimestamp.TIMEBASE_BOOTTIME) == AudioRecord.SUCCESS
+            }.getOrDefault(false)
+            val capturedAt = clock.endTime(readFrames, now,
+                if (stamped) timestamp.framePosition else null,
+                if (stamped) timestamp.nanoTime / 1_000_000.0 else null)
+            if (nonZero && db > -50f) lastAudibleAtMs = capturedAt
+            queue.offer(AudioFrame(samples, sampleRate, db, !nonZero, capturedAt, now, gap))
+            gap = false
         }
+        queue.close()
     }
 
     /**
@@ -193,9 +232,12 @@ class AudioCapture(
 
     fun stop() {
         running = false
+        queue.close()
         runCatching { record?.stop() }
         thread?.join(700)
         thread = null
+        processor?.join(700)
+        processor = null
         runCatching { record?.release() }
         record = null
     }

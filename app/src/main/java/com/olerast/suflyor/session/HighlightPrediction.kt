@@ -17,6 +17,15 @@ internal class HighlightPrediction {
     private var reliable = false
     private var confidenceScale = 1f
     private var sentenceEnds = emptyList<Int>()
+    private var measuredLatencyMs: Long? = null
+    private var latencyAt = 0L
+    private var provisional: Int? = null
+    private var provisionalAt = 0L
+
+    fun preview(position: Int?, now: Long) {
+        provisional = position?.takeIf { it > actual && it - actual <= 4 }
+        provisionalAt = now
+    }
     var averageRate = 0f
         private set
 
@@ -36,10 +45,12 @@ internal class HighlightPrediction {
         reliable = false
         confidenceScale = 1f
         averageRate = 0f
+        measuredLatencyMs = null
+        provisional = null
     }
 
     fun observe(position: Int, isFinal: Boolean, now: Long, speechTimeMs: Long? = null,
-                segmentId: Long = 0L, confidence: Float? = null, trusted: Boolean = true) {
+                segmentId: Long = 0L, confidence: Float? = null, trusted: Boolean = true, latencyMs: Long? = null) {
         val delta = position - actual
         if (delta < 0 || delta > 12 || now < lastObserved || now - lastAdvance > 2000L) reset(position, now)
         reliable = trusted && (confidence == null || confidence >= 0.35f)
@@ -66,7 +77,11 @@ internal class HighlightPrediction {
         }
         actual = position
         lastObserved = now
-        if (isFinal) ended = true
+        if (latencyMs != null && trusted && reliable && !isFinal) {
+            measuredLatencyMs = latencyMs.coerceIn(0L, 1200L)
+            latencyAt = now
+        }
+        if (isFinal) { ended = true; provisional = null }
     }
 
     fun motionRate(now: Long, active: Boolean, compensationPercent: Int = 0): Float =
@@ -89,11 +104,16 @@ internal class HighlightPrediction {
     fun forecast(position: Int, total: Int, now: Long, active: Boolean, maxAhead: Int, compensationPercent: Int = 0): Float {
         if (position != actual) reset(position, now)
         val rate = motionRate(now, active, compensationPercent)
-        if (rate <= 0f || position >= total || maxAhead <= 0) {
+        if (position >= total || maxAhead <= 0) return position.toFloat()
+        val preview = provisional?.takeIf { active && now - provisionalAt in 0L..250L }?.toFloat() ?: position.toFloat()
+        val prediction = if (rate <= 0f) {
             if (!active || now - lastAdvance > staleMs) ended = true
-            return position.toFloat()
+            position.toFloat()
+        } else {
+            val lagSeconds = measuredLatencyMs?.takeIf { now - latencyAt in 0L..2000L }?.div(1000f) ?: horizonSeconds
+            val ageSeconds = (now - lastAdvance).coerceIn(0L, 300L) / 1000f
+            position + rate * (lagSeconds + ageSeconds)
         }
-        val ageSeconds = (now - lastAdvance).coerceIn(0L, 300L) / 1000f
-        return (position + rate * (horizonSeconds + ageSeconds)).coerceAtMost(ceiling(position, total, maxAhead).toFloat())
+        return maxOf(prediction, preview).coerceAtMost(ceiling(position, total, maxAhead).toFloat())
     }
 }

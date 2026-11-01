@@ -34,6 +34,11 @@ class SherpaAsr private constructor(
     private var lastUpdate: AsrUpdate? = null
     private var segmentId = 0L
     private var released = false
+    private val inputClock = AsrInputClock()
+
+    @Synchronized
+    override fun accept(samples: FloatArray, sampleRate: Int, isCurrent: () -> Boolean): AsrUpdate? =
+        if (isCurrent()) accept(samples, sampleRate) else null
 
     @Synchronized
     override fun accept(samples: FloatArray, sampleRate: Int): AsrUpdate? {
@@ -41,21 +46,30 @@ class SherpaAsr private constructor(
         if (released) return null
         if (hotwordsChanged) recreateStream()
         stream.acceptWaveform(samples, sampleRate)
+        val voiced = samples.isNotEmpty() && samples.sumOf { it.toDouble() * it } / samples.size > 0.00001
+        inputClock.accept(samples.size, sampleRate, voiced)
         while (recognizer.isReady(stream)) recognizer.decode(stream)
         val result = recognizer.getResult(stream)
         val text = result.text.trim()
         val update = AsrUpdate(text, false, result.tokens.mapIndexed { i, token ->
             AsrToken(token, result.timestamps.getOrNull(i), result.ysProbs.getOrNull(i))
         }, segmentId)
+        if (text.isNotEmpty() && text != lastUpdate?.text) inputClock.textChanged()
         if (recognizer.isEndpoint(stream)) {
-            recognizer.reset(stream)
-            lastUpdate = null
-            segmentId++
-            return if (text.isNotEmpty()) update.copy(isFinal = true) else null
+            val final = update.copy(isFinal = true, audioDurationMs = inputClock.audioDurationMs)
+            // Kotlin does not expose native start_time. A fresh stream gives timestamps an exact input origin.
+            if (inputClock.mayRecreateAtEndpoint) recreateStream() else {
+                // A 12-second limit can cut live speech. Preserve native pending frames and mark its origin unknown.
+                recognizer.reset(stream)
+                inputClock.decoderReset()
+                lastUpdate = null
+                segmentId++
+            }
+            return if (text.isNotEmpty()) final else null
         }
         if (update == lastUpdate) return null
         lastUpdate = update
-        return update
+        return update.copy(audioDurationMs = inputClock.audioDurationMs)
     }
 
     @Synchronized
@@ -66,11 +80,13 @@ class SherpaAsr private constructor(
     }
 
     private fun recreateStream() {
-        stream.release()
         // Only a config that can encode hotwords gets them, and never an empty list (a script with no word the
         // model's vocabulary can spell): the plain stream is the one sherpa-onnx is tested with.
-        stream = if (hotwordsEnabled && hotwords.isNotEmpty()) recognizer.createStream(hotwords) else recognizer.createStream()
+        val next = if (hotwordsEnabled && hotwords.isNotEmpty()) recognizer.createStream(hotwords) else recognizer.createStream()
+        stream.release()
+        stream = next
         hotwordsChanged = false
+        inputClock.reset()
         lastUpdate = null
         segmentId++
     }
@@ -78,9 +94,7 @@ class SherpaAsr private constructor(
     @Synchronized
     override fun reset() {
         if (released) return
-        recognizer.reset(stream)
-        lastUpdate = null
-        segmentId++
+        recreateStream()
     }
 
     @Synchronized
@@ -128,7 +142,7 @@ class SherpaAsr private constructor(
                 endpointConfig = EndpointConfig(
                     rule1 = EndpointRule(false, 2.0f, 0.0f),
                     rule2 = EndpointRule(true, 0.8f, 0.0f),
-                    rule3 = EndpointRule(false, 0.0f, 12.0f),
+                    rule3 = EndpointRule(false, 0.0f, AsrInputClock.MAX_SEGMENT_MS / 1000f),
                 ),
                 enableEndpoint = true,
                 decodingMethod = if (contextual) "modified_beam_search" else "greedy_search",
