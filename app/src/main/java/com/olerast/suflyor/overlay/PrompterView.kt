@@ -43,8 +43,7 @@ class PrompterView(context: Context) : View(context) {
     private var readProgress = KaraokeProgress()
     private val readingMotion = ReadingMotion()
     private var spoken = IntArray(0)
-    private var rowFirst = IntArray(0)
-    private var rowEnd = IntArray(0)
+    private val viewportMotion = ViewportMotion()
     private var motionSample = ReadingMotion.Sample()
     private var noticeUntil = 0L
     private val noteColor = Color.argb(170, 140, 200, 255)
@@ -102,9 +101,6 @@ class PrompterView(context: Context) : View(context) {
     private var currentLine = 0
     private var posY = 0f
     private var targetY = 0f
-    private var scrollFrom = 0f
-    private var scrollStarted = 0L
-    private var scrollDuration = 0L
     private var moveDelta = 0
     private var wasManual = false
     private var manualUntil = 0L
@@ -165,27 +161,20 @@ class PrompterView(context: Context) : View(context) {
         val l = layout ?: return
         currentLine = if (nextToken >= model.tokens.size) l.lineCount - 1 else l.getLineForOffset(model.tokens[nextToken].start)
         if (!animate) {
-            targetY = scrollTarget(l, readingMotion.frame(SystemClock.uptimeMillis()))
+            targetY = scrollTarget(l)
             posY = targetY
-            scrollDuration = 0L
+            viewportMotion.reset(targetY)
         }
         invalidate()
     }
 
-    private fun fixedReadingRow() = readLines == 0 || height - paddingTop - paddingBottom < lineHeightPx * 1.5f
-
-    private fun scrollTarget(l: StaticLayout, position: Float): Float {
-        if (spoken.isEmpty()) return 0f
-        if (fixedReadingRow()) return l.getLineTop(currentLine).toFloat()
-        val at = floor(position).toInt().coerceIn(0, spoken.size - 1)
-        val row = l.getLineForOffset(model.tokens[spoken[at]].start)
-        val nextRow = spoken.getOrNull(rowEnd[at])?.let { l.getLineForOffset(model.tokens[it].start) } ?: row
-        val y = ScrollMotion.rowPosition(position, rowFirst[at], rowEnd[at], l.getLineTop(row).toFloat(), l.getLineTop(nextRow).toFloat())
+    /** Only confirmed text moves the viewport; retracting a forecast must never pull a line back. */
+    private fun scrollTarget(l: StaticLayout): Float {
         val above = readLines?.let {
-            PrompterViewport.readOffset(l.lineCount - 1, it, (height - paddingTop - paddingBottom).coerceAtLeast(0),
+            PrompterViewport.readOffset(currentLine, it, (height - paddingTop - paddingBottom).coerceAtLeast(0),
                 l::getLineTop, l::getLineBottom).toFloat()
         } ?: (linesAbove * lineHeightPx)
-        return (y - above).coerceAtLeast(0f)
+        return (l.getLineTop(currentLine) - above).coerceAtLeast(0f)
     }
 
     private data class TextPoint(val row: Int, val x: Float)
@@ -218,7 +207,20 @@ class PrompterView(context: Context) : View(context) {
         canvas.save()
         canvas.clipPath(colourPath)
         paint.color = colour
-        l.draw(canvas)
+        if (b.row in first..last) {
+            // Paint completed rows together, then feather only the advancing edge.
+            canvas.save()
+            canvas.clipRect(0f, 0f, l.width.toFloat(), l.getLineTop(b.row).toFloat())
+            l.draw(canvas)
+            canvas.restore()
+            canvas.clipRect(0f, l.getLineTop(b.row).toFloat(), l.width.toFloat(), l.getLineBottom(b.row).toFloat())
+            val direction = if (l.getParagraphDirection(b.row) < 0) -1f else 1f
+            val feather = paint.textSize * 0.3f
+            paint.shader = LinearGradient(b.x - direction * feather, 0f, b.x, 0f,
+                colour, colour and 0x00FFFFFF, Shader.TileMode.CLAMP)
+            l.draw(canvas)
+            paint.shader = null
+        } else l.draw(canvas)
         paint.color = Color.WHITE
         canvas.restore()
     }
@@ -250,48 +252,27 @@ class PrompterView(context: Context) : View(context) {
             .setIncludePad(false)
             .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
             .build()
-        val rows = IntArray(spoken.size) { layout!!.getLineForOffset(model.tokens[spoken[it]].start) }
-        rowFirst = IntArray(spoken.size)
-        rowEnd = IntArray(spoken.size)
-        var i = 0
-        while (i < rows.size) {
-            var end = i + 1
-            while (end < rows.size && rows[end] == rows[i]) end++
-            for (j in i until end) { rowFirst[j] = i; rowEnd[j] = end }
-            i = end
-        }
         applyProgress(false)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        rebuildLayout()
+        if (w != oldw || layout == null) rebuildLayout() else applyProgress(false)
     }
 
     override fun onDraw(canvas: Canvas) {
         val l = layout ?: return
         val now = SystemClock.uptimeMillis()
         val position = readingMotion.frame(now)
-        val at = floor(position).toInt().coerceIn(0, spoken.size.coerceAtLeast(1) - 1)
-        val token = spoken.getOrNull(at)
-        val previousLine = currentLine
-        currentLine = token?.let { l.getLineForOffset(model.tokens[it].start) } ?: 0
-        val nextY = scrollTarget(l, position)
-        if (fixedReadingRow() && nextY != targetY && now >= manualUntil && !wasManual) {
-            scrollFrom = posY
-            scrollStarted = now
-            scrollDuration = ScrollMotion.duration(if (currentLine < previousLine) -3 else 3)
-        }
+        val nextY = scrollTarget(l)
         targetY = nextY
         if (now >= manualUntil) {
             if (wasManual) {
-                scrollFrom = posY
-                scrollStarted = now
-                scrollDuration = 350L
+                viewportMotion.reset(posY)
                 wasManual = false
             }
-            posY = if (now - scrollStarted < scrollDuration)
-                ScrollMotion.position(scrollFrom, targetY, now - scrollStarted, scrollDuration) else targetY
+            viewportMotion.follow(nextY, now)
+            posY = viewportMotion.frame(now)
         }
         val read = readProgress.frame(now).coerceIn(0f, spoken.size.toFloat())
         val cue = maxOf(read + 1f, position + 1f).coerceAtMost(spoken.size.toFloat())
@@ -304,8 +285,8 @@ class PrompterView(context: Context) : View(context) {
         canvas.translate(paddingLeft.toFloat(), paddingTop - posY)
         paint.color = Color.WHITE
         l.draw(canvas)
+        drawColour(canvas, l, 0f, cueOffset, HIGHLIGHT)
         drawColour(canvas, l, 0f, readOffset, READ_COLOUR)
-        drawColour(canvas, l, readOffset, cueOffset, HIGHLIGHT)
         drawEdgeFade(canvas, l)
         canvas.restore()
         canvas.restoreToCount(layer)
@@ -315,7 +296,7 @@ class PrompterView(context: Context) : View(context) {
             canvas.drawText(message, width - paddingRight - noticePaint.measureText(message), paddingTop + dp(16f), noticePaint)
         }
         if (readingMotion.running(now) || readProgress.running(now) || now < manualUntil ||
-            now - scrollStarted < scrollDuration || now < noticeUntil) postInvalidateOnAnimation()
+            viewportMotion.running(now) || now < noticeUntil) postInvalidateOnAnimation()
     }
 
     private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {

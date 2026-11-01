@@ -167,7 +167,7 @@
     <string name="settings_section_advanced">For advanced users</string>
     <string name="settings_sum_ready_all">Everything is set</string>
     <string name="settings_sum_ready_part">Done %1$d of %2$d: tap to finish</string>
-    <string name="settings_sum_overlay">Lines: %1$d · text %2$d · background %3$d%%</string>
+    <string name="settings_sum_overlay">Text %1$d · background %2$d%%</string>
     <string name="settings_sum_fullscreen">Text %1$d · mirror: %2$s</string>
     <string name="settings_sum_voice">Speech language: %1$s</string>
     <string name="settings_sum_timed">%1$d wpm · countdown: %2$s</string>

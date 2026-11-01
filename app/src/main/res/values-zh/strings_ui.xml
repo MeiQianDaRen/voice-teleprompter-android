@@ -137,7 +137,7 @@
     <string name="settings_section_advanced">高级设置</string>
     <string name="settings_sum_ready_all">已全部设置完成</string>
     <string name="settings_sum_ready_part">已完成 %1$d / %2$d 项，点击继续设置</string>
-    <string name="settings_sum_overlay">行数：%1$d · 字号：%2$d · 背景：%3$d%%</string>
+    <string name="settings_sum_overlay">字号：%1$d · 背景：%2$d%%</string>
     <string name="settings_sum_fullscreen">字号：%1$d · 镜像：%2$s</string>
     <string name="settings_sum_voice">语音识别语言：%1$s</string>
     <string name="settings_sum_timed">%1$d 字词/分钟 · 倒计时：%2$s</string>

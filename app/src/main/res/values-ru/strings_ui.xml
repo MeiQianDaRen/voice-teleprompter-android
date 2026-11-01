@@ -160,7 +160,7 @@
     <string name="settings_section_advanced">Для опытных</string>
     <string name="settings_sum_ready_all">Всё готово</string>
     <string name="settings_sum_ready_part">Готово %1$d из %2$d, нажми, чтобы закончить</string>
-    <string name="settings_sum_overlay">Строк: %1$d · шрифт %2$d · фон %3$d%%</string>
+    <string name="settings_sum_overlay">Шрифт %1$d · фон %2$d%%</string>
     <string name="settings_sum_fullscreen">Шрифт %1$d · зеркало: %2$s</string>
     <string name="settings_sum_voice">Язык речи: %1$s</string>
     <string name="settings_sum_timed">%1$d сл/мин · отсчёт: %2$s</string>

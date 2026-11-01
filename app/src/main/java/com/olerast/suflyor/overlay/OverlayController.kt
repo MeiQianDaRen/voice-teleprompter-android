@@ -74,12 +74,10 @@ class OverlayController(private val context: Context, private val windowType: In
     private lateinit var pauseBtn: ImageView
     private lateinit var modeBtn: ImageView
 
-    /** The settings icon opens text size, lines, background and speed over the camera. */
+    /** The settings icon opens text size, read lines, spacing, background and speed over the camera. */
     private lateinit var tuneRow: View
     private val tuneValues = ArrayList<() -> Unit>()
 
-    /** "Lines" means nothing sideways, where the text fills the window's height. */
-    private var linesGroup: View? = null
     private lateinit var background: GradientDrawable
 
     private var bubble: View? = null
@@ -260,6 +258,7 @@ class OverlayController(private val context: Context, private val windowType: In
         grabber.setOnTouchListener { _, e ->
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    if (tuneRow.visibility == View.VISIBLE) setTuneOpen(false)
                     downX = e.rawX
                     downY = e.rawY
                     dragStart = windowBounds
@@ -352,7 +351,7 @@ class OverlayController(private val context: Context, private val windowType: In
             (if (tuneRow.visibility == View.VISIBLE) tuneRow.measuredHeight.coerceAtLeast(dp(180)) else 0) +
             (if (diag.visibility == View.VISIBLE) dp(44) else 0)
         return OverlayGeometry.minimum(frame?.angle ?: 0,
-            dp(if (tuneRow.visibility == View.VISIBLE) 320 else 240), prompter.lineHeightPx + dp(36) + chrome + safeTop)
+            dp(if (tuneRow.visibility == View.VISIBLE) 320 else 240), dp(72) + chrome + safeTop)
     }
 
     private fun updateBounds(next: OverlayGeometry.Rect) {
@@ -397,7 +396,6 @@ class OverlayController(private val context: Context, private val windowType: In
             weight = 1f
         }
         grabber.visibility = if (locked) View.GONE else View.VISIBLE
-        linesGroup?.visibility = View.VISIBLE
         if (boundsPlacement != placement || boundsScreenW != screenW || boundsScreenH != screenH) {
             windowBounds = OverlayGeometry.restore(app.settings.overlayBounds(placement.name), screenW, screenH) ?: when (placement) {
                 Placement.PORTRAIT -> OverlayGeometry.Rect(0, app.settings.overlayY.coerceAtLeast(0), screenW, prompterHeight() + dp(84) + safeTop)
@@ -411,7 +409,7 @@ class OverlayController(private val context: Context, private val windowType: In
         }
         val (minW, minH) = minimumWindowSize()
         val rect = OverlayGeometry.fit(windowBounds!!, screenW, screenH, minW, minH)
-        windowBounds = rect
+        if (tuneRow.visibility != View.VISIBLE) windowBounds = rect
         params.width = rect.width
         params.height = rect.height
         params.x = rect.x
@@ -629,8 +627,6 @@ class OverlayController(private val context: Context, private val windowType: In
             addView(
                 row(
                     tuneGroup(R.string.overlay_tune_font, { "$fontSp" }, { changeFont(-2) }, { changeFont(2) }),
-                    tuneGroup(R.string.overlay_tune_lines, { "${s.overlayLines}" }, { changeLines(-1) }, { changeLines(1) })
-                        .also { linesGroup = it },
                 ),
             )
             addView(
@@ -706,19 +702,6 @@ class OverlayController(private val context: Context, private val windowType: In
         applyPlacement()
         frame?.let { wm.updateViewLayout(it, params) }
         if (locked) positionBubble()
-    }
-
-    private fun changeLines(delta: Int) {
-        val old = app.settings.overlayLines
-        app.settings.overlayLines = (old + delta).coerceIn(1, 8)
-        prompter.readLines = app.settings.overlayReadLines
-        val change = (app.settings.overlayLines - old) * prompter.lineHeightPx
-        windowBounds?.let { rect ->
-            windowBounds = if (frame?.angle == 0) rect.copy(height = rect.height + change) else rect.copy(width = rect.width + change)
-        }
-        applyPlacement()
-        saveBounds()
-        frame?.let { wm.updateViewLayout(it, params) }
     }
 
     /** Apply reading preferences without recreating the window or resetting recognition. */

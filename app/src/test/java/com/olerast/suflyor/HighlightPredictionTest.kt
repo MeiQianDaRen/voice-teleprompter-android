@@ -101,13 +101,15 @@ class HighlightPredictionTest {
         assertEquals(5f, p.averageRate, 0.01f)
     }
 
-    @Test fun shortPredictionBudgetDoesNotGrowDuringARecognitionGap() {
+    @Test fun arrivalAgeIsCompensatedButCannotGrowWithoutBound() {
         val p = paced()
         assertEquals(5f, p.averageRate, 0.01f)
-        assertEquals(4, p.at(3, 400))
-        assertEquals(4, p.at(3, 600))
-        assertEquals(4, p.at(3, 800))
-        assertTrue(p.forecast(3, 100, 800, true, 6) <= 3 + p.averageRate * 0.3f)
+        val initial = p.forecast(3, 100, 400, true, 6)
+        assertEquals(initial + 1f, p.forecast(3, 100, 600, true, 6), 0.01f)
+        val capped = p.forecast(3, 100, 700, true, 6)
+        assertEquals(initial + 1.5f, capped, 0.01f)
+        assertEquals(capped, p.forecast(3, 100, 800, true, 6), 0f)
+        assertEquals(3f, p.forecast(3, 100, 1000, true, 6), 0f)
     }
 
     @Test fun predictionHasAHardLeadLimitEvenAtHighSpeed() {
@@ -175,12 +177,12 @@ class HighlightPredictionTest {
         assertEquals(paced().averageRate, batch.averageRate, 0.01f)
     }
 
-    @Test fun slowerNewSpeechDoesNotMakeFocusWobbleBackwardMidSentence() {
+    @Test fun slowingSpeechReducesPredictionBudgetWithoutExceedingItsLeadLimit() {
         val p = paced()
-        val ahead = p.at(3, 800)
+        p.at(3, 800)
         p.observe(4, false, 900)
-        assertTrue(p.at(4, 900) >= ahead)
-        assertTrue(p.at(4, 900) <= 10)
+        assertTrue(p.averageRate < 5f)
+        assertTrue(p.forecast(4, 100, 900, true, 6) in 4f..10f)
     }
 
     @Test fun endOfScriptAndUnexpectedPositionAreBounded() {

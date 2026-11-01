@@ -629,7 +629,7 @@ class SessionEngine(private val app: App) : AudioCapture.Listener {
         val rate = highlightPrediction.motionRate(now, active, app.settings.speechRateCompensation)
         if (rate <= 0f) return ReadingMotion.Sample(actual, revision = epoch)
         val ceiling = highlightPrediction.forecast(tracker.position, tracker.size, now, active, limit, app.settings.speechRateCompensation)
-        val forecast = (actual + rate * 0.1f).coerceAtMost(ceiling)
+        val forecast = (actual + rate * highlightPrediction.horizonSeconds).coerceAtMost(ceiling)
         return ReadingMotion.Sample(actual, rate, ceiling, forecast, epoch)
     }
 

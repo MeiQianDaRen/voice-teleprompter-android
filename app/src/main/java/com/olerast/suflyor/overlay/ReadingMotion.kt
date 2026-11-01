@@ -34,13 +34,24 @@ class ReadingMotion {
         val current = frame(now)
         val seek = previous != null && (next.revision != previous.revision || next.position < previous.position)
         val delta = next.forecast - current
-        sample = next
+        if (animate && previous != null && next.position == previous.position &&
+            next.rate == previous.rate && next.forecast == previous.forecast && next.revision == previous.revision) {
+            val elapsed = (now - started).coerceAtLeast(0L)
+            correction *= 1f - ScrollMotion.position(0f, 1f, elapsed, duration)
+            duration = (duration - elapsed).coerceAtLeast(0L)
+            origin = current
+            started = now
+            sample = next.copy(ceiling = if (next.rate > 0f) maxOf(next.ceiling, current) else next.ceiling)
+            ceilingFrom = maxOf(current, sample!!.ceiling)
+            return // A ticker/ceiling update must not restart an in-flight correction.
+        }
+        sample = next.copy(ceiling = if (!seek && next.rate > 0f && animate) maxOf(next.ceiling, current) else next.ceiling)
         origin = if (animate && previous != null) current else next.position
         correction = if (!animate || previous == null) 0f
-            else if (!seek && next.rate > 0f && (delta < 0f || abs(delta) <= 2f)) 0f else delta
-        ceilingFrom = maxOf(origin, next.ceiling)
+            else if (!seek && next.rate > 0f && delta < 0f) 0f else delta
+        ceilingFrom = maxOf(origin, sample!!.ceiling)
         started = now
-        duration = if (!animate || previous == null) 0L else ScrollMotion.duration(if (seek) -3 else abs(delta).roundToInt())
+        duration = if (!animate || previous == null) 0L else if (seek) 350L else if (abs(delta) <= 3f) 80L else ScrollMotion.duration(abs(delta).roundToInt())
     }
 
     fun frame(now: Long): Float {

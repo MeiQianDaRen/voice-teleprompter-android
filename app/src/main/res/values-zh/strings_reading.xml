@@ -2,6 +2,6 @@
 <resources>
     <string name="overlay_tune_read_lines">已读行数</string>
     <string name="overlay_tune_line_spacing">行距</string>
-    <string name="settings_read_lines_hint">默认 1；最多为显示行数减 1，至少留一行给当前阅读行。窗口变小、字号或行距变大时，实际显示会自动减少。</string>
+    <string name="settings_read_lines_hint">默认 1；按实际窗口高度限制已读行数，至少保留当前阅读行。调节已读行数、字号和行距不改变窗口尺寸，请通过「调整大小」调节宽高。</string>
     <string name="settings_line_spacing_hint" formatted="false">100%–200%，默认 112%；数值越大，行间距离越大。</string>
 </resources>

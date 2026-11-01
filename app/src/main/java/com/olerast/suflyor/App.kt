@@ -121,16 +121,11 @@ class Settings(context: Context) {
     var fontSp: Int
         get() = prefs.getInt("fontSp", 26)
         set(v) = prefs.edit().putInt("fontSp", v).apply()
-    var overlayLines: Int
-        get() = prefs.getInt("overlayLines", 3).coerceIn(1, 8)
-        set(v) {
-            val lines = v.coerceIn(1, 8)
-            prefs.edit().putInt("overlayLines", lines)
-                .putInt("overlayReadLines", overlayReadLines.coerceAtMost(lines - 1)).apply()
-        }
+    /** Retain the legacy value only for a first-time window size; saved bounds take precedence. */
+    val overlayLines: Int get() = prefs.getInt("overlayLines", 3).coerceIn(1, 8)
     var overlayReadLines: Int
-        get() = prefs.getInt("overlayReadLines", 1).coerceIn(0, overlayLines - 1)
-        set(v) = prefs.edit().putInt("overlayReadLines", v.coerceIn(0, overlayLines - 1)).apply()
+        get() = prefs.getInt("overlayReadLines", 1).coerceIn(0, 30)
+        set(v) = prefs.edit().putInt("overlayReadLines", v.coerceIn(0, 30)).apply()
     var overlayLineSpacing: Int
         get() = prefs.getInt("overlayLineSpacing", 112).coerceIn(100, 200)
         set(v) = prefs.edit().putInt("overlayLineSpacing", v.coerceIn(100, 200)).apply()

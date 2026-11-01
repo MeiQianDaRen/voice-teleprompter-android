@@ -14,7 +14,7 @@ internal class KaraokeProgress {
     fun update(position: Float, epoch: Int, now: Long, animate: Boolean = true) {
         if (position == target && epoch == revision && animate) return
         from = if (revision >= 0 && animate) frame(now) else position
-        duration = if (!animate || revision < 0) 0L else if (position < target || epoch != revision) 180L else 130L
+        duration = if (!animate || revision < 0) 0L else if (position < target || epoch != revision) 180L else 80L
         target = position
         revision = epoch
         started = now

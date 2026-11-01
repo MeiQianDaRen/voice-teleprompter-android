@@ -85,7 +85,7 @@ internal class HighlightPrediction {
         return forecast(position, total, now, active, maxAhead, compensationPercent).roundToInt()
     }
 
-    /** A fixed short distance budget per anchor, shared with the renderer's hard ceiling. */
+    /** Compensate a short arrival interval plus at most 300ms since the last confirmed anchor. */
     fun forecast(position: Int, total: Int, now: Long, active: Boolean, maxAhead: Int, compensationPercent: Int = 0): Float {
         if (position != actual) reset(position, now)
         val rate = motionRate(now, active, compensationPercent)
@@ -93,6 +93,7 @@ internal class HighlightPrediction {
             if (!active || now - lastAdvance > staleMs) ended = true
             return position.toFloat()
         }
-        return (position + rate * horizonSeconds).coerceAtMost(ceiling(position, total, maxAhead).toFloat())
+        val ageSeconds = (now - lastAdvance).coerceIn(0L, 300L) / 1000f
+        return (position + rate * (horizonSeconds + ageSeconds)).coerceAtMost(ceiling(position, total, maxAhead).toFloat())
     }
 }

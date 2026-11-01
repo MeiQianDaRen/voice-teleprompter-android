@@ -16,18 +16,18 @@ class KaraokeProgressTest {
         val p = KaraokeProgress()
         p.update(0f, 1, 0); p.update(1f, 1, 1000)
         assertEquals(0f, p.frame(1000), 0f)
-        assertEquals(0.5f, p.frame(1065), 0.01f)
-        assertEquals(1f, p.frame(1130), 0f)
-        assertFalse(p.running(1130))
+        assertEquals(0.5f, p.frame(1040), 0.01f)
+        assertEquals(1f, p.frame(1080), 0f)
+        assertFalse(p.running(1080))
     }
 
     @Test fun newRecognitionContinuesFromTheDisplayedReadEdge() {
         val p = KaraokeProgress()
         p.update(0f, 1, 0); p.update(3f, 1, 1000)
-        val visible = p.frame(1065)
-        p.update(5f, 1, 1065)
-        assertEquals(visible, p.frame(1065), 0f)
-        assertEquals(5f, p.frame(1195), 0f)
+        val visible = p.frame(1040)
+        p.update(5f, 1, 1040)
+        assertEquals(visible, p.frame(1040), 0f)
+        assertEquals(5f, p.frame(1120), 0f)
     }
 
     @Test fun forecastCanCrossANewlineWithoutMarkingItConfirmed() {

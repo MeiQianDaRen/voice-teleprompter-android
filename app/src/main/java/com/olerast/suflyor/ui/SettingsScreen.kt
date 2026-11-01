@@ -129,7 +129,7 @@ private fun SettingsHome(readiness: Readiness, onOpen: (SettingsPage) -> Unit) {
                 } else {
                     stringResource(R.string.settings_sum_ready_part, readiness.doneCount, readiness.total)
                 }
-                SettingsPage.OVERLAY -> stringResource(R.string.settings_sum_overlay, s.overlayLines, s.fontSp, s.overlayAlpha)
+                SettingsPage.OVERLAY -> stringResource(R.string.settings_sum_overlay, s.fontSp, s.overlayAlpha)
                 SettingsPage.FULLSCREEN ->
                     stringResource(R.string.settings_sum_fullscreen, s.fullScreenFontSp, stringResource(MirrorMode.of(s).label))
                 SettingsPage.VOICE -> stringResource(R.string.settings_sum_voice, stringResource(defaultLangLabel(s.speechLang)))
@@ -268,7 +268,6 @@ private fun OverlayPage() {
     val context = LocalContext.current
     var floatingButton by remember { mutableStateOf(s.floatingButton) }
     var alignment by remember { mutableIntStateOf(s.textAlignment) }
-    var lines by remember { mutableIntStateOf(s.overlayLines) }
     var readLines by remember { mutableIntStateOf(s.overlayReadLines) }
     var lineSpacing by remember { mutableIntStateOf(s.overlayLineSpacing) }
     var font by remember { mutableIntStateOf(s.fontSp) }
@@ -290,17 +289,6 @@ private fun OverlayPage() {
             context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")))
         }
     }
-    StepperRow(
-        stringResource(R.string.settings_lines_title), "$lines", null,
-        onMinus = {
-            lines = (lines - 1).coerceAtLeast(1); s.overlayLines = lines
-            readLines = s.overlayReadLines; OverlayHost.refreshTextSettings()
-        },
-        onPlus = {
-            lines = (lines + 1).coerceAtMost(8); s.overlayLines = lines
-            readLines = s.overlayReadLines; OverlayHost.refreshTextSettings()
-        },
-    )
     StepperRow(
         stringResource(R.string.overlay_tune_read_lines), "$readLines",
         stringResource(R.string.settings_read_lines_hint),
