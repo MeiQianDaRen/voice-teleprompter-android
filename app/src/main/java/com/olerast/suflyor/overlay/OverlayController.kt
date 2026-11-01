@@ -276,7 +276,7 @@ class OverlayController(private val context: Context, private val windowType: In
         }
 
         wm.addView(root, params)
-        prompter.setScript(app.scripts.model)
+        prompter.setScript(OverlayScript.compact(app.scripts.model))
         lastScript = app.scripts.model
         app.engine.addListener(listener)
         displays.registerDisplayListener(displayListener, handler)
@@ -549,7 +549,7 @@ class OverlayController(private val context: Context, private val windowType: In
         prompter.lineSpacingMultiplier = app.settings.overlayLineSpacing / 100f
         if (lastScript !== app.scripts.model) {
             lastScript = app.scripts.model
-            prompter.setScript(app.scripts.model)
+            prompter.setScript(OverlayScript.compact(app.scripts.model))
         }
         prompter.setProgress(s.nextToken, highlightTokenIndex = s.highlightToken, motion = s.motion)
         if (s.countdown > 0) {
